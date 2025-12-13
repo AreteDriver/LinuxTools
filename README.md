@@ -121,9 +121,12 @@ This section provides examples of how to use the G13 Linux Driver and showcases 
 
 *Placeholder: Screenshot showing custom animations on the G13 LCD display*
 
-Example command to display custom text:
+Example commands to display custom text:
 ```bash
-# Display system information on LCD
+# Display a simple message on LCD
+echo "Hello World" > /sys/class/g13/lcd0/text
+
+# Display system information on LCD (may vary by system)
 echo "CPU: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}')" > /sys/class/g13/lcd0/text
 ```
 
