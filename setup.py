@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="g13-ops",
-    version="0.1.0",
+    version="0.2.0",
     author="AreteDriver",
     author_email="",
     description="Python userspace driver for the Logitech G13 Gaming Keyboard on Linux",
@@ -40,6 +40,7 @@ setup(
     install_requires=[
         "hidapi>=0.10.0",
         "evdev>=1.4.0",
+        "PyQt6>=6.4.0",
     ],
     extras_require={
         "dev": [
@@ -53,6 +54,7 @@ setup(
     entry_points={
         "console_scripts": [
             "g13-ops=g13_ops.cli:main",
+            "g13-ops-gui=g13_ops.gui.main:main",
         ],
     },
     keywords="logitech g13 gaming keyboard driver linux hid",

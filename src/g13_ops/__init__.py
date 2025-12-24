@@ -4,7 +4,7 @@ G13LogitechOPS - Python userspace driver for Logitech G13 Gaming Keyboard
 A modern, easy-to-use driver for the Logitech G13 on Linux systems.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "AreteDriver"
 __license__ = "MIT"
 
