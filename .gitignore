@@ -1,4 +1,16 @@
-# Build artifacts
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# C/C++ Build artifacts
 *.o
 *.ko
 *.mod
@@ -35,3 +47,6 @@ g13-driver_*/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Project specific
+*.log
