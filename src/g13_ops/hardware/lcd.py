@@ -1,11 +1,13 @@
 """
 G13 LCD Control
 
-Controls the G13's 160x43 monochrome LCD display.
+Controls the G13's 160x43 monochrome LCD display via USB HID output reports.
 
-STATUS: STUB IMPLEMENTATION
-TODO: Implement USB HID control transfers for LCD
-Reference: libg13 project for LCD protocol
+Protocol (from libg13/kernel driver):
+- LCD is 160x43 pixels, monochrome (1 bit per pixel)
+- Data is sent in 32-byte chunks as output reports
+- Report ID: 0x03
+- Total framebuffer size: 960 bytes (includes padding)
 """
 
 
@@ -14,56 +16,93 @@ class G13LCD:
 
     WIDTH = 160
     HEIGHT = 43
+    BYTES_PER_ROW = WIDTH // 8  # 20 bytes per row
+    FRAMEBUFFER_SIZE = 960  # Padded size used by libg13
+    REPORT_ID = 0x03
+    CHUNK_SIZE = 32
 
     def __init__(self, device_handle=None):
         """
         Initialize LCD controller.
 
         Args:
-            device_handle: USB device handle from hidapi
+            device_handle: HidrawDevice instance from device.py
         """
         self.device = device_handle
+        self._framebuffer = bytearray(self.FRAMEBUFFER_SIZE)
 
     def clear(self):
-        """
-        Clear LCD display.
+        """Clear LCD display (all pixels off)."""
+        self._framebuffer = bytearray(self.FRAMEBUFFER_SIZE)
+        self._send_framebuffer()
 
-        TODO: Implement USB control transfer to clear LCD
-        """
-        print("[LCD STUB] Clear display")
+    def fill(self):
+        """Fill LCD display (all pixels on)."""
+        self._framebuffer = bytearray([0xFF] * self.FRAMEBUFFER_SIZE)
+        self._send_framebuffer()
 
     def write_text(self, text: str, x: int = 0, y: int = 0):
         """
-        Write text to LCD.
+        Write text to LCD using a simple 5x7 font.
 
         Args:
             text: Text to display
             x: X position (0-159)
             y: Y position (0-42)
-
-        TODO: Implement text rendering and USB transfer
-        - Need bitmap font
-        - Convert text to pixels
-        - Send to device via USB
         """
-        print(f"[LCD STUB] Display text: '{text}' at ({x}, {y})")
+        # Simple 5x7 font would require a font table
+        # For now, just update the framebuffer with a pattern
+        print(f"[LCD] Text rendering not yet implemented: '{text}'")
 
     def write_bitmap(self, bitmap: bytes):
         """
         Write raw bitmap to LCD.
 
         Args:
-            bitmap: 160x43 monochrome bitmap
-
-        TODO: Implement USB transfer protocol
-        - Bitmap should be WIDTH * HEIGHT // 8 bytes
-        - Send via USB HID feature report
+            bitmap: Raw bitmap data (960 bytes for full frame)
         """
-        expected_size = (self.WIDTH * self.HEIGHT) // 8
-        if len(bitmap) != expected_size:
-            raise ValueError(f"Invalid bitmap size: expected {expected_size} bytes, got {len(bitmap)}")
+        if len(bitmap) > self.FRAMEBUFFER_SIZE:
+            raise ValueError(f"Bitmap too large: max {self.FRAMEBUFFER_SIZE} bytes")
 
-        print(f"[LCD STUB] Display bitmap: {len(bitmap)} bytes")
+        # Copy bitmap to framebuffer
+        self._framebuffer[:len(bitmap)] = bitmap
+        self._send_framebuffer()
+
+    def set_pixel(self, x: int, y: int, on: bool = True):
+        """
+        Set a single pixel.
+
+        Args:
+            x: X coordinate (0-159)
+            y: Y coordinate (0-42)
+            on: True for pixel on, False for off
+        """
+        if not (0 <= x < self.WIDTH and 0 <= y < self.HEIGHT):
+            return
+
+        byte_idx = (y * self.BYTES_PER_ROW) + (x // 8)
+        bit_idx = 7 - (x % 8)  # MSB first
+
+        if on:
+            self._framebuffer[byte_idx] |= (1 << bit_idx)
+        else:
+            self._framebuffer[byte_idx] &= ~(1 << bit_idx)
+
+    def _send_framebuffer(self):
+        """Send the framebuffer to the device."""
+        if not self.device:
+            print("[LCD] No device connected")
+            return
+
+        try:
+            # Send framebuffer in 32-byte chunks
+            for offset in range(0, self.FRAMEBUFFER_SIZE, self.CHUNK_SIZE):
+                chunk = self._framebuffer[offset:offset + self.CHUNK_SIZE]
+                # Prepend report ID
+                report = bytes([self.REPORT_ID]) + bytes(chunk)
+                self.device.write(report)
+        except OSError as e:
+            print(f"[LCD] Failed to send framebuffer: {e}")
 
     def set_brightness(self, level: int):
         """
@@ -72,9 +111,9 @@ class G13LCD:
         Args:
             level: Brightness level (0-100)
 
-        TODO: Implement brightness control if supported
+        Note: LCD brightness may not be separately controllable on G13.
         """
         if not 0 <= level <= 100:
             raise ValueError("Brightness must be 0-100")
 
-        print(f"[LCD STUB] Set brightness: {level}%")
+        print("[LCD] Brightness control not supported on G13 LCD")

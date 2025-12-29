@@ -3,9 +3,14 @@ Event Decoder
 
 Decodes G13 USB HID reports into button and joystick events.
 
-CRITICAL: This module requires reverse engineering with physical G13 hardware.
-The button mapping (BUTTON_MAP) is currently a stub and needs to be determined
-through systematic testing by pressing each button and recording the raw USB data.
+Button mapping derived from libg13 (https://github.com/ecraven/g13):
+- Byte 1: Joystick X (0-255, center ~128)
+- Byte 2: Joystick Y (0-255, center ~128)
+- Byte 3: G1-G8 (bits 0-7)
+- Byte 4: G9-G16 (bits 0-7)
+- Byte 5: G17-G22 (bits 0-5), reserved (bits 6-7)
+- Byte 6: BD (bit 0), L1-L4 (bits 1-4), M1-M3 (bits 5-7)
+- Byte 7: MR (bit 0), joystick LEFT/DOWN/TOP (bits 1-3)
 """
 
 from dataclasses import dataclass
@@ -24,42 +29,58 @@ class G13ButtonState:
 
 class EventDecoder:
     """
-    Decodes G13 USB HID reports (64 bytes) into structured button/joystick data.
-
-    IMPLEMENTATION STATUS: STUB - Requires hardware testing
-
-    To complete this implementation:
-    1. Run: python -m g13_ops.cli
-    2. Press each button (G1-G22, M1-M3) individually
-    3. Record the RAW output showing which bytes change
-    4. Update BUTTON_MAP with correct (byte_index, bit_position) for each button
-    5. Update JOYSTICK_X_BYTE and JOYSTICK_Y_BYTE with correct positions
+    Decodes G13 USB HID reports into structured button/joystick data.
 
     Reference implementation: https://github.com/ecraven/g13
     """
 
-    # Button bit positions - TO BE DETERMINED via hardware testing
+    # Button bit positions from libg13
     # Format: 'button_id': (byte_index, bit_position)
-    # Example: 'G1': (3, 0) means byte 3, bit 0
     BUTTON_MAP = {
-        # G-keys (TO BE FILLED IN)
-        # 'G1': (3, 0),
-        # 'G2': (3, 1),
-        # 'G3': (3, 2),
-        # ... G4-G22
-
-        # M-keys (TO BE FILLED IN)
-        # 'M1': (2, 0),
-        # 'M2': (2, 1),
-        # 'M3': (2, 2),
-
-        # MR key (if present)
-        # 'MR': (2, 3),
+        # G-keys: Byte 3 (G1-G8)
+        'G1': (3, 0),
+        'G2': (3, 1),
+        'G3': (3, 2),
+        'G4': (3, 3),
+        'G5': (3, 4),
+        'G6': (3, 5),
+        'G7': (3, 6),
+        'G8': (3, 7),
+        # G-keys: Byte 4 (G9-G16)
+        'G9': (4, 0),
+        'G10': (4, 1),
+        'G11': (4, 2),
+        'G12': (4, 3),
+        'G13': (4, 4),
+        'G14': (4, 5),
+        'G15': (4, 6),
+        'G16': (4, 7),
+        # G-keys: Byte 5 (G17-G22)
+        'G17': (5, 0),
+        'G18': (5, 1),
+        'G19': (5, 2),
+        'G20': (5, 3),
+        'G21': (5, 4),
+        'G22': (5, 5),
+        # Byte 6: BD, L1-L4, M1-M3
+        'BD': (6, 0),   # Backlight/Display button
+        'L1': (6, 1),   # Left stick button 1
+        'L2': (6, 2),   # Left stick button 2
+        'L3': (6, 3),   # Left stick button 3
+        'L4': (6, 4),   # Left stick button 4
+        'M1': (6, 5),
+        'M2': (6, 6),
+        'M3': (6, 7),
+        # Byte 7: MR and joystick directions
+        'MR': (7, 0),
+        'STICK_LEFT': (7, 1),
+        'STICK_DOWN': (7, 2),
+        'STICK_UP': (7, 3),
     }
 
-    # Joystick byte positions - TO BE VERIFIED
-    JOYSTICK_X_BYTE = 4  # Placeholder - needs testing
-    JOYSTICK_Y_BYTE = 5  # Placeholder - needs testing
+    # Joystick analog byte positions
+    JOYSTICK_X_BYTE = 1
+    JOYSTICK_Y_BYTE = 2
 
     def __init__(self):
         self.last_state: G13ButtonState | None = None
@@ -100,7 +121,8 @@ class EventDecoder:
             raw_data=data
         )
 
-        self.last_state = state
+        # Note: last_state is NOT updated here - caller should use
+        # get_button_changes() which handles state tracking properly
         return state
 
     def _decode_g_buttons(self, data: bytes) -> int:
@@ -183,6 +205,8 @@ class EventDecoder:
         """
         Compare with previous state to detect button press/release events.
 
+        Updates last_state after computing changes.
+
         Args:
             new_state: New button state
 
@@ -192,6 +216,7 @@ class EventDecoder:
         if self.last_state is None:
             # First state - consider all pressed buttons as new
             pressed = self.get_pressed_buttons(new_state)
+            self.last_state = new_state
             return (pressed, [])
 
         old_pressed = set(self.get_pressed_buttons(self.last_state))
@@ -199,6 +224,9 @@ class EventDecoder:
 
         pressed = list(new_pressed - old_pressed)
         released = list(old_pressed - new_pressed)
+
+        # Update state for next comparison
+        self.last_state = new_state
 
         return (pressed, released)
 

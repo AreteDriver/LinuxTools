@@ -1,23 +1,26 @@
 """
 G13 Backlight Control
 
-Controls the G13's RGB backlight.
+Controls the G13's RGB backlight via USB HID feature reports.
 
-STATUS: STUB IMPLEMENTATION
-TODO: Implement USB HID commands for backlight control
-Reference: libg13 project for backlight protocol
+Protocol:
+- Report ID: 0x07
+- Format: [0x07, R, G, B, 0x00] (5 bytes)
 """
 
 
 class G13Backlight:
     """RGB backlight controller for G13"""
 
+    REPORT_ID = 0x07
+    REPORT_SIZE = 5
+
     def __init__(self, device_handle=None):
         """
         Initialize backlight controller.
 
         Args:
-            device_handle: USB device handle from hidapi
+            device_handle: HidrawDevice instance from device.py
         """
         self.device = device_handle
         self._current_color = (255, 255, 255)  # Default white
@@ -31,14 +34,21 @@ class G13Backlight:
             r: Red value (0-255)
             g: Green value (0-255)
             b: Blue value (0-255)
-
-        TODO: Implement USB HID feature report for color
         """
         if not all(0 <= val <= 255 for val in (r, g, b)):
             raise ValueError("RGB values must be 0-255")
 
         self._current_color = (r, g, b)
-        print(f"[Backlight STUB] Set color: RGB({r}, {g}, {b})")
+
+        if self.device:
+            # Send feature report: [report_id, R, G, B, 0x00]
+            report = bytes([self.REPORT_ID, r, g, b, 0x00])
+            try:
+                self.device.send_feature_report(report)
+            except OSError as e:
+                print(f"[Backlight] Failed to set color: {e}")
+        else:
+            print(f"[Backlight] No device - would set RGB({r}, {g}, {b})")
 
     def set_color_hex(self, color_hex: str):
         """
@@ -61,20 +71,32 @@ class G13Backlight:
 
     def set_brightness(self, brightness: int):
         """
-        Set brightness level.
+        Set brightness level by scaling RGB values.
 
         Args:
             brightness: Brightness (0-100)
-
-        TODO: Implement brightness control
-        - May need to scale RGB values
-        - Or use separate brightness command if supported
         """
         if not 0 <= brightness <= 100:
             raise ValueError("Brightness must be 0-100")
 
         self._current_brightness = brightness
-        print(f"[Backlight STUB] Set brightness: {brightness}%")
+        # Re-apply color with brightness scaling
+        self._apply_color()
+
+    def _apply_color(self):
+        """Apply current color with brightness scaling."""
+        r, g, b = self._current_color
+        scale = self._current_brightness / 100.0
+        scaled_r = int(r * scale)
+        scaled_g = int(g * scale)
+        scaled_b = int(b * scale)
+
+        if self.device:
+            report = bytes([self.REPORT_ID, scaled_r, scaled_g, scaled_b, 0x00])
+            try:
+                self.device.send_feature_report(report)
+            except OSError as e:
+                print(f"[Backlight] Failed to apply color: {e}")
 
     def get_color(self) -> tuple[int, int, int]:
         """Get current RGB color"""
