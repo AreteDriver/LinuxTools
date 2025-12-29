@@ -113,3 +113,120 @@ def read_event(handle):
     """Read a HID report from the device."""
     data = handle.read(64)
     return data if data else None
+
+
+class LibUSBDevice:
+    """
+    Direct libusb access for G13 input reading.
+
+    Required because hid-generic kernel driver consumes input reports
+    and doesn't pass them to hidraw. This requires root/sudo to detach
+    the kernel driver.
+
+    Note: Linux kernel 6.19+ will have proper hid-lg-g15 support for G13.
+    """
+
+    ENDPOINT_IN = 0x81  # EP 1 IN for button/joystick data
+    ENDPOINT_OUT = 0x02  # EP 2 OUT for LCD data
+    REPORT_SIZE = 8  # 7 bytes data + 1 byte report ID
+
+    def __init__(self):
+        self._dev = None
+        self._reattach = False
+
+    def open(self):
+        """Open G13 via libusb, detaching kernel driver."""
+        try:
+            import usb.core
+            import usb.util
+        except ImportError:
+            raise RuntimeError("pyusb not installed. Run: pip install pyusb")
+
+        self._dev = usb.core.find(idVendor=G13_VENDOR_ID, idProduct=G13_PRODUCT_ID)
+        if self._dev is None:
+            raise RuntimeError("G13 not found")
+
+        # Detach kernel driver if attached
+        try:
+            if self._dev.is_kernel_driver_active(0):
+                self._dev.detach_kernel_driver(0)
+                self._reattach = True
+        except Exception:
+            pass
+
+        # Set configuration
+        try:
+            self._dev.set_configuration()
+        except Exception:
+            pass
+
+        # Get endpoints
+        import usb.util
+        cfg = self._dev.get_active_configuration()
+        intf = cfg[(0, 0)]
+
+        self._ep_in = usb.util.find_descriptor(
+            intf,
+            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_IN
+        )
+        self._ep_out = usb.util.find_descriptor(
+            intf,
+            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT
+        )
+
+    def read(self, timeout_ms=100):
+        """
+        Read button/joystick report.
+
+        Returns:
+            List of bytes or None on timeout
+        """
+        try:
+            import usb.core
+            data = self._ep_in.read(64, timeout=timeout_ms)
+            return list(data) if data else None
+        except Exception:
+            return None
+
+    def write(self, data):
+        """Write output report (for LCD)."""
+        if self._ep_out:
+            return self._ep_out.write(bytes(data))
+        return 0
+
+    def send_feature_report(self, data):
+        """Send feature report via control transfer."""
+        import usb.core
+        report_id = data[0]
+        return self._dev.ctrl_transfer(
+            0x21,  # bmRequestType: Host-to-device, Class, Interface
+            0x09,  # bRequest: SET_REPORT
+            0x0300 | report_id,  # wValue: Feature report + report ID
+            0,     # wIndex: Interface 0
+            bytes(data),
+            1000   # timeout
+        )
+
+    def close(self):
+        """Close device and reattach kernel driver."""
+        if self._dev:
+            try:
+                import usb.util
+                usb.util.release_interface(self._dev, 0)
+                if self._reattach:
+                    self._dev.attach_kernel_driver(0)
+            except Exception:
+                pass
+            self._dev = None
+
+
+def open_g13_libusb():
+    """
+    Open G13 using libusb for input reading.
+
+    Requires root/sudo to detach kernel driver.
+    Use this when you need button/joystick input.
+    """
+    device = LibUSBDevice()
+    device.open()
+    return device
