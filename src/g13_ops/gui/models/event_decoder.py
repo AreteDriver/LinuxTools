@@ -3,14 +3,9 @@ Event Decoder
 
 Decodes G13 USB HID reports into button and joystick events.
 
-Button mapping derived from libg13 (https://github.com/ecraven/g13):
-- Byte 1: Joystick X (0-255, center ~128)
-- Byte 2: Joystick Y (0-255, center ~128)
-- Byte 3: G1-G8 (bits 0-7)
-- Byte 4: G9-G16 (bits 0-7)
-- Byte 5: G17-G22 (bits 0-5), reserved (bits 6-7)
-- Byte 6: BD (bit 0), L1-L4 (bits 1-4), M1-M3 (bits 5-7)
-- Byte 7: MR (bit 0), joystick LEFT/DOWN/TOP (bits 1-3)
+CRITICAL: This module requires reverse engineering with physical G13 hardware.
+The button mapping (BUTTON_MAP) is currently a stub and needs to be determined
+through systematic testing by pressing each button and recording the raw USB data.
 """
 
 from dataclasses import dataclass
@@ -29,81 +24,88 @@ class G13ButtonState:
 
 class EventDecoder:
     """
-    Decodes G13 USB HID reports into structured button/joystick data.
+    Decodes G13 USB HID reports (64 bytes) into structured button/joystick data.
+
+    IMPLEMENTATION STATUS: STUB - Requires hardware testing
+
+    To complete this implementation:
+    1. Run: python -m g13_ops.cli
+    2. Press each button (G1-G22, M1-M3) individually
+    3. Record the RAW output showing which bytes change
+    4. Update BUTTON_MAP with correct (byte_index, bit_position) for each button
+    5. Update JOYSTICK_X_BYTE and JOYSTICK_Y_BYTE with correct positions
 
     Reference implementation: https://github.com/ecraven/g13
     """
 
-    # Button bit positions from libg13
+    # Button bit positions - DISCOVERED via hardware testing
     # Format: 'button_id': (byte_index, bit_position)
+    # Based on capture data showing 8-byte HID reports
     BUTTON_MAP = {
-        # G-keys: Byte 3 (G1-G8)
-        'G1': (3, 0),
-        'G2': (3, 1),
-        'G3': (3, 2),
-        'G4': (3, 3),
-        'G5': (3, 4),
-        'G6': (3, 5),
-        'G7': (3, 6),
-        'G8': (3, 7),
-        # G-keys: Byte 4 (G9-G16)
-        'G9': (4, 0),
-        'G10': (4, 1),
-        'G11': (4, 2),
-        'G12': (4, 3),
-        'G13': (4, 4),
-        'G14': (4, 5),
-        'G15': (4, 6),
-        'G16': (4, 7),
-        # G-keys: Byte 5 (G17-G22)
-        'G17': (5, 0),
-        'G18': (5, 1),
-        'G19': (5, 2),
-        'G20': (5, 3),
-        'G21': (5, 4),
-        'G22': (5, 5),
-        # Byte 6: BD, L1-L4, M1-M3
-        'BD': (6, 0),   # Backlight/Display button
-        'L1': (6, 1),   # Left stick button 1
-        'L2': (6, 2),   # Left stick button 2
-        'L3': (6, 3),   # Left stick button 3
-        'L4': (6, 4),   # Left stick button 4
-        'M1': (6, 5),
-        'M2': (6, 6),
-        'M3': (6, 7),
-        # Byte 7: MR and joystick directions
-        'MR': (7, 0),
-        'STICK_LEFT': (7, 1),
-        'STICK_DOWN': (7, 2),
-        'STICK_UP': (7, 3),
+        # G-keys Row 1 (Byte 3, bits 0-7)
+        'G1': (3, 0),   # 0x01
+        'G2': (3, 1),   # 0x02
+        'G3': (3, 2),   # 0x04
+        'G4': (3, 3),   # 0x08
+        'G5': (3, 4),   # 0x10
+        'G6': (3, 5),   # 0x20 - predicted
+        'G7': (3, 6),   # 0x40 - predicted
+        'G8': (3, 7),   # 0x80 - predicted
+
+        # G-keys Row 2 (Byte 4, bits 0-7) - predicted
+        'G9': (4, 0),   # 0x01
+        'G10': (4, 1),  # 0x02
+        'G11': (4, 2),  # 0x04
+        'G12': (4, 3),  # 0x08
+        'G13': (4, 4),  # 0x10
+        'G14': (4, 5),  # 0x20
+        'G15': (4, 6),  # 0x40
+        'G16': (4, 7),  # 0x80
+
+        # G-keys Row 3 (Byte 6, bits 0-5) - predicted
+        'G17': (6, 0),  # 0x01
+        'G18': (6, 1),  # 0x02
+        'G19': (6, 2),  # 0x04
+        'G20': (6, 3),  # 0x08
+        'G21': (6, 4),  # 0x10
+        'G22': (6, 5),  # 0x20
+
+        # M-keys (Byte 6, bits 6-7 or Byte 7) - predicted, needs verification
+        'M1': (6, 6),   # 0x40 - predicted
+        'M2': (6, 7),   # 0x80 - predicted
+        'M3': (7, 0),   # 0x01 - predicted
+
+        # MR button and Joystick button (Byte 7)
+        'MR': (7, 1),   # 0x02 - CONFIRMED from hardware capture
+        'JOYSTICK': (7, 2),  # 0x04 - needs verification (user forgot to test)
     }
 
-    # Joystick analog byte positions
-    JOYSTICK_X_BYTE = 1
-    JOYSTICK_Y_BYTE = 2
+    # Joystick byte positions - CONFIRMED via hardware testing
+    JOYSTICK_X_BYTE = 1  # Byte 1: X-axis (centered at ~120)
+    JOYSTICK_Y_BYTE = 2  # Byte 2: Y-axis (centered at ~127)
 
     def __init__(self):
         self.last_state: G13ButtonState | None = None
 
     def decode_report(self, data: bytes | list) -> G13ButtonState:
         """
-        Decode 64-byte HID report into structured data.
+        Decode 8-byte HID report into structured data.
 
         Args:
-            data: Raw 64-byte report from device
+            data: Raw 8-byte report from device (or padded to 64 bytes)
 
         Returns:
             Decoded button and joystick state
 
         Raises:
-            ValueError: If data is not 64 bytes
+            ValueError: If data is less than 8 bytes
         """
         # Convert list to bytes if needed
         if isinstance(data, list):
             data = bytes(data)
 
-        if len(data) != 64:
-            raise ValueError(f"Expected 64 bytes, got {len(data)}")
+        if len(data) < 8:
+            raise ValueError(f"Expected at least 8 bytes, got {len(data)}")
 
         # Decode button states
         g_buttons = self._decode_g_buttons(data)
@@ -121,8 +123,7 @@ class EventDecoder:
             raw_data=data
         )
 
-        # Note: last_state is NOT updated here - caller should use
-        # get_button_changes() which handles state tracking properly
+        self.last_state = state
         return state
 
     def _decode_g_buttons(self, data: bytes) -> int:
@@ -205,8 +206,6 @@ class EventDecoder:
         """
         Compare with previous state to detect button press/release events.
 
-        Updates last_state after computing changes.
-
         Args:
             new_state: New button state
 
@@ -216,7 +215,6 @@ class EventDecoder:
         if self.last_state is None:
             # First state - consider all pressed buttons as new
             pressed = self.get_pressed_buttons(new_state)
-            self.last_state = new_state
             return (pressed, [])
 
         old_pressed = set(self.get_pressed_buttons(self.last_state))
@@ -224,9 +222,6 @@ class EventDecoder:
 
         pressed = list(new_pressed - old_pressed)
         released = list(old_pressed - new_pressed)
-
-        # Update state for next comparison
-        self.last_state = new_state
 
         return (pressed, released)
 
@@ -237,20 +232,20 @@ class EventDecoder:
         Returns human-readable hex dump for debugging.
 
         Args:
-            data: 64-byte HID report
+            data: 8-byte (or longer) HID report
 
         Returns:
             Formatted hex string
         """
-        if len(data) != 64:
-            return f"Invalid length: {len(data)} bytes"
+        if len(data) < 8:
+            return f"Invalid length: {len(data)} bytes (expected at least 8)"
 
         lines = []
-        lines.append("USB HID Report Analysis (64 bytes):")
+        lines.append(f"USB HID Report Analysis ({len(data)} bytes):")
         lines.append("=" * 60)
 
         # Show in groups of 16 bytes
-        for i in range(0, 64, 16):
+        for i in range(0, len(data), 16):
             chunk = data[i:i+16]
             hex_str = ' '.join(f'{b:02x}' for b in chunk)
             ascii_str = ''.join(chr(b) if 32 <= b < 127 else '.' for b in chunk)

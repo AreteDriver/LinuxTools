@@ -62,16 +62,16 @@ class G13Button(QPushButton):
     def _update_style(self):
         """Update button appearance based on state"""
         if self.is_highlighted:
-            # Green when physically pressed
-            bg_color = "#4CAF50"
+            # Green when physically pressed (more opaque)
+            bg_color = "rgba(76, 175, 80, 0.85)"
             border_color = "#81C784"
         elif self.mapped_key and self.mapped_key != "KEY_RESERVED":
-            # Blue when mapped to a key
-            bg_color = "#2196F3"
+            # Blue when mapped to a key (semi-transparent)
+            bg_color = "rgba(33, 150, 243, 0.6)"
             border_color = "#64B5F6"
         else:
-            # Gray when unmapped
-            bg_color = "#757575"
+            # Gray when unmapped (very transparent)
+            bg_color = "rgba(117, 117, 117, 0.4)"
             border_color = "#BDBDBD"
 
         self.setStyleSheet(f"""
@@ -80,15 +80,15 @@ class G13Button(QPushButton):
                 color: white;
                 border: 2px solid {border_color};
                 border-radius: 5px;
-                font-size: 10px;
+                font-size: 9px;
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                border: 2px solid #FFC107;
-                background-color: {self._lighten_color(bg_color)};
+                border: 3px solid #FFC107;
+                background-color: rgba(255, 193, 7, 0.5);
             }}
             QPushButton:pressed {{
-                background-color: {self._darken_color(bg_color)};
+                background-color: rgba(0, 0, 0, 0.5);
             }}
         """)
 
