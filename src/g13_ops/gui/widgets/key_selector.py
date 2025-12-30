@@ -6,7 +6,6 @@ Dialog for selecting keyboard key mappings.
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
                              QLineEdit, QPushButton, QLabel, QTabWidget, QWidget)
-from PyQt6.QtCore import Qt
 from evdev import ecodes
 
 

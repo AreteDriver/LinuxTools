@@ -66,5 +66,5 @@ finally:
     try:
         device.close()
         print("Device closed, kernel driver reattached")
-    except:
+    except Exception:
         pass

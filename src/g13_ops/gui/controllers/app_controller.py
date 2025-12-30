@@ -104,7 +104,7 @@ class ApplicationController(QObject):
                 self.main_window.button_mapper.highlight_button(button_id, False)
                 self.main_window.monitor_widget.on_button_event(button_id, False)
 
-        except Exception as e:
+        except Exception:
             # Silently ignore decoder errors (expected until button mapping is complete)
             pass
 
@@ -205,7 +205,7 @@ class ApplicationController(QObject):
         """Send text to LCD"""
         try:
             self.hardware.set_lcd_text(text)
-            self.main_window.set_status(f"LCD updated")
+            self.main_window.set_status("LCD updated")
         except Exception as e:
             self._on_error(f"LCD error: {e}")
 

@@ -182,7 +182,6 @@ class LibUSBDevice:
             List of bytes or None on timeout
         """
         try:
-            import usb.core
             data = self._ep_in.read(64, timeout=timeout_ms)
             return list(data) if data else None
         except Exception:
@@ -196,7 +195,6 @@ class LibUSBDevice:
 
     def send_feature_report(self, data):
         """Send feature report via control transfer."""
-        import usb.core
         report_id = data[0]
         return self._dev.ctrl_transfer(
             0x21,  # bmRequestType: Host-to-device, Class, Interface
