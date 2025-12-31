@@ -29,8 +29,8 @@ BUTTON_MAP = {
     'JOYSTICK': (7, 2),
 }
 
-# Baseline (idle) values for each byte
-BASELINE = [0x01, 0x78, 0x7f, 0x00, 0x00, 0x80, 0x00, 0x80]
+# Baseline captured dynamically at startup
+BASELINE = None  # Will be set from first read
 
 # Test order - confirmed first, then predicted
 TEST_ORDER = [
@@ -82,7 +82,15 @@ def main():
 
     try:
         with open(device_path, 'rb') as f:
-            print("✓ Device opened successfully!\n")
+            print("✓ Device opened successfully!")
+
+            # Capture baseline from idle state
+            global BASELINE
+            print("  Capturing baseline (don't touch anything)...", end=" ", flush=True)
+            time.sleep(0.3)
+            baseline_data = f.read(64)
+            BASELINE = list(baseline_data[:8])
+            print(f"OK: {' '.join(f'{b:02x}' for b in BASELINE)}\n")
 
             current_idx = 0
             waiting_for_press = True
@@ -147,11 +155,14 @@ def main():
 
                             print()
 
-                        elif not waiting_for_press and not changes:
-                            # Button released - move to next
-                            waiting_for_press = True
-                            current_idx += 1
-                            print("  (Released)\n")
+                        elif not waiting_for_press:
+                            # Check if button bytes returned to baseline (ignore joystick)
+                            button_changes = [c for c in changes if c[0] in [3, 4, 6, 7]]
+                            if not button_changes:
+                                # Button released - move to next
+                                waiting_for_press = True
+                                current_idx += 1
+                                print("  (Released)\n")
 
             # Summary
             print("\n" + "=" * 70)
