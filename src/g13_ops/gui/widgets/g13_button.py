@@ -30,21 +30,34 @@ class G13Button(QPushButton):
         self.is_highlighted = False
         self._update_style()
 
-    def set_mapping(self, key_name: str | None):
+    def set_mapping(self, key_name: str | dict | None):
         """
         Set the mapped key and update display.
 
         Args:
-            key_name: Key code name (e.g., 'KEY_1') or None to clear
+            key_name: Key code name (e.g., 'KEY_1'), combo dict, or None to clear
+                      Combo format: {'keys': ['KEY_LEFTCTRL', 'KEY_B'], 'label': '...'}
         """
         self.mapped_key = key_name
-        if key_name and key_name != "KEY_RESERVED":
-            # Show button ID and mapped key
+
+        if key_name is None or key_name == "KEY_RESERVED":
+            display_text = self.button_id
+        elif isinstance(key_name, dict):
+            # Combo key format
+            label = key_name.get('label', '')
+            keys = key_name.get('keys', [])
+            if label:
+                display_text = f"{self.button_id}\n{label}"
+            elif keys:
+                # Show abbreviated key combo
+                short_keys = [k.replace('KEY_', '') for k in keys]
+                display_text = f"{self.button_id}\n{'+'.join(short_keys)}"
+            else:
+                display_text = self.button_id
+        else:
+            # Simple key format
             display_key = key_name.replace('KEY_', '')
             display_text = f"{self.button_id}\n{display_key}"
-        else:
-            # Just show button ID
-            display_text = self.button_id
 
         self.setText(display_text)
         self._update_style()
@@ -59,13 +72,23 @@ class G13Button(QPushButton):
         self.is_highlighted = highlight
         self._update_style()
 
+    def _has_mapping(self) -> bool:
+        """Check if button has a valid mapping."""
+        if not self.mapped_key:
+            return False
+        if self.mapped_key == "KEY_RESERVED":
+            return False
+        if isinstance(self.mapped_key, dict):
+            return bool(self.mapped_key.get('keys'))
+        return True
+
     def _update_style(self):
         """Update button appearance based on state"""
         if self.is_highlighted:
             # Green when physically pressed (more opaque)
             bg_color = "rgba(76, 175, 80, 0.85)"
             border_color = "#81C784"
-        elif self.mapped_key and self.mapped_key != "KEY_RESERVED":
+        elif self._has_mapping():
             # Blue when mapped to a key (semi-transparent)
             bg_color = "rgba(33, 150, 243, 0.6)"
             border_color = "#64B5F6"

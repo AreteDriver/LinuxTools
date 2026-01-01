@@ -120,6 +120,11 @@ class G13Device(QObject):
             return None
 
     def __del__(self):
-        """Cleanup on object destruction"""
-        if self._is_connected:
-            self.disconnect()
+        """Cleanup on object destruction - just close handle, don't emit signals"""
+        if self._handle:
+            try:
+                self._handle.close()
+            except Exception:
+                pass  # Ignore errors during cleanup
+        self._handle = None
+        self._is_connected = False
