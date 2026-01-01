@@ -52,3 +52,5 @@ Thumbs.db
 *.log
 G13LogitechOPS/
 *.egg-info
+dist/
+build/
