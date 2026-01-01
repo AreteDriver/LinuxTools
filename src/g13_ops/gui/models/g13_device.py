@@ -14,6 +14,7 @@ except ImportError:
     def pyqtSignal(*args, **kwargs):
         return None
 
+
 from ...device import open_g13, read_event
 
 
@@ -29,8 +30,8 @@ class G13Device(QObject):
     device_connected = pyqtSignal()
     device_disconnected = pyqtSignal()
     raw_event_received = pyqtSignal(bytes)  # Raw HID report
-    button_event = pyqtSignal(str, bool)    # (button_id, is_pressed)
-    joystick_moved = pyqtSignal(int, int)   # (x, y)
+    button_event = pyqtSignal(str, bool)  # (button_id, is_pressed)
+    joystick_moved = pyqtSignal(int, int)  # (x, y)
     error_occurred = pyqtSignal(str)
 
     def __init__(self):

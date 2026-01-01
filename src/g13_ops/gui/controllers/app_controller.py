@@ -10,6 +10,9 @@ from ..models.g13_device import G13Device
 from ..models.profile_manager import ProfileManager
 from ..models.event_decoder import EventDecoder
 from ..models.hardware_controller import HardwareController
+from ..models.macro_recorder import MacroRecorder, RecorderState
+from ..models.macro_player import MacroPlayer
+from ..models.macro_manager import MacroManager
 from .device_event_controller import DeviceEventThread
 from ..widgets.key_selector import KeySelectorDialog
 
@@ -27,9 +30,15 @@ class ApplicationController(QObject):
         self.event_decoder = EventDecoder()
         self.hardware = HardwareController()
 
+        # Macro system
+        self.macro_recorder = MacroRecorder()
+        self.macro_player = MacroPlayer()
+        self.macro_manager = MacroManager()
+
         # State
         self.current_mappings = {}
         self.event_thread = None
+        self._mr_button_held = False
 
         self._connect_signals()
 
@@ -56,7 +65,18 @@ class ApplicationController(QObject):
         hw_widget = self.main_window.hardware_widget
         hw_widget.lcd_text_changed.connect(self._update_lcd)
         hw_widget.backlight_color_changed.connect(self._update_backlight_color)
-        hw_widget.backlight_brightness_changed.connect(self._update_backlight_brightness)
+        hw_widget.backlight_brightness_changed.connect(
+            self._update_backlight_brightness
+        )
+
+        # Macro recorder signals
+        self.macro_recorder.state_changed.connect(self._on_recorder_state_changed)
+        self.macro_recorder.recording_complete.connect(self._on_macro_recorded)
+        self.macro_recorder.error_occurred.connect(self._on_error)
+
+        # Macro player signals
+        self.macro_player.playback_complete.connect(self._on_playback_complete)
+        self.macro_player.error_occurred.connect(self._on_error)
 
     def start(self):
         """Initialize application"""
@@ -81,8 +101,8 @@ class ApplicationController(QObject):
         self.main_window.profile_widget.update_profile_list(profiles)
 
         # Load example profile if exists
-        if 'example' in profiles:
-            self._load_profile('example')
+        if "example" in profiles:
+            self._load_profile("example")
 
     @pyqtSlot(bytes)
     def _on_raw_event(self, data: bytes):
@@ -94,6 +114,23 @@ class ApplicationController(QObject):
         try:
             state = self.event_decoder.decode_report(data)
             pressed, released = self.event_decoder.get_button_changes(state)
+
+            # Handle MR button for macro recording
+            if "MR" in pressed:
+                self._on_mr_button_pressed()
+            if "MR" in released:
+                self._on_mr_button_released()
+
+            # Forward G13 events to macro recorder if recording
+            if self.macro_recorder.is_recording:
+                for button_id in pressed:
+                    self.macro_recorder.on_g13_button_event(button_id, True)
+                for button_id in released:
+                    self.macro_recorder.on_g13_button_event(button_id, False)
+
+            # Check if pressed button triggers a macro
+            for button_id in pressed:
+                self._check_macro_trigger(button_id)
 
             # Update button highlights
             for button_id in pressed:
@@ -144,7 +181,7 @@ class ApplicationController(QObject):
             QMessageBox.warning(
                 self.main_window,
                 "Profile Error",
-                f"Failed to load profile '{profile_name}':\n{e}"
+                f"Failed to load profile '{profile_name}':\n{e}",
             )
 
     @pyqtSlot(str)
@@ -171,7 +208,7 @@ class ApplicationController(QObject):
             QMessageBox.warning(
                 self.main_window,
                 "Profile Error",
-                f"Failed to save profile '{profile_name}':\n{e}"
+                f"Failed to save profile '{profile_name}':\n{e}",
             )
 
     @pyqtSlot(str)
@@ -227,8 +264,72 @@ class ApplicationController(QObject):
         except Exception as e:
             self._on_error(f"Backlight error: {e}")
 
+    # Macro recording methods
+
+    def _on_mr_button_pressed(self):
+        """Handle MR button press - toggle recording"""
+        self._mr_button_held = True
+
+        if self.macro_recorder.is_recording:
+            # Stop recording
+            self.macro_recorder.stop_recording()
+        else:
+            # Start recording
+            self.macro_recorder.start_recording()
+            self.main_window.set_status(
+                "Macro recording started - press MR again to stop"
+            )
+
+    def _on_mr_button_released(self):
+        """Handle MR button release"""
+        self._mr_button_held = False
+
+    @pyqtSlot(object)
+    def _on_recorder_state_changed(self, state: RecorderState):
+        """Update UI based on recorder state"""
+        status_messages = {
+            RecorderState.IDLE: "Ready",
+            RecorderState.WAITING: "Macro armed - press any key to start recording",
+            RecorderState.RECORDING: "Recording macro...",
+            RecorderState.SAVING: "Saving macro...",
+        }
+        self.main_window.set_status(status_messages.get(state, ""))
+
+    @pyqtSlot(object)
+    def _on_macro_recorded(self, macro):
+        """Handle completed macro recording"""
+        # Save to manager
+        self.macro_manager.save_macro(macro)
+        self.main_window.set_status(f"Macro recorded: {macro.step_count} steps")
+
+        # Refresh macro list in UI
+        if hasattr(self.main_window, "macro_widget"):
+            self.main_window.macro_widget.refresh_macro_list()
+
+    def _check_macro_trigger(self, button_id: str):
+        """Check if button triggers a macro and play it"""
+        mapping = self.current_mappings.get(button_id)
+        if isinstance(mapping, dict) and "macro" in mapping:
+            macro_id = mapping["macro"]
+            try:
+                macro = self.macro_manager.load_macro(macro_id)
+                self.macro_player.play(macro)
+            except FileNotFoundError:
+                self._on_error(f"Macro not found: {macro_id}")
+
+    @pyqtSlot()
+    def _on_playback_complete(self):
+        """Handle macro playback completion"""
+        self.main_window.set_status("Macro playback complete")
+
     def shutdown(self):
         """Cleanup on application exit"""
+        # Stop any active recording/playback
+        if self.macro_recorder.is_recording:
+            self.macro_recorder.cancel()
+        if self.macro_player.is_playing:
+            self.macro_player.stop()
+
         if self.event_thread:
             self.event_thread.stop()
         if self.device.is_connected:

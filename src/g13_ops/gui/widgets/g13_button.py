@@ -44,19 +44,19 @@ class G13Button(QPushButton):
             display_text = self.button_id
         elif isinstance(key_name, dict):
             # Combo key format
-            label = key_name.get('label', '')
-            keys = key_name.get('keys', [])
+            label = key_name.get("label", "")
+            keys = key_name.get("keys", [])
             if label:
                 display_text = f"{self.button_id}\n{label}"
             elif keys:
                 # Show abbreviated key combo
-                short_keys = [k.replace('KEY_', '') for k in keys]
+                short_keys = [k.replace("KEY_", "") for k in keys]
                 display_text = f"{self.button_id}\n{'+'.join(short_keys)}"
             else:
                 display_text = self.button_id
         else:
             # Simple key format
-            display_key = key_name.replace('KEY_', '')
+            display_key = key_name.replace("KEY_", "")
             display_text = f"{self.button_id}\n{display_key}"
 
         self.setText(display_text)
@@ -79,7 +79,7 @@ class G13Button(QPushButton):
         if self.mapped_key == "KEY_RESERVED":
             return False
         if isinstance(self.mapped_key, dict):
-            return bool(self.mapped_key.get('keys'))
+            return bool(self.mapped_key.get("keys"))
         return True
 
     def _update_style(self):
@@ -118,7 +118,7 @@ class G13Button(QPushButton):
     def _lighten_color(self, hex_color: str) -> str:
         """Lighten a hex color for hover effect"""
         # Simple lightening by blending with white
-        color = hex_color.lstrip('#')
+        color = hex_color.lstrip("#")
         r, g, b = int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16)
         r = min(255, int(r * 1.2))
         g = min(255, int(g * 1.2))
@@ -127,7 +127,7 @@ class G13Button(QPushButton):
 
     def _darken_color(self, hex_color: str) -> str:
         """Darken a hex color for pressed effect"""
-        color = hex_color.lstrip('#')
+        color = hex_color.lstrip("#")
         r, g, b = int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16)
         r = int(r * 0.8)
         g = int(g * 0.8)

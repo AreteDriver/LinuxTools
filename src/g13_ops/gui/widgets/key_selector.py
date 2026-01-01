@@ -4,8 +4,17 @@ Key Selector Dialog
 Dialog for selecting keyboard key mappings.
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
-                             QLineEdit, QPushButton, QLabel, QTabWidget, QWidget)
+from PyQt6.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QListWidget,
+    QLineEdit,
+    QPushButton,
+    QLabel,
+    QTabWidget,
+    QWidget,
+)
 from evdev import ecodes
 
 
@@ -34,19 +43,34 @@ class KeySelectorDialog(QDialog):
 
         # Tab 1: Common keys
         common_keys = [
-            'KEY_1', 'KEY_2', 'KEY_3', 'KEY_4', 'KEY_5',
-            'KEY_A', 'KEY_B', 'KEY_C', 'KEY_D', 'KEY_E', 'KEY_F',
-            'KEY_ENTER', 'KEY_SPACE', 'KEY_ESC', 'KEY_TAB',
-            'KEY_LEFTCTRL', 'KEY_LEFTSHIFT', 'KEY_LEFTALT', 'KEY_LEFTMETA',
+            "KEY_1",
+            "KEY_2",
+            "KEY_3",
+            "KEY_4",
+            "KEY_5",
+            "KEY_A",
+            "KEY_B",
+            "KEY_C",
+            "KEY_D",
+            "KEY_E",
+            "KEY_F",
+            "KEY_ENTER",
+            "KEY_SPACE",
+            "KEY_ESC",
+            "KEY_TAB",
+            "KEY_LEFTCTRL",
+            "KEY_LEFTSHIFT",
+            "KEY_LEFTALT",
+            "KEY_LEFTMETA",
         ]
         tabs.addTab(self._create_key_list(common_keys), "Common Keys")
 
         # Tab 2: Function keys
-        fn_keys = [f'KEY_F{i}' for i in range(1, 25)]
+        fn_keys = [f"KEY_F{i}" for i in range(1, 25)]
         tabs.addTab(self._create_key_list(fn_keys), "Function Keys")
 
         # Tab 3: All keys
-        all_keys = sorted([name for name in dir(ecodes) if name.startswith('KEY_')])
+        all_keys = sorted([name for name in dir(ecodes) if name.startswith("KEY_")])
         tabs.addTab(self._create_key_list(all_keys), "All Keys")
 
         layout.addWidget(tabs)

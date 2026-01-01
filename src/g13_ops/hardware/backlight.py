@@ -57,7 +57,7 @@ class G13Backlight:
         Args:
             color_hex: Color in #RRGGBB format
         """
-        color_hex = color_hex.lstrip('#')
+        color_hex = color_hex.lstrip("#")
         if len(color_hex) != 6:
             raise ValueError("Hex color must be in #RRGGBB format")
 

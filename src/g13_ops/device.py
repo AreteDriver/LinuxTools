@@ -2,8 +2,8 @@ import os
 import glob
 import fcntl
 
-G13_VENDOR_ID = 0x046d
-G13_PRODUCT_ID = 0xc21c
+G13_VENDOR_ID = 0x046D
+G13_PRODUCT_ID = 0xC21C
 
 
 def _hidiocsfeature(length):
@@ -25,7 +25,7 @@ class HidrawDevice:
         self._file = None
 
     def open(self):
-        self._file = open(self.path, 'rb+', buffering=0)
+        self._file = open(self.path, "rb+", buffering=0)
         self._fd = self._file.fileno()
         os.set_blocking(self._fd, False)
 
@@ -84,15 +84,15 @@ class HidrawDevice:
 
 def find_g13_hidraw():
     """Find the hidraw device path for the G13."""
-    for hidraw in glob.glob('/sys/class/hidraw/hidraw*'):
-        uevent_path = os.path.join(hidraw, 'device', 'uevent')
+    for hidraw in glob.glob("/sys/class/hidraw/hidraw*"):
+        uevent_path = os.path.join(hidraw, "device", "uevent")
         try:
-            with open(uevent_path, 'r') as f:
+            with open(uevent_path, "r") as f:
                 content = f.read()
                 # Check for G13 HID_ID (format: 0003:0000046D:0000C21C)
-                if '0000046D' in content.upper() and '0000C21C' in content.upper():
+                if "0000046D" in content.upper() and "0000C21C" in content.upper():
                     device_name = os.path.basename(hidraw)
-                    return f'/dev/{device_name}'
+                    return f"/dev/{device_name}"
         except (IOError, OSError):
             continue
     return None
@@ -162,16 +162,19 @@ class LibUSBDevice:
 
         # Get endpoints
         import usb.util
+
         cfg = self._dev.get_active_configuration()
         intf = cfg[(0, 0)]
 
         self._ep_in = usb.util.find_descriptor(
             intf,
-            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_IN
+            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress)
+            == usb.util.ENDPOINT_IN,
         )
         self._ep_out = usb.util.find_descriptor(
             intf,
-            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_OUT
+            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress)
+            == usb.util.ENDPOINT_OUT,
         )
 
     def read(self, timeout_ms=100):
@@ -200,9 +203,9 @@ class LibUSBDevice:
             0x21,  # bmRequestType: Host-to-device, Class, Interface
             0x09,  # bRequest: SET_REPORT
             0x0300 | report_id,  # wValue: Feature report + report ID
-            0,     # wIndex: Interface 0
+            0,  # wIndex: Interface 0
             bytes(data),
-            1000   # timeout
+            1000,  # timeout
         )
 
     def close(self):
@@ -210,6 +213,7 @@ class LibUSBDevice:
         if self._dev:
             try:
                 import usb.util
+
                 usb.util.release_interface(self._dev, 0)
                 if self._reattach:
                     self._dev.attach_kernel_driver(0)

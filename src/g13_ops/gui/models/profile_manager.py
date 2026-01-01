@@ -19,12 +19,15 @@ class ProfileData:
     - Simple: {'G1': 'KEY_1', ...}
     - Combo:  {'G1': {'keys': ['KEY_LEFTCTRL', 'KEY_B'], 'label': '...'}, ...}
     """
+
     name: str
     description: str = ""
     version: str = "0.1.0"
     mappings: dict = field(default_factory=dict)  # str | dict values
     lcd: dict = field(default_factory=lambda: {"enabled": True, "default_text": ""})
-    backlight: dict = field(default_factory=lambda: {"color": "#FFFFFF", "brightness": 100})
+    backlight: dict = field(
+        default_factory=lambda: {"color": "#FFFFFF", "brightness": 100}
+    )
     joystick: dict = field(default_factory=dict)  # Optional joystick config
 
 
@@ -67,7 +70,7 @@ class ProfileManager:
             raise FileNotFoundError(f"Profile '{name}' not found at {path}")
 
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 data = json.load(f)
             profile = ProfileData(**data)
             self.current_profile = profile
@@ -86,7 +89,7 @@ class ProfileManager:
         save_name = name or profile.name
         path = self.profiles_dir / f"{save_name}.json"
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(asdict(profile), f, indent=2)
 
         self.current_profile = profile
@@ -118,7 +121,7 @@ class ProfileManager:
             version="0.1.0",
             mappings=default_mappings,
             lcd={"enabled": True, "default_text": ""},
-            backlight={"color": "#FFFFFF", "brightness": 100}
+            backlight={"color": "#FFFFFF", "brightness": 100},
         )
 
         return profile

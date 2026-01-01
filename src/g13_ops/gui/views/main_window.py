@@ -4,12 +4,20 @@ Main Window
 Primary application window for G13LogitechOPS GUI.
 """
 
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QSplitter, QTabWidget, QStatusBar, QVBoxLayout)
+from PyQt6.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QSplitter,
+    QTabWidget,
+    QStatusBar,
+    QVBoxLayout,
+)
 from PyQt6.QtCore import Qt
 from .button_mapper import ButtonMapperWidget
 from .profile_manager import ProfileManagerWidget
 from .live_monitor import LiveMonitorWidget
 from .hardware_control import HardwareControlWidget
+from .macro_editor import MacroEditorWidget
 
 
 class MainWindow(QMainWindow):
@@ -25,6 +33,7 @@ class MainWindow(QMainWindow):
         self.profile_widget = ProfileManagerWidget()
         self.monitor_widget = LiveMonitorWidget()
         self.hardware_widget = HardwareControlWidget()
+        self.macro_widget = MacroEditorWidget()
 
         self._init_ui()
 
@@ -44,6 +53,7 @@ class MainWindow(QMainWindow):
         # Right side: Tabs
         tabs = QTabWidget()
         tabs.addTab(self.profile_widget, "Profiles")
+        tabs.addTab(self.macro_widget, "Macros")
         tabs.addTab(self.hardware_widget, "Hardware")
         tabs.addTab(self.monitor_widget, "Monitor")
 

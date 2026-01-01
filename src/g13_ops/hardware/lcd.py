@@ -209,7 +209,7 @@ class G13LCD:
             raise ValueError(f"Bitmap too large: max {self.FRAMEBUFFER_SIZE} bytes")
 
         # Copy bitmap to framebuffer
-        self._framebuffer[:len(bitmap)] = bitmap
+        self._framebuffer[: len(bitmap)] = bitmap
         self._send_framebuffer()
 
     def set_pixel(self, x: int, y: int, on: bool = True):
@@ -228,7 +228,7 @@ class G13LCD:
         bit_idx = 7 - (x % 8)  # MSB first
 
         if on:
-            self._framebuffer[byte_idx] |= (1 << bit_idx)
+            self._framebuffer[byte_idx] |= 1 << bit_idx
         else:
             self._framebuffer[byte_idx] &= ~(1 << bit_idx)
 

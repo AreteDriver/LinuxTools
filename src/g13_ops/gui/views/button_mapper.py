@@ -8,7 +8,12 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont, QPixmap
 from ..widgets.g13_button import G13Button
-from ..resources.g13_layout import G13_BUTTON_POSITIONS, LCD_AREA, KEYBOARD_WIDTH, KEYBOARD_HEIGHT
+from ..resources.g13_layout import (
+    G13_BUTTON_POSITIONS,
+    LCD_AREA,
+    KEYBOARD_WIDTH,
+    KEYBOARD_HEIGHT,
+)
 import os
 
 
@@ -28,8 +33,12 @@ class ButtonMapperWidget(QWidget):
         """Load G13 layout background image if available"""
         # Try to find the image in the resources directory
         possible_paths = [
-            os.path.join(os.path.dirname(__file__), '..', 'resources', 'images', 'g13_layout.png'),
-            os.path.join(os.path.dirname(__file__), '..', 'resources', 'images', 'g13_layout.jpg'),
+            os.path.join(
+                os.path.dirname(__file__), "..", "resources", "images", "g13_layout.png"
+            ),
+            os.path.join(
+                os.path.dirname(__file__), "..", "resources", "images", "g13_layout.jpg"
+            ),
         ]
 
         for path in possible_paths:
@@ -41,7 +50,7 @@ class ButtonMapperWidget(QWidget):
                         KEYBOARD_WIDTH,
                         KEYBOARD_HEIGHT,
                         Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation
+                        Qt.TransformationMode.SmoothTransformation,
                     )
         return None
 
@@ -50,12 +59,11 @@ class ButtonMapperWidget(QWidget):
         for button_id, position in G13_BUTTON_POSITIONS.items():
             btn = G13Button(button_id, self)
             btn.setGeometry(
-                position['x'],
-                position['y'],
-                position['width'],
-                position['height']
+                position["x"], position["y"], position["width"], position["height"]
             )
-            btn.clicked.connect(lambda checked=False, bid=button_id: self.button_clicked.emit(bid))
+            btn.clicked.connect(
+                lambda checked=False, bid=button_id: self.button_clicked.emit(bid)
+            )
             self.buttons[button_id] = btn
 
     def set_button_mapping(self, button_id: str, key_name: str):
@@ -85,17 +93,16 @@ class ButtonMapperWidget(QWidget):
             # Fallback: Draw simple keyboard outline and LCD area
             pen = QPen(QColor(100, 100, 100), 2)
             painter.setPen(pen)
-            painter.drawRoundedRect(10, 10, KEYBOARD_WIDTH - 20, KEYBOARD_HEIGHT - 20, 10, 10)
+            painter.drawRoundedRect(
+                10, 10, KEYBOARD_WIDTH - 20, KEYBOARD_HEIGHT - 20, 10, 10
+            )
 
             # Draw LCD area
             painter.setPen(QPen(QColor(50, 150, 50), 2))
             painter.drawRect(
-                LCD_AREA['x'],
-                LCD_AREA['y'],
-                LCD_AREA['width'],
-                LCD_AREA['height']
+                LCD_AREA["x"], LCD_AREA["y"], LCD_AREA["width"], LCD_AREA["height"]
             )
 
             # LCD label
             painter.setFont(QFont("Arial", 8))
-            painter.drawText(LCD_AREA['x'] + 5, LCD_AREA['y'] + 15, "LCD (160x43)")
+            painter.drawText(LCD_AREA["x"] + 5, LCD_AREA["y"] + 15, "LCD (160x43)")

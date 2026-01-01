@@ -41,6 +41,7 @@ setup(
         "hidapi>=0.10.0",
         "evdev>=1.4.0",
         "PyQt6>=6.4.0",
+        "pynput>=1.7.0",
     ],
     extras_require={
         "dev": [

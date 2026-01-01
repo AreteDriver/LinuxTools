@@ -4,8 +4,16 @@ Profile Manager Widget
 UI for managing G13 button configuration profiles.
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QListWidget,
-                             QPushButton, QLabel, QInputDialog, QMessageBox)
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QListWidget,
+    QPushButton,
+    QLabel,
+    QInputDialog,
+    QMessageBox,
+)
 from PyQt6.QtCore import pyqtSignal, Qt
 
 
@@ -13,8 +21,8 @@ class ProfileManagerWidget(QWidget):
     """Profile management UI"""
 
     profile_selected = pyqtSignal(str)  # Profile name
-    profile_saved = pyqtSignal(str)     # Profile name
-    profile_deleted = pyqtSignal(str)   # Profile name
+    profile_saved = pyqtSignal(str)  # Profile name
+    profile_deleted = pyqtSignal(str)  # Profile name
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -68,7 +76,9 @@ class ProfileManagerWidget(QWidget):
 
         # Restore selection if possible
         if current_selection and current_selection in profiles:
-            items = self.profile_list.findItems(current_selection, Qt.MatchFlag.MatchExactly)
+            items = self.profile_list.findItems(
+                current_selection, Qt.MatchFlag.MatchExactly
+            )
             if items:
                 self.profile_list.setCurrentItem(items[0])
 
@@ -97,9 +107,10 @@ class ProfileManagerWidget(QWidget):
         current = self.profile_list.currentItem()
         if current:
             reply = QMessageBox.question(
-                self, 'Delete Profile',
+                self,
+                "Delete Profile",
                 f'Delete profile "{current.text()}"?',
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self.profile_deleted.emit(current.text())

@@ -24,15 +24,15 @@ class TestProfileData:
             name="Full Test",
             description="A test profile",
             version="1.0.0",
-            mappings={'G1': 'KEY_A'},
-            lcd={'enabled': True, 'default_text': 'Hello'},
-            backlight={'color': '#FF0000', 'brightness': 50},
-            joystick={'mode': 'mouse'}
+            mappings={"G1": "KEY_A"},
+            lcd={"enabled": True, "default_text": "Hello"},
+            backlight={"color": "#FF0000", "brightness": 50},
+            joystick={"mode": "mouse"},
         )
 
         assert profile.name == "Full Test"
-        assert profile.mappings == {'G1': 'KEY_A'}
-        assert profile.joystick == {'mode': 'mouse'}
+        assert profile.mappings == {"G1": "KEY_A"}
+        assert profile.joystick == {"mode": "mouse"}
 
 
 class TestProfileManager:
@@ -59,24 +59,24 @@ class TestProfileManager:
         profile = manager.create_profile("New Profile")
 
         assert profile.name == "New Profile"
-        assert 'G1' in profile.mappings
-        assert 'G22' in profile.mappings
-        assert 'M1' in profile.mappings
+        assert "G1" in profile.mappings
+        assert "G22" in profile.mappings
+        assert "M1" in profile.mappings
 
     def test_save_and_load_profile(self, manager):
         """Save profile and load it back."""
         profile = ProfileData(
             name="Test Save",
             description="Testing save/load",
-            mappings={'G1': 'KEY_F1', 'G2': {'keys': ['KEY_LEFTCTRL', 'KEY_C']}}
+            mappings={"G1": "KEY_F1", "G2": {"keys": ["KEY_LEFTCTRL", "KEY_C"]}},
         )
 
         manager.save_profile(profile, "test_save")
         loaded = manager.load_profile("test_save")
 
         assert loaded.name == "Test Save"
-        assert loaded.mappings['G1'] == 'KEY_F1'
-        assert loaded.mappings['G2'] == {'keys': ['KEY_LEFTCTRL', 'KEY_C']}
+        assert loaded.mappings["G1"] == "KEY_F1"
+        assert loaded.mappings["G2"] == {"keys": ["KEY_LEFTCTRL", "KEY_C"]}
 
     def test_list_profiles_after_save(self, manager):
         """List includes saved profiles."""
@@ -122,7 +122,9 @@ class TestProfileManager:
         profile = ProfileData(name="Current")
         manager.save_profile(profile, "current")
 
-        assert manager.current_profile is None or manager.current_profile.name == "Current"
+        assert (
+            manager.current_profile is None or manager.current_profile.name == "Current"
+        )
 
         manager.load_profile("current")
         assert manager.current_profile.name == "Current"

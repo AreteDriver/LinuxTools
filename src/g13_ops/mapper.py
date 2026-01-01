@@ -26,7 +26,7 @@ class G13Mapper:
         - Combo:  {'G1': {'keys': ['KEY_LEFTCTRL', 'KEY_B'], 'label': '...'}, ...}
         """
         self.button_map = {}
-        mappings = profile_data.get('mappings', {})
+        mappings = profile_data.get("mappings", {})
 
         for button_id, mapping in mappings.items():
             keycodes = self._parse_mapping(mapping)
@@ -43,7 +43,7 @@ class G13Mapper:
 
         if isinstance(mapping, dict):
             # Combo format: {'keys': ['KEY_LEFTCTRL', 'KEY_B'], ...}
-            keys = mapping.get('keys', [])
+            keys = mapping.get("keys", [])
             keycodes = []
             for key_name in keys:
                 if hasattr(e, key_name):
@@ -97,4 +97,3 @@ class G13Mapper:
         # keycode = BUTTON_TO_KEY.get(button_id)
         # if keycode:
         #     self.send_key(keycode)
-

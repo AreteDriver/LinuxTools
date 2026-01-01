@@ -4,7 +4,15 @@ Live Monitor Widget
 Real-time event monitoring and visualization.
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLabel, QCheckBox, QPushButton, QHBoxLayout
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QTextEdit,
+    QLabel,
+    QCheckBox,
+    QPushButton,
+    QHBoxLayout,
+)
 from PyQt6.QtCore import pyqtSlot
 
 
@@ -58,7 +66,7 @@ class LiveMonitorWidget(QWidget):
     def on_raw_event(self, data: bytes):
         """Display raw HID report"""
         if self.show_raw.isChecked():
-            hex_str = ' '.join(f'{b:02x}' for b in data)
+            hex_str = " ".join(f"{b:02x}" for b in data)
             self.append_log(f"RAW: {hex_str}")
 
     @pyqtSlot(str, bool)
@@ -80,9 +88,9 @@ class LiveMonitorWidget(QWidget):
 
         # Limit lines (simplified)
         text = self.event_log.toPlainText()
-        lines = text.split('\n')
+        lines = text.split("\n")
         if len(lines) > self.max_lines:
-            self.event_log.setPlainText('\n'.join(lines[-self.max_lines:]))
+            self.event_log.setPlainText("\n".join(lines[-self.max_lines :]))
 
     def clear_log(self):
         """Clear event log"""

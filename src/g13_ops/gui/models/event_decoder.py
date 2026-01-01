@@ -15,11 +15,12 @@ from typing import List, Tuple
 @dataclass
 class G13ButtonState:
     """Represents decoded button and joystick states from a USB HID report"""
-    g_buttons: int      # Bitmask for G1-G22 (bit 1-22)
-    m_buttons: int      # Bitmask for M1-M3 (bit 1-3)
-    joystick_x: int     # Analog X position (0-255)
-    joystick_y: int     # Analog Y position (0-255)
-    raw_data: bytes     # Original raw report for debugging
+
+    g_buttons: int  # Bitmask for G1-G22 (bit 1-22)
+    m_buttons: int  # Bitmask for M1-M3 (bit 1-3)
+    joystick_x: int  # Analog X position (0-255)
+    joystick_y: int  # Analog Y position (0-255)
+    raw_data: bytes  # Original raw report for debugging
 
 
 class EventDecoder:
@@ -43,50 +44,46 @@ class EventDecoder:
     # Based on capture data showing 8-byte HID reports
     BUTTON_MAP = {
         # G-keys Row 1 (Byte 3, bits 0-7) - ALL CONFIRMED
-        'G1': (3, 0),   # 0x01 ✓
-        'G2': (3, 1),   # 0x02 ✓
-        'G3': (3, 2),   # 0x04 ✓
-        'G4': (3, 3),   # 0x08 ✓
-        'G5': (3, 4),   # 0x10 ✓
-        'G6': (3, 5),   # 0x20 ✓
-        'G7': (3, 6),   # 0x40 ✓
-        'G8': (3, 7),   # 0x80 ✓
-
+        "G1": (3, 0),  # 0x01 ✓
+        "G2": (3, 1),  # 0x02 ✓
+        "G3": (3, 2),  # 0x04 ✓
+        "G4": (3, 3),  # 0x08 ✓
+        "G5": (3, 4),  # 0x10 ✓
+        "G6": (3, 5),  # 0x20 ✓
+        "G7": (3, 6),  # 0x40 ✓
+        "G8": (3, 7),  # 0x80 ✓
         # G-keys Row 2 (Byte 4, bits 0-7) - ALL CONFIRMED
-        'G9': (4, 0),   # 0x01 ✓
-        'G10': (4, 1),  # 0x02 ✓
-        'G11': (4, 2),  # 0x04 ✓
-        'G12': (4, 3),  # 0x08 ✓
-        'G13': (4, 4),  # 0x10 ✓
-        'G14': (4, 5),  # 0x20 ✓
-        'G15': (4, 6),  # 0x40 ✓
-        'G16': (4, 7),  # 0x80 ✓
-
+        "G9": (4, 0),  # 0x01 ✓
+        "G10": (4, 1),  # 0x02 ✓
+        "G11": (4, 2),  # 0x04 ✓
+        "G12": (4, 3),  # 0x08 ✓
+        "G13": (4, 4),  # 0x10 ✓
+        "G14": (4, 5),  # 0x20 ✓
+        "G15": (4, 6),  # 0x40 ✓
+        "G16": (4, 7),  # 0x80 ✓
         # G-keys Row 3-4 (Byte 5, bits 0-5) - ALL CONFIRMED
         # NOTE: These are on Byte 5, NOT Byte 6 as previously predicted!
         # Byte 5 bit 7 (0x80) is always set - status flag, not a button
-        'G17': (5, 0),  # 0x01 ✓
-        'G18': (5, 1),  # 0x02 ✓
-        'G19': (5, 2),  # 0x04 ✓
-        'G20': (5, 3),  # 0x08 ✓
-        'G21': (5, 4),  # 0x10 ✓
-        'G22': (5, 5),  # 0x20 ✓
-
+        "G17": (5, 0),  # 0x01 ✓
+        "G18": (5, 1),  # 0x02 ✓
+        "G19": (5, 2),  # 0x04 ✓
+        "G20": (5, 3),  # 0x08 ✓
+        "G21": (5, 4),  # 0x10 ✓
+        "G22": (5, 5),  # 0x20 ✓
         # Byte 6: Mode and function buttons (from ecraven/g13 reference)
-        'BD': (6, 0),   # 0x01 - Backlight/Display toggle
-        'L1': (6, 1),   # 0x02 - Left button 1 (if present)
-        'L2': (6, 2),   # 0x04 - Left button 2 (if present)
-        'L3': (6, 3),   # 0x08 - Left button 3 (if present)
-        'L4': (6, 4),   # 0x10 - Left button 4 (if present)
-        'M1': (6, 5),   # 0x20 ✓ - Mode 1
-        'M2': (6, 6),   # 0x40 ✓ - Mode 2
-        'M3': (6, 7),   # 0x80 ✓ - Mode 3
-
+        "BD": (6, 0),  # 0x01 - Backlight/Display toggle
+        "L1": (6, 1),  # 0x02 - Left button 1 (if present)
+        "L2": (6, 2),  # 0x04 - Left button 2 (if present)
+        "L3": (6, 3),  # 0x08 - Left button 3 (if present)
+        "L4": (6, 4),  # 0x10 - Left button 4 (if present)
+        "M1": (6, 5),  # 0x20 ✓ - Mode 1
+        "M2": (6, 6),  # 0x40 ✓ - Mode 2
+        "M3": (6, 7),  # 0x80 ✓ - Mode 3
         # Byte 7: MR and joystick buttons
-        'MR': (7, 0),   # 0x01 ✓ - Macro Record
-        'LEFT': (7, 1), # 0x02 - Joystick left?
-        'DOWN': (7, 2), # 0x04 - Joystick down?
-        'TOP': (7, 3),  # 0x08 - Joystick click/top?
+        "MR": (7, 0),  # 0x01 ✓ - Macro Record
+        "LEFT": (7, 1),  # 0x02 - Joystick left?
+        "DOWN": (7, 2),  # 0x04 - Joystick down?
+        "TOP": (7, 3),  # 0x08 - Joystick click/top?
     }
 
     # Joystick byte positions - CONFIRMED via hardware testing
@@ -121,15 +118,19 @@ class EventDecoder:
         m_buttons = self._decode_m_buttons(data)
 
         # Decode joystick (if bytes are within range)
-        joystick_x = data[self.JOYSTICK_X_BYTE] if len(data) > self.JOYSTICK_X_BYTE else 128
-        joystick_y = data[self.JOYSTICK_Y_BYTE] if len(data) > self.JOYSTICK_Y_BYTE else 128
+        joystick_x = (
+            data[self.JOYSTICK_X_BYTE] if len(data) > self.JOYSTICK_X_BYTE else 128
+        )
+        joystick_y = (
+            data[self.JOYSTICK_Y_BYTE] if len(data) > self.JOYSTICK_Y_BYTE else 128
+        )
 
         state = G13ButtonState(
             g_buttons=g_buttons,
             m_buttons=m_buttons,
             joystick_x=joystick_x,
             joystick_y=joystick_y,
-            raw_data=data
+            raw_data=data,
         )
 
         # NOTE: Don't update last_state here - let get_button_changes do it
@@ -148,13 +149,13 @@ class EventDecoder:
         # STUB IMPLEMENTATION - needs hardware testing
         # Iterate through BUTTON_MAP to extract bits
         for button_name, (byte_idx, bit_pos) in self.BUTTON_MAP.items():
-            if button_name.startswith('G') and len(button_name) > 1:
+            if button_name.startswith("G") and len(button_name) > 1:
                 try:
                     button_num = int(button_name[1:])
                     if 1 <= button_num <= 22:
                         # Check if bit is set in the specified byte
                         if data[byte_idx] & (1 << bit_pos):
-                            result |= (1 << button_num)
+                            result |= 1 << button_num
                 except (ValueError, IndexError):
                     pass
 
@@ -171,12 +172,12 @@ class EventDecoder:
 
         # STUB IMPLEMENTATION - needs hardware testing
         for button_name, (byte_idx, bit_pos) in self.BUTTON_MAP.items():
-            if button_name.startswith('M') and len(button_name) > 1:
+            if button_name.startswith("M") and len(button_name) > 1:
                 try:
                     button_num = int(button_name[1:])
                     if 1 <= button_num <= 3:
                         if data[byte_idx] & (1 << bit_pos):
-                            result |= (1 << button_num)
+                            result |= 1 << button_num
                 except (ValueError, IndexError):
                     pass
 
@@ -212,7 +213,9 @@ class EventDecoder:
 
         return pressed
 
-    def get_button_changes(self, new_state: G13ButtonState) -> Tuple[List[str], List[str]]:
+    def get_button_changes(
+        self, new_state: G13ButtonState
+    ) -> Tuple[List[str], List[str]]:
         """
         Compare with previous state to detect button press/release events.
 
@@ -260,9 +263,9 @@ class EventDecoder:
 
         # Show in groups of 16 bytes
         for i in range(0, len(data), 16):
-            chunk = data[i:i+16]
-            hex_str = ' '.join(f'{b:02x}' for b in chunk)
-            ascii_str = ''.join(chr(b) if 32 <= b < 127 else '.' for b in chunk)
+            chunk = data[i : i + 16]
+            hex_str = " ".join(f"{b:02x}" for b in chunk)
+            ascii_str = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
             lines.append(f"{i:04x}:  {hex_str}  {ascii_str}")
 
         lines.append("=" * 60)
@@ -276,7 +279,7 @@ class EventDecoder:
         else:
             lines.append("All bytes are zero")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
 
 # Helper function for testing/reverse engineering

@@ -9,44 +9,43 @@ class TestMapperParsing:
 
     def test_parse_simple_mapping(self):
         """Parse simple KEY_* string format."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
-            keycodes = mapper._parse_mapping('KEY_A')
+            keycodes = mapper._parse_mapping("KEY_A")
 
             assert keycodes == [e.KEY_A]
 
     def test_parse_combo_mapping(self):
         """Parse combo format with multiple keys."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
-            keycodes = mapper._parse_mapping({
-                'keys': ['KEY_LEFTCTRL', 'KEY_B'],
-                'label': 'Test combo'
-            })
+            keycodes = mapper._parse_mapping(
+                {"keys": ["KEY_LEFTCTRL", "KEY_B"], "label": "Test combo"}
+            )
 
             assert keycodes == [e.KEY_LEFTCTRL, e.KEY_B]
 
     def test_parse_invalid_key_returns_empty(self):
         """Invalid key names return empty list."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
-            keycodes = mapper._parse_mapping('KEY_INVALID_NOT_REAL')
+            keycodes = mapper._parse_mapping("KEY_INVALID_NOT_REAL")
 
             assert keycodes == []
 
     def test_parse_empty_combo_returns_empty(self):
         """Empty combo returns empty list."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
-            keycodes = mapper._parse_mapping({'keys': [], 'label': 'Empty'})
+            keycodes = mapper._parse_mapping({"keys": [], "label": "Empty"})
 
             assert keycodes == []
 
@@ -56,55 +55,55 @@ class TestProfileLoading:
 
     def test_load_simple_profile(self):
         """Load profile with simple key mappings."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
             profile = {
-                'mappings': {
-                    'G1': 'KEY_1',
-                    'G2': 'KEY_2',
+                "mappings": {
+                    "G1": "KEY_1",
+                    "G2": "KEY_2",
                 }
             }
             mapper.load_profile(profile)
 
-            assert 'G1' in mapper.button_map
-            assert mapper.button_map['G1'] == [e.KEY_1]
-            assert mapper.button_map['G2'] == [e.KEY_2]
+            assert "G1" in mapper.button_map
+            assert mapper.button_map["G1"] == [e.KEY_1]
+            assert mapper.button_map["G2"] == [e.KEY_2]
 
     def test_load_combo_profile(self):
         """Load profile with key combinations."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
             profile = {
-                'mappings': {
-                    'G1': {'keys': ['KEY_LEFTCTRL', 'KEY_C'], 'label': 'Copy'},
-                    'G2': {'keys': ['KEY_LEFTCTRL', 'KEY_V'], 'label': 'Paste'},
+                "mappings": {
+                    "G1": {"keys": ["KEY_LEFTCTRL", "KEY_C"], "label": "Copy"},
+                    "G2": {"keys": ["KEY_LEFTCTRL", "KEY_V"], "label": "Paste"},
                 }
             }
             mapper.load_profile(profile)
 
-            assert mapper.button_map['G1'] == [e.KEY_LEFTCTRL, e.KEY_C]
-            assert mapper.button_map['G2'] == [e.KEY_LEFTCTRL, e.KEY_V]
+            assert mapper.button_map["G1"] == [e.KEY_LEFTCTRL, e.KEY_C]
+            assert mapper.button_map["G2"] == [e.KEY_LEFTCTRL, e.KEY_V]
 
     def test_load_mixed_profile(self):
         """Load profile with both simple and combo mappings."""
-        with patch('g13_ops.mapper.UInput'):
+        with patch("g13_ops.mapper.UInput"):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
             profile = {
-                'mappings': {
-                    'G1': 'KEY_F1',
-                    'G2': {'keys': ['KEY_LEFTALT', 'KEY_F4'], 'label': 'Close'},
+                "mappings": {
+                    "G1": "KEY_F1",
+                    "G2": {"keys": ["KEY_LEFTALT", "KEY_F4"], "label": "Close"},
                 }
             }
             mapper.load_profile(profile)
 
-            assert mapper.button_map['G1'] == [e.KEY_F1]
-            assert mapper.button_map['G2'] == [e.KEY_LEFTALT, e.KEY_F4]
+            assert mapper.button_map["G1"] == [e.KEY_F1]
+            assert mapper.button_map["G2"] == [e.KEY_LEFTALT, e.KEY_F4]
 
 
 class TestButtonEvents:
@@ -114,13 +113,13 @@ class TestButtonEvents:
         """Button press emits all keys in order."""
         mock_uinput = MagicMock()
 
-        with patch('g13_ops.mapper.UInput', return_value=mock_uinput):
+        with patch("g13_ops.mapper.UInput", return_value=mock_uinput):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
-            mapper.button_map = {'G1': [e.KEY_LEFTCTRL, e.KEY_B]}
+            mapper.button_map = {"G1": [e.KEY_LEFTCTRL, e.KEY_B]}
 
-            mapper.handle_button_event('G1', True)
+            mapper.handle_button_event("G1", True)
 
             # Should write Ctrl, then B, then sync
             calls = mock_uinput.write.call_args_list
@@ -133,13 +132,13 @@ class TestButtonEvents:
         """Button release emits keys in reverse order."""
         mock_uinput = MagicMock()
 
-        with patch('g13_ops.mapper.UInput', return_value=mock_uinput):
+        with patch("g13_ops.mapper.UInput", return_value=mock_uinput):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
-            mapper.button_map = {'G1': [e.KEY_LEFTCTRL, e.KEY_B]}
+            mapper.button_map = {"G1": [e.KEY_LEFTCTRL, e.KEY_B]}
 
-            mapper.handle_button_event('G1', False)
+            mapper.handle_button_event("G1", False)
 
             # Should release B first, then Ctrl
             calls = mock_uinput.write.call_args_list
@@ -151,13 +150,13 @@ class TestButtonEvents:
         """Unmapped button press does nothing."""
         mock_uinput = MagicMock()
 
-        with patch('g13_ops.mapper.UInput', return_value=mock_uinput):
+        with patch("g13_ops.mapper.UInput", return_value=mock_uinput):
             from g13_ops.mapper import G13Mapper
 
             mapper = G13Mapper()
             mapper.button_map = {}
 
-            mapper.handle_button_event('G99', True)
+            mapper.handle_button_event("G99", True)
 
             mock_uinput.write.assert_not_called()
             mock_uinput.syn.assert_not_called()
