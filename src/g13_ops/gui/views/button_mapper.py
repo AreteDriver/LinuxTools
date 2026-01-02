@@ -92,7 +92,7 @@ class ButtonMapperWidget(QWidget):
         self.update()  # Trigger repaint
 
     def paintEvent(self, event):
-        """Draw G13 keyboard layout - background image or simple outline"""
+        """Draw G13 keyboard layout - dark theme matching real device"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -100,64 +100,147 @@ class ButtonMapperWidget(QWidget):
             # Draw the background image
             painter.drawPixmap(0, 0, self.background_image)
         else:
-            # Fallback: Draw simple keyboard outline and LCD area
-            pen = QPen(QColor(100, 100, 100), 2)
-            painter.setPen(pen)
-            painter.drawRoundedRect(
-                10, 10, KEYBOARD_WIDTH - 20, KEYBOARD_HEIGHT - 20, 10, 10
-            )
+            # Draw G13-style dark background
+            self._draw_device_background(painter)
 
-            # Draw LCD area
-            painter.setPen(QPen(QColor(50, 150, 50), 2))
-            painter.drawRect(
-                LCD_AREA["x"], LCD_AREA["y"], LCD_AREA["width"], LCD_AREA["height"]
-            )
-
-            # LCD label
-            painter.setFont(QFont("Arial", 8))
-            painter.drawText(LCD_AREA["x"] + 5, LCD_AREA["y"] + 15, "LCD (160x43)")
+            # Draw LCD area with green/black display look
+            self._draw_lcd_area(painter)
 
         # Draw joystick position indicator
         self._draw_joystick_indicator(painter)
 
+    def _draw_device_background(self, painter: QPainter):
+        """Draw dark G13 device background with curved shape"""
+        # Dark background for entire widget
+        painter.fillRect(0, 0, KEYBOARD_WIDTH, KEYBOARD_HEIGHT, QColor(20, 20, 22))
+
+        # Main device body outline - rounded rectangle with G13 proportions
+        body_rect = (30, 80, KEYBOARD_WIDTH - 60, KEYBOARD_HEIGHT - 150)
+
+        # Draw outer glow/edge
+        painter.setPen(QPen(QColor(60, 60, 65), 4))
+        painter.setBrush(QColor(35, 35, 38))
+        painter.drawRoundedRect(*body_rect, 40, 40)
+
+        # Inner body with subtle gradient
+        inner_rect = (35, 85, KEYBOARD_WIDTH - 70, KEYBOARD_HEIGHT - 160)
+        painter.setPen(QPen(QColor(50, 50, 55), 2))
+        painter.setBrush(QColor(28, 28, 32))
+        painter.drawRoundedRect(*inner_rect, 35, 35)
+
+        # Palm rest area (bottom curved section)
+        palm_rect = (80, KEYBOARD_HEIGHT - 350, KEYBOARD_WIDTH - 160, 280)
+        painter.setPen(QPen(QColor(45, 45, 50), 2))
+        painter.setBrush(QColor(25, 25, 28))
+        painter.drawRoundedRect(*palm_rect, 60, 60)
+
+    def _draw_lcd_area(self, painter: QPainter):
+        """Draw LCD display area with authentic green/black look"""
+        x, y, w, h = LCD_AREA["x"], LCD_AREA["y"], LCD_AREA["width"], LCD_AREA["height"]
+
+        # LCD bezel (dark frame around screen)
+        bezel_margin = 8
+        painter.setPen(QPen(QColor(20, 20, 22), 3))
+        painter.setBrush(QColor(15, 15, 18))
+        painter.drawRoundedRect(
+            x - bezel_margin, y - bezel_margin,
+            w + bezel_margin * 2, h + bezel_margin * 2,
+            8, 8
+        )
+
+        # LCD screen - classic green/black monochrome look
+        painter.setPen(QPen(QColor(30, 80, 30), 2))
+        painter.setBrush(QColor(10, 25, 10))  # Very dark green background
+        painter.drawRect(x, y, w, h)
+
+        # LCD text area with scanline effect hint
+        painter.setPen(QColor(40, 120, 40))
+        painter.setFont(QFont("Courier", 11, QFont.Weight.Bold))
+        painter.drawText(x + 15, y + 35, "G13 LCD Display")
+        painter.setFont(QFont("Courier", 9))
+        painter.setPen(QColor(30, 90, 30))
+        painter.drawText(x + 15, y + 55, "160 x 43 pixels")
+
+        # Subtle screen reflection/glare line
+        painter.setPen(QPen(QColor(50, 100, 50, 40), 1))
+        painter.drawLine(x + 10, y + 10, x + w - 30, y + 15)
+
     def _draw_joystick_indicator(self, painter: QPainter):
-        """Draw a dot showing current joystick position"""
-        # Joystick area center and radius
+        """Draw thumbstick area matching G13's actual joystick look"""
         center_x = JOYSTICK_AREA["x"] + JOYSTICK_AREA["width"] // 2
         center_y = JOYSTICK_AREA["y"] + JOYSTICK_AREA["height"] // 2
-        radius = min(JOYSTICK_AREA["width"], JOYSTICK_AREA["height"]) // 2 - 10
+        radius = min(JOYSTICK_AREA["width"], JOYSTICK_AREA["height"]) // 2 - 5
 
-        # Draw joystick boundary circle
-        painter.setPen(QPen(QColor(80, 80, 80), 2))
-        painter.setBrush(QColor(40, 40, 40, 100))
+        # Outer housing ring (dark metal look)
+        painter.setPen(QPen(QColor(45, 45, 50), 3))
+        painter.setBrush(QColor(30, 30, 35))
+        painter.drawEllipse(
+            center_x - radius - 5, center_y - radius - 5,
+            (radius + 5) * 2, (radius + 5) * 2
+        )
+
+        # Inner recessed area (where stick moves)
+        painter.setPen(QPen(QColor(25, 25, 28), 2))
+        painter.setBrush(QColor(18, 18, 22))
         painter.drawEllipse(
             center_x - radius, center_y - radius,
             radius * 2, radius * 2
         )
 
         # Map joystick position (0-255) to pixel offset from center
-        # 128 = center, 0 = full left/up, 255 = full right/down
-        offset_x = int((self._joystick_x - 128) / 128 * (radius - 8))
-        offset_y = int((self._joystick_y - 128) / 128 * (radius - 8))
+        offset_x = int((self._joystick_x - 128) / 128 * (radius - 20))
+        offset_y = int((self._joystick_y - 128) / 128 * (radius - 20))
 
-        # Draw joystick position dot
-        dot_x = center_x + offset_x
-        dot_y = center_y + offset_y
-        dot_radius = 12
+        # Draw thumbstick cap (rubber texture look)
+        stick_x = center_x + offset_x
+        stick_y = center_y + offset_y
+        stick_radius = 25
 
-        # Color based on distance from center (green = center, red = edge)
-        distance = (offset_x**2 + offset_y**2) ** 0.5
-        max_distance = radius - 8
-        intensity = min(distance / max_distance, 1.0) if max_distance > 0 else 0
-        color = QColor(
-            int(100 + 155 * intensity),  # Red increases
-            int(200 - 100 * intensity),  # Green decreases
-            100
-        )
-
-        painter.setPen(QPen(QColor(255, 255, 255), 2))
-        painter.setBrush(color)
+        # Stick shadow
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(10, 10, 12, 150))
         painter.drawEllipse(
-            dot_x - dot_radius, dot_y - dot_radius,
-            dot_radius * 2, dot_radius * 2
+            stick_x - stick_radius + 3, stick_y - stick_radius + 3,
+            stick_radius * 2, stick_radius * 2
         )
+
+        # Stick base (dark rubber)
+        painter.setPen(QPen(QColor(50, 50, 55), 2))
+        painter.setBrush(QColor(35, 35, 40))
+        painter.drawEllipse(
+            stick_x - stick_radius, stick_y - stick_radius,
+            stick_radius * 2, stick_radius * 2
+        )
+
+        # Stick top with concave grip pattern
+        inner_radius = stick_radius - 5
+        painter.setPen(QPen(QColor(60, 60, 65), 1))
+        painter.setBrush(QColor(45, 45, 50))
+        painter.drawEllipse(
+            stick_x - inner_radius, stick_y - inner_radius,
+            inner_radius * 2, inner_radius * 2
+        )
+
+        # Center dimple (like real thumbstick)
+        dimple_radius = 8
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(35, 35, 40))
+        painter.drawEllipse(
+            stick_x - dimple_radius, stick_y - dimple_radius,
+            dimple_radius * 2, dimple_radius * 2
+        )
+
+        # Position indicator - subtle colored ring based on deflection
+        distance = (offset_x**2 + offset_y**2) ** 0.5
+        max_distance = radius - 20
+        intensity = min(distance / max_distance, 1.0) if max_distance > 0 else 0
+
+        if intensity > 0.1:
+            # Show activity with teal glow (matches G13 backlight theme)
+            glow_color = QColor(0, int(150 + 50 * intensity), int(150 + 50 * intensity), int(100 * intensity))
+            painter.setPen(QPen(glow_color, 2))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(
+                stick_x - stick_radius - 2, stick_y - stick_radius - 2,
+                (stick_radius + 2) * 2, (stick_radius + 2) * 2
+            )

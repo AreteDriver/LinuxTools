@@ -83,35 +83,39 @@ class G13Button(QPushButton):
         return True
 
     def _update_style(self):
-        """Update button appearance based on state"""
+        """Update button appearance based on state - G13 dark theme"""
         if self.is_highlighted:
-            # Green when physically pressed (more opaque)
-            bg_color = "rgba(76, 175, 80, 0.85)"
-            border_color = "#81C784"
+            # Bright orange/yellow when physically pressed (like real G13 backlight)
+            bg_color = "qlineargradient(y1:0, y2:1, stop:0 #FF8C00, stop:1 #FF6600)"
+            border_color = "#FFB84D"
+            text_color = "#000000"
         elif self._has_mapping():
-            # Blue when mapped to a key (semi-transparent)
-            bg_color = "rgba(33, 150, 243, 0.6)"
-            border_color = "#64B5F6"
+            # Teal/cyan when mapped (like G13 software highlights)
+            bg_color = "qlineargradient(y1:0, y2:1, stop:0 #2D4A4A, stop:1 #1A3333)"
+            border_color = "#4A7A7A"
+            text_color = "#88CCCC"
         else:
-            # Gray when unmapped (very transparent)
-            bg_color = "rgba(117, 117, 117, 0.4)"
-            border_color = "#BDBDBD"
+            # Dark gray like real G13 keys
+            bg_color = "qlineargradient(y1:0, y2:1, stop:0 #3A3A3A, stop:1 #252525)"
+            border_color = "#4A4A4A"
+            text_color = "#AAAAAA"
 
         self.setStyleSheet(f"""
             QPushButton {{
-                background-color: {bg_color};
-                color: white;
-                border: 2px solid {border_color};
-                border-radius: 5px;
-                font-size: 9px;
+                background: {bg_color};
+                color: {text_color};
+                border: 1px solid {border_color};
+                border-radius: 6px;
+                font-size: 10px;
                 font-weight: bold;
+                padding: 2px;
             }}
             QPushButton:hover {{
-                border: 3px solid #FFC107;
-                background-color: rgba(255, 193, 7, 0.5);
+                border: 2px solid #00AAAA;
+                background: qlineargradient(y1:0, y2:1, stop:0 #3D5A5A, stop:1 #2A4444);
             }}
             QPushButton:pressed {{
-                background-color: rgba(0, 0, 0, 0.5);
+                background: qlineargradient(y1:0, y2:1, stop:0 #1A2A2A, stop:1 #0D1A1A);
             }}
         """)
 
