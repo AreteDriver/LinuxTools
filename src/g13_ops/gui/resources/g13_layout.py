@@ -41,8 +41,11 @@ G13_BUTTON_POSITIONS = {
     "G20": {"x": 285, "y": 650, "width": 85, "height": 70},
     "G21": {"x": 390, "y": 640, "width": 85, "height": 70},
     "G22": {"x": 500, "y": 650, "width": 85, "height": 70},
-    # Joystick button (click down on stick) - right side
-    "JOYSTICK": {"x": 710, "y": 770, "width": 150, "height": 150},
+    # Thumb area buttons (near joystick)
+    "LEFT": {"x": 640, "y": 720, "width": 55, "height": 50},  # Thumb button 1
+    "DOWN": {"x": 640, "y": 780, "width": 55, "height": 50},  # Thumb button 2
+    # Joystick click (press down on stick)
+    "TOP": {"x": 720, "y": 750, "width": 120, "height": 120},
 }
 
 # Joystick area (visual outline - drawn by background image)

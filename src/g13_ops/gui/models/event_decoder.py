@@ -183,6 +183,9 @@ class EventDecoder:
 
         return result
 
+    # Buttons to check directly from raw data (not G1-G22 or M1-M3)
+    OTHER_BUTTONS = ["BD", "L1", "L2", "L3", "L4", "MR", "LEFT", "DOWN", "TOP"]
+
     def get_pressed_buttons(self, state: G13ButtonState | None = None) -> List[str]:
         """
         Return list of currently pressed button names.
@@ -191,7 +194,7 @@ class EventDecoder:
             state: Button state to check (uses last_state if None)
 
         Returns:
-            List of button IDs (e.g., ['G1', 'M2'])
+            List of button IDs (e.g., ['G1', 'M2', 'TOP'])
         """
         if state is None:
             state = self.last_state
@@ -210,6 +213,15 @@ class EventDecoder:
         for i in range(1, 4):
             if state.m_buttons & (1 << i):
                 pressed.append(f"M{i}")
+
+        # Check other buttons directly from raw data
+        if state.raw_data and len(state.raw_data) >= 8:
+            for button_name in self.OTHER_BUTTONS:
+                if button_name in self.BUTTON_MAP:
+                    byte_idx, bit_pos = self.BUTTON_MAP[button_name]
+                    if byte_idx < len(state.raw_data):
+                        if state.raw_data[byte_idx] & (1 << bit_pos):
+                            pressed.append(button_name)
 
         return pressed
 

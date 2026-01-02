@@ -154,6 +154,17 @@ class ApplicationController(QObject):
                 self.main_window.button_mapper.highlight_button(button_id, False)
                 self.main_window.monitor_widget.on_button_event(button_id, False)
 
+            # Update joystick visual indicator (always update for smooth movement)
+            self.main_window.button_mapper.update_joystick(
+                state.joystick_x, state.joystick_y
+            )
+
+            # Forward joystick movement to monitor (only if significantly moved)
+            if abs(state.joystick_x - 128) > 20 or abs(state.joystick_y - 128) > 20:
+                self.main_window.monitor_widget.on_joystick_event(
+                    state.joystick_x, state.joystick_y
+                )
+
         except Exception as e:
             # Debug: show decoder errors
             print(f"Decoder error: {e}")

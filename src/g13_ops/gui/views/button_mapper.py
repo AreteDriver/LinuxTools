@@ -11,6 +11,7 @@ from ..widgets.g13_button import G13Button
 from ..resources.g13_layout import (
     G13_BUTTON_POSITIONS,
     LCD_AREA,
+    JOYSTICK_AREA,
     KEYBOARD_WIDTH,
     KEYBOARD_HEIGHT,
 )
@@ -28,6 +29,9 @@ class ButtonMapperWidget(QWidget):
         self.buttons = {}
         self.background_image = self._load_background_image()
         self._init_buttons()
+        # Joystick position (0-255 for X and Y, 128 = center)
+        self._joystick_x = 128
+        self._joystick_y = 128
 
     def _load_background_image(self):
         """Load G13 layout background image if available"""
@@ -81,6 +85,12 @@ class ButtonMapperWidget(QWidget):
         for btn in self.buttons.values():
             btn.set_highlighted(False)
 
+    def update_joystick(self, x: int, y: int):
+        """Update joystick position indicator (0-255 for each axis)"""
+        self._joystick_x = x
+        self._joystick_y = y
+        self.update()  # Trigger repaint
+
     def paintEvent(self, event):
         """Draw G13 keyboard layout - background image or simple outline"""
         painter = QPainter(self)
@@ -106,3 +116,48 @@ class ButtonMapperWidget(QWidget):
             # LCD label
             painter.setFont(QFont("Arial", 8))
             painter.drawText(LCD_AREA["x"] + 5, LCD_AREA["y"] + 15, "LCD (160x43)")
+
+        # Draw joystick position indicator
+        self._draw_joystick_indicator(painter)
+
+    def _draw_joystick_indicator(self, painter: QPainter):
+        """Draw a dot showing current joystick position"""
+        # Joystick area center and radius
+        center_x = JOYSTICK_AREA["x"] + JOYSTICK_AREA["width"] // 2
+        center_y = JOYSTICK_AREA["y"] + JOYSTICK_AREA["height"] // 2
+        radius = min(JOYSTICK_AREA["width"], JOYSTICK_AREA["height"]) // 2 - 10
+
+        # Draw joystick boundary circle
+        painter.setPen(QPen(QColor(80, 80, 80), 2))
+        painter.setBrush(QColor(40, 40, 40, 100))
+        painter.drawEllipse(
+            center_x - radius, center_y - radius,
+            radius * 2, radius * 2
+        )
+
+        # Map joystick position (0-255) to pixel offset from center
+        # 128 = center, 0 = full left/up, 255 = full right/down
+        offset_x = int((self._joystick_x - 128) / 128 * (radius - 8))
+        offset_y = int((self._joystick_y - 128) / 128 * (radius - 8))
+
+        # Draw joystick position dot
+        dot_x = center_x + offset_x
+        dot_y = center_y + offset_y
+        dot_radius = 12
+
+        # Color based on distance from center (green = center, red = edge)
+        distance = (offset_x**2 + offset_y**2) ** 0.5
+        max_distance = radius - 8
+        intensity = min(distance / max_distance, 1.0) if max_distance > 0 else 0
+        color = QColor(
+            int(100 + 155 * intensity),  # Red increases
+            int(200 - 100 * intensity),  # Green decreases
+            100
+        )
+
+        painter.setPen(QPen(QColor(255, 255, 255), 2))
+        painter.setBrush(color)
+        painter.drawEllipse(
+            dot_x - dot_radius, dot_y - dot_radius,
+            dot_radius * 2, dot_radius * 2
+        )
