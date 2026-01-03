@@ -14,8 +14,8 @@ import time
 
 sys.path.insert(0, 'src')
 
-from g13_ops.device import open_g13_libusb
-from g13_ops.gui.models.event_decoder import EventDecoder
+from g13_linux.device import open_g13_libusb
+from g13_linux.gui.models.event_decoder import EventDecoder
 
 # Check for --emit flag
 EMIT_KEYS = '--emit' in sys.argv
@@ -27,7 +27,7 @@ print()
 
 mapper = None
 if EMIT_KEYS:
-    from g13_ops.mapper import G13Mapper
+    from g13_linux.mapper import G13Mapper
     mapper = G13Mapper()
     # Load a basic test profile
     mapper.load_profile({

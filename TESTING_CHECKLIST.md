@@ -68,7 +68,7 @@ sudo .venv/bin/python3 capture_hidapi.py
 # OR from command line:
 cd ~/projects/G13LogitechOPS
 source .venv/bin/activate
-python3 -m g13_ops.gui.main
+python3 -m g13_linux.gui.main
 ```
 
 1. Go to "Live Monitor" tab

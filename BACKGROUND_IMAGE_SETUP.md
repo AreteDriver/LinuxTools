@@ -10,13 +10,13 @@ The GUI now supports using a background image of the actual G13 keyboard layout!
 
 Save your G13 layout image to:
 ```
-src/g13_ops/gui/resources/images/g13_layout.png
+src/g13_linux/gui/resources/images/g13_layout.png
 ```
 
 **OR**
 
 ```
-src/g13_ops/gui/resources/images/g13_layout.jpg
+src/g13_linux/gui/resources/images/g13_layout.jpg
 ```
 
 ### Step 2: Image Requirements
@@ -33,7 +33,7 @@ That's it! The GUI will automatically detect and use the background image.
 ```bash
 cd ~/projects/G13LogitechOPS
 source .venv/bin/activate
-python3 -m g13_ops.gui.main
+python3 -m g13_linux.gui.main
 ```
 
 **OR** just click **"G13 Configuration GUI"** in your Ubuntu applications!
@@ -80,7 +80,7 @@ If you don't have a G13 layout image, you can:
 
 ### Adjust Button Transparency
 
-Edit `src/g13_ops/gui/widgets/g13_button.py`:
+Edit `src/g13_linux/gui/widgets/g13_button.py`:
 
 ```python
 # In _update_style() method:
@@ -93,7 +93,7 @@ bg_color = "rgba(33, 150, 243, 0.6)"  # Last value is opacity (0.0-1.0)
 
 If the buttons don't align perfectly with your image, edit:
 ```
-src/g13_ops/gui/resources/g13_layout.py
+src/g13_linux/gui/resources/g13_layout.py
 ```
 
 Update the `x` and `y` coordinates in `G13_BUTTON_POSITIONS`.
@@ -118,8 +118,8 @@ KEYBOARD_HEIGHT = 1067 # Adjust height (maintain aspect ratio!)
 ### Supported Image Locations
 
 The GUI checks these paths in order:
-1. `src/g13_ops/gui/resources/images/g13_layout.png`
-2. `src/g13_ops/gui/resources/images/g13_layout.jpg`
+1. `src/g13_linux/gui/resources/images/g13_layout.png`
+2. `src/g13_linux/gui/resources/images/g13_layout.jpg`
 
 ## Example Image Requirements
 
@@ -141,7 +141,7 @@ The GUI checks these paths in order:
 
 1. **Check path**: Ensure image is in correct directory
    ```bash
-   ls src/g13_ops/gui/resources/images/
+   ls src/g13_linux/gui/resources/images/
    ```
 
 2. **Check filename**: Must be exactly `g13_layout.png` or `g13_layout.jpg`
@@ -154,7 +154,7 @@ The GUI checks these paths in order:
 
 The button positions are estimates based on a reference image. You may need to adjust:
 
-1. Edit `src/g13_ops/gui/resources/g13_layout.py`
+1. Edit `src/g13_linux/gui/resources/g13_layout.py`
 2. Modify `x` and `y` values for misaligned buttons
 3. Test and iterate
 

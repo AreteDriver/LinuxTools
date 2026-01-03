@@ -149,7 +149,7 @@ if __name__ == '__main__':
     # Save to GUI resources directory
     output_path = os.path.join(
         os.path.dirname(__file__),
-        'src', 'g13_ops', 'gui', 'resources', 'images', 'g13_layout.png'
+        'src', 'g13_linux', 'gui', 'resources', 'images', 'g13_layout.png'
     )
 
     img.save(output_path)

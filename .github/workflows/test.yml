@@ -60,7 +60,7 @@ jobs:
 
       - name: Run tests with coverage
         if: matrix.python-version == '3.11'
-        run: pytest tests/ --cov=g13_ops --cov-report=xml --cov-report=term
+        run: pytest tests/ --cov=g13_linux --cov-report=xml --cov-report=term
 
       - name: Upload coverage
         if: matrix.python-version == '3.11'
@@ -92,7 +92,7 @@ jobs:
           pip install mypy types-PyYAML
 
       - name: Type check
-        run: mypy src/g13_ops --ignore-missing-imports --no-error-summary || true
+        run: mypy src/g13_linux --ignore-missing-imports --no-error-summary || true
 
   build:
     runs-on: ubuntu-latest

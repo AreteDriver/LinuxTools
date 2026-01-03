@@ -9,8 +9,8 @@ class TestMapperParsing:
 
     def test_parse_simple_mapping(self):
         """Parse simple KEY_* string format."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             keycodes = mapper._parse_mapping("KEY_A")
@@ -19,8 +19,8 @@ class TestMapperParsing:
 
     def test_parse_combo_mapping(self):
         """Parse combo format with multiple keys."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             keycodes = mapper._parse_mapping(
@@ -31,8 +31,8 @@ class TestMapperParsing:
 
     def test_parse_invalid_key_returns_empty(self):
         """Invalid key names return empty list."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             keycodes = mapper._parse_mapping("KEY_INVALID_NOT_REAL")
@@ -41,8 +41,8 @@ class TestMapperParsing:
 
     def test_parse_empty_combo_returns_empty(self):
         """Empty combo returns empty list."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             keycodes = mapper._parse_mapping({"keys": [], "label": "Empty"})
@@ -55,8 +55,8 @@ class TestProfileLoading:
 
     def test_load_simple_profile(self):
         """Load profile with simple key mappings."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             profile = {
@@ -73,8 +73,8 @@ class TestProfileLoading:
 
     def test_load_combo_profile(self):
         """Load profile with key combinations."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             profile = {
@@ -90,8 +90,8 @@ class TestProfileLoading:
 
     def test_load_mixed_profile(self):
         """Load profile with both simple and combo mappings."""
-        with patch("g13_ops.mapper.UInput"):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput"):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             profile = {
@@ -113,8 +113,8 @@ class TestButtonEvents:
         """Button press emits all keys in order."""
         mock_uinput = MagicMock()
 
-        with patch("g13_ops.mapper.UInput", return_value=mock_uinput):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput", return_value=mock_uinput):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             mapper.button_map = {"G1": [e.KEY_LEFTCTRL, e.KEY_B]}
@@ -132,8 +132,8 @@ class TestButtonEvents:
         """Button release emits keys in reverse order."""
         mock_uinput = MagicMock()
 
-        with patch("g13_ops.mapper.UInput", return_value=mock_uinput):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput", return_value=mock_uinput):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             mapper.button_map = {"G1": [e.KEY_LEFTCTRL, e.KEY_B]}
@@ -150,8 +150,8 @@ class TestButtonEvents:
         """Unmapped button press does nothing."""
         mock_uinput = MagicMock()
 
-        with patch("g13_ops.mapper.UInput", return_value=mock_uinput):
-            from g13_ops.mapper import G13Mapper
+        with patch("g13_linux.mapper.UInput", return_value=mock_uinput):
+            from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
             mapper.button_map = {}

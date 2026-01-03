@@ -18,7 +18,7 @@ The G13 has 25 programmable buttons that need to be mapped. We need help decodin
 
 1. **Run the driver**:
    ```bash
-   python -m g13_ops.cli
+   python -m g13_linux.cli
    ```
 
 2. **Press each button and record the output**:
@@ -150,7 +150,7 @@ flake8 src/
 pytest
 
 # Run with coverage
-pytest --cov=g13_ops
+pytest --cov=g13_linux
 
 # Run specific test
 pytest tests/test_device.py

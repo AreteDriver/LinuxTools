@@ -11,7 +11,7 @@ fi
 
 # Run the G13 OPS application
 cd "$SCRIPT_DIR"
-python3 -m g13_ops.cli
+python3 -m g13_linux.cli
 
 # Deactivate virtual environment on exit
 deactivate 2>/dev/null

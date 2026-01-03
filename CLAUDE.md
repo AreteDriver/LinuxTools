@@ -15,7 +15,7 @@ Hardware (G13) → USB HID → udev rules → g13-daemon → CLI/Config
 ```
 
 ### Key Components
-- **g13_ops/** — Main package
+- **g13_linux/** — Main package
 - **configs/** — Profile YAML files
 - **find_g13_device.sh** — Device detection script
 

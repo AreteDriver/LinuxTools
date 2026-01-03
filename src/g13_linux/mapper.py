@@ -1,7 +1,7 @@
 from evdev import UInput, ecodes as e
 from typing import Union
 
-from g13_ops.gui.models.event_decoder import EventDecoder
+from g13_linux.gui.models.event_decoder import EventDecoder
 
 
 class G13Mapper:

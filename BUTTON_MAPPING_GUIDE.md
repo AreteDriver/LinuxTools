@@ -41,7 +41,7 @@ sudo udevadm trigger
 ```bash
 cd ~/projects/G13LogitechOPS
 source .venv/bin/activate
-g13-ops
+g13-linux
 ```
 
 Expected output:
@@ -154,7 +154,7 @@ def analyze_byte(byte_idx):
 
 Once you've identified the pattern, update the code:
 
-**File**: `src/g13_ops/gui/models/event_decoder.py`
+**File**: `src/g13_linux/gui/models/event_decoder.py`
 
 ```python
 # Around line 35-50, update BUTTON_MAP:
@@ -196,7 +196,7 @@ JOYSTICK_Y_BYTE = 6  # Example - adjust based on testing
 
 ```bash
 # Launch GUI
-g13-ops-gui
+g13-linux-gui
 
 # Test:
 1. Press G1 on physical keyboard
@@ -253,7 +253,7 @@ ls -l /dev/hidraw*
 # Should show mode 0666 or your user in group
 
 # Test with sudo
-sudo g13-ops
+sudo g13-linux
 ```
 
 **Solution 2**: Verify device is not claimed by another driver
@@ -326,10 +326,10 @@ Your data helps the community!
 # Start testing session
 cd ~/projects/G13LogitechOPS
 source .venv/bin/activate
-g13-ops > button_test_output.txt 2>&1
+g13-linux > button_test_output.txt 2>&1
 
 # Launch GUI for verification
-g13-ops-gui
+g13-linux-gui
 
 # View raw device info
 lsusb -v -d 046d:c21c

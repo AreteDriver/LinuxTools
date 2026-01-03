@@ -21,8 +21,8 @@ def main():
     print("=" * 60)
 
     # Import after checking we're running as root
-    from g13_ops.device import open_g13_libusb
-    from g13_ops.hardware.lcd import G13LCD
+    from g13_linux.device import open_g13_libusb
+    from g13_linux.hardware.lcd import G13LCD
 
     print("\nOpening G13 via libusb...")
     try:

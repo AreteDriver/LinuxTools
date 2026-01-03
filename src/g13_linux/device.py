@@ -146,13 +146,14 @@ class LibUSBDevice:
         if self._dev is None:
             raise RuntimeError("G13 not found")
 
-        # Detach kernel driver if attached
-        try:
-            if self._dev.is_kernel_driver_active(0):
-                self._dev.detach_kernel_driver(0)
-                self._reattach = True
-        except Exception:
-            pass
+        # Detach kernel driver from all interfaces
+        for intf_num in range(2):
+            try:
+                if self._dev.is_kernel_driver_active(intf_num):
+                    self._dev.detach_kernel_driver(intf_num)
+                    self._reattach = True
+            except Exception:
+                pass
 
         # Set configuration
         try:
@@ -160,9 +161,15 @@ class LibUSBDevice:
         except Exception:
             pass
 
-        # Get endpoints
+        # Claim both interfaces
         import usb.util
+        for intf_num in range(2):
+            try:
+                usb.util.claim_interface(self._dev, intf_num)
+            except Exception:
+                pass
 
+        # Get endpoints from interface 0
         cfg = self._dev.get_active_configuration()
         intf = cfg[(0, 0)]
 
@@ -191,10 +198,13 @@ class LibUSBDevice:
             return None
 
     def write(self, data):
-        """Write output report (for LCD)."""
-        if self._ep_out:
-            return self._ep_out.write(bytes(data))
-        return 0
+        """
+        Write output data (for LCD) via interrupt transfer.
+
+        Uses endpoint 0x02 OUT which is the LCD data endpoint.
+        """
+        # Use direct interrupt write to endpoint 0x02
+        return self._dev.write(self.ENDPOINT_OUT, bytes(data), timeout=1000)
 
     def send_feature_report(self, data):
         """Send feature report via control transfer."""
@@ -211,14 +221,23 @@ class LibUSBDevice:
     def close(self):
         """Close device and reattach kernel driver."""
         if self._dev:
-            try:
-                import usb.util
+            import usb.util
 
-                usb.util.release_interface(self._dev, 0)
-                if self._reattach:
-                    self._dev.attach_kernel_driver(0)
-            except Exception:
-                pass
+            # Release both interfaces
+            for intf_num in range(2):
+                try:
+                    usb.util.release_interface(self._dev, intf_num)
+                except Exception:
+                    pass
+
+            # Reattach kernel drivers
+            if self._reattach:
+                for intf_num in range(2):
+                    try:
+                        self._dev.attach_kernel_driver(intf_num)
+                    except Exception:
+                        pass
+
             self._dev = None
 
 

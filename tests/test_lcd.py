@@ -1,7 +1,7 @@
 """Tests for G13 LCD display."""
 
 import pytest
-from g13_ops.hardware.lcd import G13LCD, FONT_5X7
+from g13_linux.hardware.lcd import G13LCD, FONT_5X7
 
 
 class TestLCDConstants:

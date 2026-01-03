@@ -85,12 +85,12 @@ jobs:
 
             **From PyPI:**
             ```bash
-            pip install g13-ops
+            pip install g13-linux
             ```
 
             **From wheel:**
             ```bash
-            pip install g13_ops-${{ steps.get_version.outputs.VERSION }}-py3-none-any.whl
+            pip install g13_linux-${{ steps.get_version.outputs.VERSION }}-py3-none-any.whl
             ```
 
             ### Quick Start
@@ -100,10 +100,10 @@ jobs:
             sudo udevadm control --reload-rules
 
             # Run the GUI
-            g13-ops-gui
+            g13-linux-gui
 
             # Or use CLI
-            g13-ops --help
+            g13-linux --help
             ```
 
             ### Requirements

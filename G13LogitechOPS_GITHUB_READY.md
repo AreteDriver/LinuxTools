@@ -19,10 +19,10 @@ I've transformed your basic G13LogitechOPS project into a **professional, GitHub
 - ✅ **install.sh** - Automated installation script
 
 ### **Source Code (Preserved & Enhanced)**
-- ✅ `src/g13_ops/__init__.py` - Added version info and exports
-- ✅ `src/g13_ops/cli.py` - Your CLI interface (unchanged)
-- ✅ `src/g13_ops/device.py` - G13 HID communication (unchanged)
-- ✅ `src/g13_ops/mapper.py` - Button mapping system (unchanged)
+- ✅ `src/g13_linux/__init__.py` - Added version info and exports
+- ✅ `src/g13_linux/cli.py` - Your CLI interface (unchanged)
+- ✅ `src/g13_linux/device.py` - G13 HID communication (unchanged)
+- ✅ `src/g13_linux/mapper.py` - Button mapping system (unchanged)
 
 ### **Configuration**
 - ✅ `configs/profiles/example.json` - Example button mapping profile
@@ -86,7 +86,7 @@ git push -u origin main
 
 ### **Package Management**
 - ✅ Proper setup.py for `pip install`
-- ✅ Entry point for command-line tool (`g13-ops`)
+- ✅ Entry point for command-line tool (`g13-linux`)
 - ✅ Version management
 - ✅ Dependencies clearly specified
 
@@ -210,7 +210,7 @@ G13LogitechOPS/
 ├── install.sh                # ✨ Auto-installer
 ├── requirements.txt          # Python deps
 ├── src/
-│   └── g13_ops/
+│   └── g13_linux/
 │       ├── __init__.py       # ✨ Enhanced with version
 │       ├── cli.py            # CLI interface
 │       ├── device.py         # HID communication
@@ -239,16 +239,16 @@ source .venv/bin/activate
 pip list | grep g13
 
 # 3. Test command-line tool
-g13-ops --help
+g13-linux --help
 
 # 4. Check imports
-python -c "import g13_ops; print(g13_ops.__version__)"
+python -c "import g13_linux; print(g13_linux.__version__)"
 
 # 5. Verify udev rules
 cat /etc/udev/rules.d/99-logitech-g13.rules
 
 # 6. Test with actual G13 (if available)
-g13-ops
+g13-linux
 # Press buttons and verify output
 ```
 

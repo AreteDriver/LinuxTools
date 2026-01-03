@@ -3,15 +3,15 @@
 import tempfile
 import pytest
 
-from g13_ops.gui.models.macro_types import (
+from g13_linux.gui.models.macro_types import (
     Macro,
     MacroStep,
     MacroStepType,
     PlaybackMode,
 )
-from g13_ops.gui.models.macro_manager import MacroManager
-from g13_ops.gui.models.macro_recorder import MacroRecorder, RecorderState
-from g13_ops.gui.models.global_hotkeys import GlobalHotkeyManager
+from g13_linux.gui.models.macro_manager import MacroManager
+from g13_linux.gui.models.macro_recorder import MacroRecorder, RecorderState
+from g13_linux.gui.models.global_hotkeys import GlobalHotkeyManager
 
 
 class TestMacroStep:

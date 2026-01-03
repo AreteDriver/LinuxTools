@@ -115,16 +115,20 @@ class G13LCD:
     """
     LCD display controller for G13 (160x43 monochrome).
 
-    The G13 LCD uses VERTICAL byte packing:
+    The G13 LCD uses ROW-BLOCK byte packing:
     - 160 columns, 48 rows (only 43 visible)
-    - Each byte represents 8 vertical pixels in a column
-    - byte[0] = column 0, rows 0-7
-    - byte[1] = column 1, rows 0-7
-    - ...
-    - byte[160] = column 0, rows 8-15
-    - etc.
+    - Pixels grouped in 8-row vertical blocks
+    - Each block spans all 160 columns
 
-    Total: 160 columns × 6 bytes/column = 960 bytes
+    Memory layout (960 bytes):
+    - bytes 0-159:   rows 0-7,   all 160 columns
+    - bytes 160-319: rows 8-15,  all 160 columns
+    - bytes 320-479: rows 16-23, all 160 columns
+    - bytes 480-639: rows 24-31, all 160 columns
+    - bytes 640-799: rows 32-39, all 160 columns
+    - bytes 800-959: rows 40-47, all 160 columns
+
+    Formula: byte_idx = x + (y // 8) * 160
     """
 
     WIDTH = 160
@@ -231,22 +235,21 @@ class G13LCD:
         """
         Set a single pixel using G13 LCD byte packing.
 
-        The G13 LCD framebuffer is organized as:
+        The G13 LCD framebuffer uses ROW-BLOCK layout:
         - 160 columns × 48 rows (only 43 visible)
-        - Each byte represents 8 vertical pixels in ONE column
-        - Rows are grouped in 8-pixel blocks
+        - Pixels are grouped in 8-row vertical blocks
+        - Each block spans all 160 columns
 
-        Layout in memory:
-        - bytes 0-159:   columns 0-159, rows 0-7
-        - bytes 160-319: columns 0-159, rows 8-15
-        - bytes 320-479: columns 0-159, rows 16-23
-        - bytes 480-639: columns 0-159, rows 24-31
-        - bytes 640-799: columns 0-159, rows 32-39
-        - bytes 800-959: columns 0-159, rows 40-47
+        Layout in memory (960 bytes):
+        - bytes 0-159:   row-block 0 (rows 0-7, all columns)
+        - bytes 160-319: row-block 1 (rows 8-15, all columns)
+        - bytes 320-479: row-block 2 (rows 16-23, all columns)
+        - bytes 480-639: row-block 3 (rows 24-31, all columns)
+        - bytes 640-799: row-block 4 (rows 32-39, all columns)
+        - bytes 800-959: row-block 5 (rows 40-47, all columns)
 
-        Within each byte:
-        - bit 0 (0x01) = row 0/8/16/24/32/40
-        - bit 7 (0x80) = row 7/15/23/31/39/47
+        Formula: byte_idx = x + (y // 8) * 160
+        Bit: y % 8
 
         Args:
             x: X coordinate (0-159, left to right)
@@ -256,13 +259,9 @@ class G13LCD:
         if not (0 <= x < self.WIDTH and 0 <= y < self.HEIGHT):
             return
 
-        # Which 8-row block (0-5)
-        row_block = y // 8
-        # Which bit within the byte (0-7)
+        # Row-block layout: byte_idx = x + (y // 8) * WIDTH
+        byte_idx = x + (y // 8) * self.WIDTH
         bit_in_byte = y % 8
-
-        # Byte offset: row_block * 160 columns + x
-        byte_idx = (row_block * self.WIDTH) + x
 
         if on:
             self._framebuffer[byte_idx] |= 1 << bit_in_byte

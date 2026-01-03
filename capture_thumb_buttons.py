@@ -4,7 +4,7 @@ import sys
 import time
 sys.path.insert(0, 'src')
 
-from g13_ops.device import open_g13_libusb
+from g13_linux.device import open_g13_libusb
 
 print("=" * 60)
 print("RAW BYTE CAPTURE - Press thumb buttons / joystick click")

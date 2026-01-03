@@ -3,7 +3,7 @@
 import pytest
 import tempfile
 from pathlib import Path
-from g13_ops.gui.models.profile_manager import ProfileManager, ProfileData
+from g13_linux.gui.models.profile_manager import ProfileManager, ProfileData
 
 
 class TestProfileData:

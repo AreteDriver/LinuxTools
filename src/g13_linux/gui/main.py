@@ -4,8 +4,8 @@ G13LogitechOPS GUI Entry Point
 Launches the PyQt6 graphical interface for G13 configuration.
 
 Usage:
-    g13-ops-gui              # Normal mode (hidraw, no button input)
-    sudo g13-ops-gui --libusb  # With button input (requires root)
+    g13-linux-gui              # Normal mode (hidraw, no button input)
+    sudo g13-linux-gui --libusb  # With button input (requires root)
 """
 
 import sys

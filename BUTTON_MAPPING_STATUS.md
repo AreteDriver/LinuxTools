@@ -132,7 +132,7 @@ If G6-G22 or M1-M3 don't work correctly:
 ### Updating the Mapping
 If a button is mapped incorrectly, the file to edit is:
 ```
-src/g13_ops/gui/models/event_decoder.py
+src/g13_linux/gui/models/event_decoder.py
 ```
 
 Update the `BUTTON_MAP` dictionary with the correct byte/bit positions.
@@ -179,7 +179,7 @@ Update the `BUTTON_MAP` dictionary with the correct byte/bit positions.
 # Launch the GUI from command line
 cd ~/projects/G13LogitechOPS
 source .venv/bin/activate
-python3 -m g13_ops.gui.main
+python3 -m g13_linux.gui.main
 ```
 
 **OR**

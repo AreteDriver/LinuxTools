@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Joystick position tracking
   - Raw report analysis
 - **Desktop Integration** - Ubuntu application launcher support
-  - `g13-ops.desktop` - Main application launcher
+  - `g13-linux.desktop` - Main application launcher
   - `g13-capture.desktop` - Button capture launcher
 - **Documentation** - Comprehensive setup and testing guides
   - Button mapping status documentation

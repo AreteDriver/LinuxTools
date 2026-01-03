@@ -30,7 +30,7 @@ class EventDecoder:
     IMPLEMENTATION STATUS: STUB - Requires hardware testing
 
     To complete this implementation:
-    1. Run: python -m g13_ops.cli
+    1. Run: python -m g13_linux.cli
     2. Press each button (G1-G22, M1-M3) individually
     3. Record the RAW output showing which bytes change
     4. Update BUTTON_MAP with correct (byte_index, bit_position) for each button
@@ -300,7 +300,7 @@ def test_decoder_with_sample_data(sample_data: bytes):
     Test function for analyzing sample HID reports.
 
     Usage:
-        from g13_ops.gui.models.event_decoder import test_decoder_with_sample_data
+        from g13_linux.gui.models.event_decoder import test_decoder_with_sample_data
 
         # Record output when pressing G1
         g1_data = bytes([...])
