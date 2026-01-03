@@ -51,9 +51,26 @@ sudo udevadm trigger
 ### CLI
 
 ```bash
-g13-linux --help      # Show help
-g13-linux --version   # Show version
-g13-linux             # Run the input daemon
+g13-linux --help              # Show help
+g13-linux --version           # Show version
+g13-linux                     # Run the input daemon
+g13-linux run                 # Run the input daemon (explicit)
+
+# LCD control
+g13-linux lcd "Hello World"   # Display text on LCD
+g13-linux lcd --clear         # Clear the LCD
+
+# Backlight control
+g13-linux color red           # Set backlight to red
+g13-linux color "#FF6600"     # Set backlight to hex color
+g13-linux color 255,128,0     # Set backlight to RGB
+
+# Profile management
+g13-linux profile list        # List available profiles
+g13-linux profile show eve    # Show profile details
+g13-linux profile load eve    # Load and apply a profile
+g13-linux profile create new  # Create a new profile
+g13-linux profile delete old  # Delete a profile
 ```
 
 ### GUI
