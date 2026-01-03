@@ -112,21 +112,36 @@ FONT_5X7 = {
 
 
 class G13LCD:
-    """LCD display controller for G13 (160x43 monochrome)"""
+    """
+    LCD display controller for G13 (160x43 monochrome).
+
+    The G13 LCD uses VERTICAL byte packing:
+    - 160 columns, 48 rows (only 43 visible)
+    - Each byte represents 8 vertical pixels in a column
+    - byte[0] = column 0, rows 0-7
+    - byte[1] = column 1, rows 0-7
+    - ...
+    - byte[160] = column 0, rows 8-15
+    - etc.
+
+    Total: 160 columns × 6 bytes/column = 960 bytes
+    """
 
     WIDTH = 160
     HEIGHT = 43
-    BYTES_PER_ROW = WIDTH // 8  # 20 bytes per row
-    FRAMEBUFFER_SIZE = 960
+    BUFFER_ROWS = 48  # Buffer has 48 rows (6 bytes × 8 bits)
+    BYTES_PER_COLUMN = 6  # 48 bits / 8 = 6 bytes per column
+    FRAMEBUFFER_SIZE = 960  # 160 × 6 = 960
     HEADER_SIZE = 32
     COMMAND_BYTE = 0x03
+    LCD_ENDPOINT = 2  # USB endpoint for LCD data
 
     def __init__(self, device_handle=None):
         """
         Initialize LCD controller.
 
         Args:
-            device_handle: HidrawDevice instance from device.py
+            device_handle: Device instance (HidrawDevice or LibUSBDevice)
         """
         self.device = device_handle
         self._framebuffer = bytearray(self.FRAMEBUFFER_SIZE)
@@ -214,31 +229,75 @@ class G13LCD:
 
     def set_pixel(self, x: int, y: int, on: bool = True):
         """
-        Set a single pixel.
+        Set a single pixel using G13 LCD byte packing.
+
+        The G13 LCD framebuffer is organized as:
+        - 160 columns × 48 rows (only 43 visible)
+        - Each byte represents 8 vertical pixels in ONE column
+        - Rows are grouped in 8-pixel blocks
+
+        Layout in memory:
+        - bytes 0-159:   columns 0-159, rows 0-7
+        - bytes 160-319: columns 0-159, rows 8-15
+        - bytes 320-479: columns 0-159, rows 16-23
+        - bytes 480-639: columns 0-159, rows 24-31
+        - bytes 640-799: columns 0-159, rows 32-39
+        - bytes 800-959: columns 0-159, rows 40-47
+
+        Within each byte:
+        - bit 0 (0x01) = row 0/8/16/24/32/40
+        - bit 7 (0x80) = row 7/15/23/31/39/47
 
         Args:
-            x: X coordinate (0-159)
-            y: Y coordinate (0-42)
+            x: X coordinate (0-159, left to right)
+            y: Y coordinate (0-42, top to bottom)
             on: True for pixel on, False for off
         """
         if not (0 <= x < self.WIDTH and 0 <= y < self.HEIGHT):
             return
 
-        byte_idx = (y * self.BYTES_PER_ROW) + (x // 8)
-        bit_idx = 7 - (x % 8)  # MSB first
+        # Which 8-row block (0-5)
+        row_block = y // 8
+        # Which bit within the byte (0-7)
+        bit_in_byte = y % 8
+
+        # Byte offset: row_block * 160 columns + x
+        byte_idx = (row_block * self.WIDTH) + x
 
         if on:
-            self._framebuffer[byte_idx] |= 1 << bit_idx
+            self._framebuffer[byte_idx] |= 1 << bit_in_byte
         else:
-            self._framebuffer[byte_idx] &= ~(1 << bit_idx)
+            self._framebuffer[byte_idx] &= ~(1 << bit_in_byte)
+
+    def _init_lcd(self):
+        """
+        Initialize LCD endpoint before writing.
+
+        Sends SET_CONFIGURATION control transfer (required before each write).
+        """
+        if hasattr(self.device, '_dev') and self.device._dev:
+            try:
+                # Control transfer: SET_CONFIGURATION
+                # bmRequestType=0, bRequest=9, wValue=1, wIndex=0
+                self.device._dev.ctrl_transfer(0, 9, 1, 0, None, 1000)
+            except Exception as e:
+                print(f"[LCD] init_lcd failed: {e}")
 
     def _send_framebuffer(self):
-        """Send the framebuffer to the device."""
+        """
+        Send the framebuffer to the device.
+
+        Protocol: 32-byte header (0x03 + zeros) + 960-byte framebuffer
+        Total: 992 bytes sent via interrupt transfer to endpoint 2.
+        """
         if not self.device:
             print("[LCD] No device connected")
             return
 
         try:
+            # Initialize LCD endpoint (required before each write)
+            self._init_lcd()
+
             # Build packet: 32-byte header + 960-byte framebuffer
             # First byte of header is command 0x03
             header = bytearray(self.HEADER_SIZE)
@@ -247,9 +306,11 @@ class G13LCD:
             # Full packet is 992 bytes
             packet = bytes(header) + bytes(self._framebuffer)
 
-            # Send as single write
-            self.device.write(packet)
-        except OSError as e:
+            # Send to device - LibUSBDevice.write() sends to OUT endpoint
+            bytes_written = self.device.write(packet)
+            if bytes_written != len(packet):
+                print(f"[LCD] Partial write: {bytes_written}/{len(packet)} bytes")
+        except Exception as e:
             print(f"[LCD] Failed to send framebuffer: {e}")
 
     def set_brightness(self, level: int):

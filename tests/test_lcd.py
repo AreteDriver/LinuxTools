@@ -14,12 +14,13 @@ class TestLCDConstants:
         assert lcd.HEIGHT == 43
 
     def test_framebuffer_size(self):
-        """Framebuffer size is correct for 160x43 @ 1bpp."""
+        """Framebuffer size is correct for vertical packing."""
         lcd = G13LCD()
-        # 160 pixels / 8 bits = 20 bytes per row
-        # 20 bytes * 43 rows = 860 bytes (but G13 uses 960)
+        # Vertical packing: 160 columns × 6 bytes per column = 960 bytes
+        # (6 bytes = 48 bits, but only 43 rows visible)
         assert lcd.FRAMEBUFFER_SIZE == 960
-        assert lcd.BYTES_PER_ROW == 20
+        assert lcd.BYTES_PER_COLUMN == 6
+        assert lcd.BUFFER_ROWS == 48
 
 
 class TestFontTable:
@@ -41,15 +42,15 @@ class TestFontTable:
 
 
 class TestPixelOperations:
-    """Test pixel manipulation."""
+    """Test pixel manipulation with G13 LCD byte packing."""
 
     def test_set_pixel_on(self):
         """Setting a pixel turns it on."""
         lcd = G13LCD()
         lcd.set_pixel(0, 0, True)
 
-        # Pixel (0,0) is bit 7 of byte 0
-        assert lcd._framebuffer[0] & 0x80
+        # Pixel (0,0) is byte 0, bit 0
+        assert lcd._framebuffer[0] & 0x01
 
     def test_set_pixel_off(self):
         """Clearing a pixel turns it off."""
@@ -57,23 +58,38 @@ class TestPixelOperations:
         lcd._framebuffer[0] = 0xFF
         lcd.set_pixel(0, 0, False)
 
-        assert not (lcd._framebuffer[0] & 0x80)
+        assert not (lcd._framebuffer[0] & 0x01)
 
     def test_set_pixel_various_positions(self):
-        """Pixels at various positions are set correctly."""
+        """Pixels at various positions are set correctly.
+
+        Layout:
+        - bytes 0-159: columns 0-159, rows 0-7
+        - bytes 160-319: columns 0-159, rows 8-15
+        - etc.
+        """
         lcd = G13LCD()
 
-        # Test pixel at x=8 (byte 1, bit 7)
-        lcd.set_pixel(8, 0, True)
-        assert lcd._framebuffer[1] & 0x80
+        # Test pixel at x=1, y=0 (column 1, row 0)
+        # byte_idx = 0 * 160 + 1 = 1, bit 0
+        lcd.set_pixel(1, 0, True)
+        assert lcd._framebuffer[1] & 0x01
 
-        # Test pixel at x=7 (byte 0, bit 0)
-        lcd.set_pixel(7, 0, True)
-        assert lcd._framebuffer[0] & 0x01
+        # Test pixel at x=0, y=7 (column 0, row 7)
+        # byte_idx = 0 * 160 + 0 = 0, bit 7
+        lcd.set_pixel(0, 7, True)
+        assert lcd._framebuffer[0] & 0x80
 
-        # Test pixel on second row
-        lcd.set_pixel(0, 1, True)
-        assert lcd._framebuffer[20] & 0x80  # Row 1 starts at byte 20
+        # Test pixel at x=0, y=8 (column 0, row 8 - second block)
+        # byte_idx = 1 * 160 + 0 = 160, bit 0
+        lcd.set_pixel(0, 8, True)
+        assert lcd._framebuffer[160] & 0x01
+
+        # Test pixel at x=159, y=42 (last visible pixel)
+        # row_block = 42 // 8 = 5, bit = 42 % 8 = 2
+        # byte_idx = 5 * 160 + 159 = 959
+        lcd.set_pixel(159, 42, True)
+        assert lcd._framebuffer[5 * 160 + 159] & 0x04
 
     def test_set_pixel_out_of_bounds_ignored(self):
         """Out-of-bounds pixels are ignored."""
@@ -119,11 +135,12 @@ class TestTextRendering:
         lcd.write_text("X", 10, 5, send=False)
 
         # Verify some pixels were set in the target area
-        # Char 'X' should set pixels around x=10, y=5
+        # Char 'X' at x=10, y=5 should set pixels in columns 10-14
+        # With new layout: bytes 0-159 are row block 0 (rows 0-7)
+        # So columns 10-14 in row block 0 are bytes 10-14
         found_pixel = False
         for col in range(10, 15):  # 5-pixel wide char
-            byte_idx = (5 * lcd.BYTES_PER_ROW) + (col // 8)
-            if lcd._framebuffer[byte_idx]:
+            if lcd._framebuffer[col]:  # Row block 0
                 found_pixel = True
                 break
         assert found_pixel
@@ -152,9 +169,14 @@ class TestTextRendering:
         # Center of 160: (160 - 24) / 2 = 68
         lcd.write_text_centered("TEST", 0, send=False)
 
-        # Check that pixels start around x=68
-        # The first few bytes (0-7) should be empty
-        assert all(b == 0 for b in lcd._framebuffer[:8])
+        # Check that first columns (0-60) before text are empty
+        # With new layout: columns 0-9 in all row blocks should be empty
+        # Row block 0: bytes 0-9 (columns 0-9)
+        first_columns_empty = all(
+            lcd._framebuffer[col] == 0
+            for col in range(10)
+        )
+        assert first_columns_empty
 
 
 class TestBitmapOperations:
