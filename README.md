@@ -1,16 +1,12 @@
-# G13_Linux
+# G13 Linux
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/AreteDriver/G13LogitechOPS/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Platform: Linux](https://img.shields.io/badge/Platform-Linux-orange.svg)](https://www.kernel.org/)
+[![PyPI](https://img.shields.io/pypi/v/g13-linux)](https://pypi.org/project/g13-linux/)
+[![Python](https://img.shields.io/pypi/pyversions/g13-linux)](https://pypi.org/project/g13-linux/)
+[![CI](https://github.com/AreteDriver/G13_Linux/actions/workflows/ci.yml/badge.svg)](https://github.com/AreteDriver/G13_Linux/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Linux-orange.svg)]()
 
 Python userspace driver for the Logitech G13 Gaming Keyboard on Linux.
-
-## CI/CD Status
-
-![Testing Pipeline](https://github.com/AreteDriver/G13_Linux/workflows/Testing%20Pipeline/badge.svg)
-![Deployment Pipeline](https://github.com/AreteDriver/G13_Linux/workflows/Deployment%20Pipeline/badge.svg)
 
 ## Overview
 
