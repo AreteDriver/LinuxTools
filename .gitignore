@@ -50,7 +50,6 @@ Thumbs.db
 
 # Project specific
 *.log
-G13LogitechOPS/
 *.egg-info
 dist/
 build/
