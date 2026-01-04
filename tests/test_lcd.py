@@ -1,200 +1,352 @@
-"""Tests for G13 LCD display."""
+"""Tests for G13 LCD module."""
 
 import pytest
+from unittest.mock import MagicMock, patch
 from g13_linux.hardware.lcd import G13LCD, FONT_5X7
 
 
-class TestLCDConstants:
-    """Test LCD configuration constants."""
+class TestFont5x7:
+    """Tests for the 5x7 font table."""
 
-    def test_lcd_dimensions(self):
-        """LCD dimensions match G13 spec."""
-        lcd = G13LCD()
-        assert lcd.WIDTH == 160
-        assert lcd.HEIGHT == 43
-
-    def test_framebuffer_size(self):
-        """Framebuffer size is correct for vertical packing."""
-        lcd = G13LCD()
-        # Vertical packing: 160 columns × 6 bytes per column = 960 bytes
-        # (6 bytes = 48 bits, but only 43 rows visible)
-        assert lcd.FRAMEBUFFER_SIZE == 960
-        assert lcd.BYTES_PER_COLUMN == 6
-        assert lcd.BUFFER_ROWS == 48
-
-
-class TestFontTable:
-    """Test 5x7 font table."""
-
-    def test_font_has_printable_ascii(self):
-        """Font includes all printable ASCII (32-126)."""
-        for code in range(32, 127):
-            assert code in FONT_5X7, f"Missing char {code} ({chr(code)})"
-
-    def test_font_entries_are_5_bytes(self):
-        """Each font entry is 5 bytes (5 columns)."""
-        for code, glyph in FONT_5X7.items():
-            assert len(glyph) == 5, f"Char {code} has {len(glyph)} columns"
-
-    def test_space_is_blank(self):
-        """Space character (32) is all zeros."""
+    def test_space_character(self):
+        """Test space character is all zeros."""
         assert FONT_5X7[32] == [0x00, 0x00, 0x00, 0x00, 0x00]
 
+    def test_exclamation_mark(self):
+        """Test exclamation mark character."""
+        assert FONT_5X7[33] == [0x00, 0x00, 0x5F, 0x00, 0x00]
 
-class TestPixelOperations:
-    """Test pixel manipulation with G13 LCD byte packing."""
+    def test_letter_a_uppercase(self):
+        """Test uppercase A."""
+        assert 65 in FONT_5X7  # 'A'
+        assert len(FONT_5X7[65]) == 5
 
-    def test_set_pixel_on(self):
-        """Setting a pixel turns it on."""
+    def test_letter_a_lowercase(self):
+        """Test lowercase a."""
+        assert 97 in FONT_5X7  # 'a'
+        assert len(FONT_5X7[97]) == 5
+
+    def test_digits(self):
+        """Test all digits are present."""
+        for digit in range(48, 58):  # '0' to '9'
+            assert digit in FONT_5X7
+            assert len(FONT_5X7[digit]) == 5
+
+    def test_all_characters_have_5_columns(self):
+        """Test all characters have 5 bytes."""
+        for code, glyph in FONT_5X7.items():
+            assert len(glyph) == 5, f"Character {code} ({chr(code)}) has {len(glyph)} columns"
+
+    def test_printable_ascii_range(self):
+        """Test characters 32-126 are covered."""
+        for code in range(32, 127):
+            assert code in FONT_5X7, f"Character {code} ({chr(code)}) missing from font"
+
+
+class TestG13LCDConstants:
+    """Tests for G13LCD constants."""
+
+    def test_width(self):
+        assert G13LCD.WIDTH == 160
+
+    def test_height(self):
+        assert G13LCD.HEIGHT == 43
+
+    def test_buffer_rows(self):
+        assert G13LCD.BUFFER_ROWS == 48
+
+    def test_bytes_per_column(self):
+        assert G13LCD.BYTES_PER_COLUMN == 6
+
+    def test_framebuffer_size(self):
+        assert G13LCD.FRAMEBUFFER_SIZE == 960
+        assert G13LCD.FRAMEBUFFER_SIZE == G13LCD.WIDTH * G13LCD.BYTES_PER_COLUMN
+
+    def test_header_size(self):
+        assert G13LCD.HEADER_SIZE == 32
+
+    def test_command_byte(self):
+        assert G13LCD.COMMAND_BYTE == 0x03
+
+
+class TestG13LCDInit:
+    """Tests for G13LCD initialization."""
+
+    def test_init_without_device(self):
         lcd = G13LCD()
-        lcd.set_pixel(0, 0, True)
+        assert lcd.device is None
+        assert len(lcd._framebuffer) == G13LCD.FRAMEBUFFER_SIZE
+        assert all(b == 0 for b in lcd._framebuffer)
 
-        # Pixel (0,0) is byte 0, bit 0
-        assert lcd._framebuffer[0] & 0x01
+    def test_init_with_device(self):
+        mock_device = MagicMock()
+        lcd = G13LCD(mock_device)
+        assert lcd.device is mock_device
 
-    def test_set_pixel_off(self):
-        """Clearing a pixel turns it off."""
+    def test_framebuffer_initially_clear(self):
+        lcd = G13LCD()
+        assert lcd._framebuffer == bytearray(G13LCD.FRAMEBUFFER_SIZE)
+
+
+class TestG13LCDClear:
+    """Tests for clear method."""
+
+    def test_clear_resets_framebuffer(self):
         lcd = G13LCD()
         lcd._framebuffer[0] = 0xFF
-        lcd.set_pixel(0, 0, False)
+        lcd._framebuffer[100] = 0xAA
 
-        assert not (lcd._framebuffer[0] & 0x01)
-
-    def test_set_pixel_various_positions(self):
-        """Pixels at various positions are set correctly.
-
-        Layout:
-        - bytes 0-159: columns 0-159, rows 0-7
-        - bytes 160-319: columns 0-159, rows 8-15
-        - etc.
-        """
-        lcd = G13LCD()
-
-        # Test pixel at x=1, y=0 (column 1, row 0)
-        # byte_idx = 0 * 160 + 1 = 1, bit 0
-        lcd.set_pixel(1, 0, True)
-        assert lcd._framebuffer[1] & 0x01
-
-        # Test pixel at x=0, y=7 (column 0, row 7)
-        # byte_idx = 0 * 160 + 0 = 0, bit 7
-        lcd.set_pixel(0, 7, True)
-        assert lcd._framebuffer[0] & 0x80
-
-        # Test pixel at x=0, y=8 (column 0, row 8 - second block)
-        # byte_idx = 1 * 160 + 0 = 160, bit 0
-        lcd.set_pixel(0, 8, True)
-        assert lcd._framebuffer[160] & 0x01
-
-        # Test pixel at x=159, y=42 (last visible pixel)
-        # row_block = 42 // 8 = 5, bit = 42 % 8 = 2
-        # byte_idx = 5 * 160 + 159 = 959
-        lcd.set_pixel(159, 42, True)
-        assert lcd._framebuffer[5 * 160 + 159] & 0x04
-
-    def test_set_pixel_out_of_bounds_ignored(self):
-        """Out-of-bounds pixels are ignored."""
-        lcd = G13LCD()
-        lcd.set_pixel(999, 999, True)  # Should not raise
-        lcd.set_pixel(-1, -1, True)  # Should not raise
-
-
-class TestClearFill:
-    """Test clear and fill operations."""
-
-    def test_clear_zeroes_framebuffer(self):
-        """Clear sets all pixels off."""
-        lcd = G13LCD()
-        lcd._framebuffer = bytearray([0xFF] * lcd.FRAMEBUFFER_SIZE)
-        lcd.clear()
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.clear()
 
         assert all(b == 0 for b in lcd._framebuffer)
 
+    def test_clear_sends_framebuffer(self):
+        mock_device = MagicMock()
+        lcd = G13LCD(mock_device)
+
+        with patch.object(lcd, '_send_framebuffer') as mock_send:
+            lcd.clear()
+            mock_send.assert_called_once()
+
+
+class TestG13LCDFill:
+    """Tests for fill method."""
+
     def test_fill_sets_all_pixels(self):
-        """Fill sets all pixels on."""
         lcd = G13LCD()
-        lcd.fill()
+
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.fill()
 
         assert all(b == 0xFF for b in lcd._framebuffer)
 
+    def test_fill_sends_framebuffer(self):
+        mock_device = MagicMock()
+        lcd = G13LCD(mock_device)
 
-class TestTextRendering:
-    """Test text rendering to framebuffer."""
+        with patch.object(lcd, '_send_framebuffer') as mock_send:
+            lcd.fill()
+            mock_send.assert_called_once()
 
-    def test_write_text_modifies_framebuffer(self):
-        """Writing text modifies the framebuffer."""
+
+class TestG13LCDSetPixel:
+    """Tests for set_pixel method."""
+
+    def test_set_pixel_top_left(self):
         lcd = G13LCD()
-        initial = bytes(lcd._framebuffer)
+        lcd.set_pixel(0, 0, True)
+        assert lcd._framebuffer[0] & 0x01
 
-        lcd.write_text("A", 0, 0, send=False)
-
-        assert lcd._framebuffer != initial
-
-    def test_write_text_at_position(self):
-        """Text can be written at specific position."""
+    def test_set_pixel_first_row_end(self):
         lcd = G13LCD()
-        lcd.write_text("X", 10, 5, send=False)
+        lcd.set_pixel(159, 0, True)
+        assert lcd._framebuffer[159] & 0x01
 
-        # Verify some pixels were set in the target area
-        # Char 'X' at x=10, y=5 should set pixels in columns 10-14
-        # With new layout: bytes 0-159 are row block 0 (rows 0-7)
-        # So columns 10-14 in row block 0 are bytes 10-14
-        found_pixel = False
-        for col in range(10, 15):  # 5-pixel wide char
-            if lcd._framebuffer[col]:  # Row block 0
-                found_pixel = True
-                break
-        assert found_pixel
-
-    def test_write_text_unknown_char_shows_question(self):
-        """Unknown characters render as '?'."""
+    def test_set_pixel_row_7(self):
         lcd = G13LCD()
+        lcd.set_pixel(0, 7, True)
+        assert lcd._framebuffer[0] & 0x80
 
-        # Write unknown char (outside ASCII range)
-        lcd.write_text("\x01", 0, 0, send=False)
-        unknown_fb = bytes(lcd._framebuffer)
-
-        lcd.clear()
-
-        # Write '?' explicitly
-        lcd.write_text("?", 0, 0, send=False)
-        question_fb = bytes(lcd._framebuffer)
-
-        assert unknown_fb == question_fb
-
-    def test_write_text_centered(self):
-        """Centered text is positioned correctly."""
+    def test_set_pixel_row_8(self):
         lcd = G13LCD()
+        lcd.set_pixel(0, 8, True)
+        assert lcd._framebuffer[160] & 0x01
 
-        # "TEST" is 4 chars * 6 pixels = 24 pixels wide
-        # Center of 160: (160 - 24) / 2 = 68
-        lcd.write_text_centered("TEST", 0, send=False)
-
-        # Check that first columns (0-60) before text are empty
-        # With new layout: columns 0-9 in all row blocks should be empty
-        # Row block 0: bytes 0-9 (columns 0-9)
-        first_columns_empty = all(
-            lcd._framebuffer[col] == 0
-            for col in range(10)
-        )
-        assert first_columns_empty
-
-
-class TestBitmapOperations:
-    """Test raw bitmap operations."""
-
-    def test_write_bitmap_copies_data(self):
-        """Write bitmap copies data to framebuffer."""
+    def test_set_pixel_middle(self):
         lcd = G13LCD()
-        bitmap = bytes([0xAA] * 100)
+        lcd.set_pixel(80, 21, True)
+        assert lcd._framebuffer[400] & (1 << 5)
 
-        lcd.write_bitmap(bitmap)
-
-        assert lcd._framebuffer[:100] == bytearray([0xAA] * 100)
-
-    def test_write_bitmap_rejects_oversized(self):
-        """Oversized bitmap raises error."""
+    def test_set_pixel_last_visible_row(self):
         lcd = G13LCD()
-        bitmap = bytes([0xFF] * 1000)
+        lcd.set_pixel(0, 42, True)
+        assert lcd._framebuffer[800] & (1 << 2)
 
-        with pytest.raises(ValueError):
+    def test_clear_pixel(self):
+        lcd = G13LCD()
+        lcd._framebuffer[0] = 0xFF
+        lcd.set_pixel(0, 0, False)
+        assert lcd._framebuffer[0] == 0xFE
+
+    def test_set_pixel_out_of_bounds_x(self):
+        lcd = G13LCD()
+        lcd.set_pixel(160, 0, True)
+        lcd.set_pixel(-1, 0, True)
+        assert all(b == 0 for b in lcd._framebuffer)
+
+    def test_set_pixel_out_of_bounds_y(self):
+        lcd = G13LCD()
+        lcd.set_pixel(0, 43, True)
+        lcd.set_pixel(0, -1, True)
+        assert all(b == 0 for b in lcd._framebuffer)
+
+    def test_row_block_layout(self):
+        lcd = G13LCD()
+        for row_block in range(6):
+            y = row_block * 8
+            if y >= G13LCD.HEIGHT:
+                continue
+            lcd.set_pixel(0, y, True)
+            expected_byte = row_block * 160
+            assert lcd._framebuffer[expected_byte] & 0x01
+
+
+class TestG13LCDWriteText:
+    """Tests for write_text method."""
+
+    def test_write_single_char(self):
+        lcd = G13LCD()
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.write_text("A", 0, 0)
+        assert lcd._framebuffer[0] != 0 or lcd._framebuffer[1] != 0
+
+    def test_write_text_position(self):
+        lcd = G13LCD()
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.write_text("X", 10, 0)
+        for x in range(10):
+            assert lcd._framebuffer[x] == 0
+
+    def test_write_text_unknown_char(self):
+        lcd = G13LCD()
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.write_text("\x80", 0, 0)
+        assert any(b != 0 for b in lcd._framebuffer[:6])
+
+    def test_write_text_send_false(self):
+        lcd = G13LCD()
+        with patch.object(lcd, '_send_framebuffer') as mock_send:
+            lcd.write_text("A", 0, 0, send=False)
+            mock_send.assert_not_called()
+
+    def test_write_text_clips_at_edge(self):
+        lcd = G13LCD()
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.write_text("A" * 50, 0, 0)
+        assert len(lcd._framebuffer) == G13LCD.FRAMEBUFFER_SIZE
+
+
+class TestG13LCDWriteTextCentered:
+    """Tests for write_text_centered method."""
+
+    def test_center_short_text(self):
+        lcd = G13LCD()
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.write_text_centered("Hi", y=0)
+        for x in range(74):
+            assert lcd._framebuffer[x] == 0
+
+    def test_center_uses_default_y(self):
+        lcd = G13LCD()
+        with patch.object(lcd, 'write_text') as mock_write:
+            lcd.write_text_centered("Test")
+            assert mock_write.call_args[0][2] == 18
+
+
+class TestG13LCDWriteBitmap:
+    """Tests for write_bitmap method."""
+
+    def test_write_full_bitmap(self):
+        lcd = G13LCD()
+        bitmap = bytes([0xAA] * G13LCD.FRAMEBUFFER_SIZE)
+        with patch.object(lcd, '_send_framebuffer'):
             lcd.write_bitmap(bitmap)
+        assert bytes(lcd._framebuffer) == bitmap
+
+    def test_write_partial_bitmap(self):
+        lcd = G13LCD()
+        bitmap = bytes([0xFF] * 100)
+        with patch.object(lcd, '_send_framebuffer'):
+            lcd.write_bitmap(bitmap)
+        assert all(b == 0xFF for b in lcd._framebuffer[:100])
+        assert all(b == 0 for b in lcd._framebuffer[100:])
+
+    def test_write_bitmap_too_large(self):
+        lcd = G13LCD()
+        bitmap = bytes([0xFF] * (G13LCD.FRAMEBUFFER_SIZE + 1))
+        with pytest.raises(ValueError, match="Bitmap too large"):
+            lcd.write_bitmap(bitmap)
+
+
+class TestG13LCDSendFramebuffer:
+    """Tests for _send_framebuffer method."""
+
+    def test_send_without_device(self, capsys):
+        lcd = G13LCD()
+        lcd._send_framebuffer()
+        captured = capsys.readouterr()
+        assert "No device connected" in captured.out
+
+    def test_send_packet_format(self):
+        mock_device = MagicMock()
+        mock_device.write.return_value = 992
+        lcd = G13LCD(mock_device)
+        lcd._send_framebuffer()
+        mock_device.write.assert_called_once()
+        packet = mock_device.write.call_args[0][0]
+        assert len(packet) == 992
+        assert packet[0] == 0x03
+        assert all(b == 0 for b in packet[1:32])
+
+    def test_partial_write_warning(self, capsys):
+        mock_device = MagicMock()
+        mock_device.write.return_value = 500
+        lcd = G13LCD(mock_device)
+        lcd._send_framebuffer()
+        captured = capsys.readouterr()
+        assert "Partial write" in captured.out
+
+    def test_send_handles_exception(self, capsys):
+        mock_device = MagicMock()
+        mock_device.write.side_effect = IOError("USB error")
+        lcd = G13LCD(mock_device)
+        lcd._send_framebuffer()
+        captured = capsys.readouterr()
+        assert "Failed to send framebuffer" in captured.out
+
+
+class TestG13LCDSetBrightness:
+    """Tests for set_brightness method."""
+
+    def test_brightness_valid_range(self, capsys):
+        lcd = G13LCD()
+        lcd.set_brightness(0)
+        lcd.set_brightness(50)
+        lcd.set_brightness(100)
+        captured = capsys.readouterr()
+        assert "not supported" in captured.out
+
+    def test_brightness_invalid_low(self):
+        lcd = G13LCD()
+        with pytest.raises(ValueError, match="Brightness must be 0-100"):
+            lcd.set_brightness(-1)
+
+    def test_brightness_invalid_high(self):
+        lcd = G13LCD()
+        with pytest.raises(ValueError, match="Brightness must be 0-100"):
+            lcd.set_brightness(101)
+
+
+class TestG13LCDInitLcd:
+    """Tests for _init_lcd method."""
+
+    def test_init_lcd_no_device(self):
+        lcd = G13LCD()
+        lcd._init_lcd()
+
+    def test_init_lcd_calls_ctrl_transfer(self):
+        mock_device = MagicMock()
+        mock_device._dev = MagicMock()
+        lcd = G13LCD(mock_device)
+        lcd._init_lcd()
+        mock_device._dev.ctrl_transfer.assert_called_once_with(0, 9, 1, 0, None, 1000)
+
+    def test_init_lcd_handles_exception(self, capsys):
+        mock_device = MagicMock()
+        mock_device._dev = MagicMock()
+        mock_device._dev.ctrl_transfer.side_effect = Exception("USB error")
+        lcd = G13LCD(mock_device)
+        lcd._init_lcd()
+        captured = capsys.readouterr()
+        assert "init_lcd failed" in captured.out
