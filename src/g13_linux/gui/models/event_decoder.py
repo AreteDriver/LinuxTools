@@ -295,16 +295,16 @@ class EventDecoder:
 
 
 # Helper function for testing/reverse engineering
-def test_decoder_with_sample_data(sample_data: bytes):
+def analyze_sample_data(sample_data: bytes):
     """
-    Test function for analyzing sample HID reports.
+    Debug function for analyzing sample HID reports.
 
     Usage:
-        from g13_linux.gui.models.event_decoder import test_decoder_with_sample_data
+        from g13_linux.gui.models.event_decoder import analyze_sample_data
 
         # Record output when pressing G1
         g1_data = bytes([...])
-        test_decoder_with_sample_data(g1_data)
+        analyze_sample_data(g1_data)
     """
     decoder = EventDecoder()
 

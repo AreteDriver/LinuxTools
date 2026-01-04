@@ -4,7 +4,7 @@ import pytest
 from g13_linux.gui.models.event_decoder import (
     EventDecoder,
     G13ButtonState,
-    test_decoder_with_sample_data,
+    analyze_sample_data,
 )
 
 
@@ -414,12 +414,12 @@ class TestAnalyzeRawReport:
 
 
 class TestHelperFunction:
-    """Tests for test_decoder_with_sample_data helper."""
+    """Tests for analyze_sample_data helper."""
 
     def test_helper_function(self, capsys):
         """Test the helper function outputs expected info."""
         sample = bytes([0x00, 0x80, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00])
-        test_decoder_with_sample_data(sample)
+        analyze_sample_data(sample)
 
         captured = capsys.readouterr()
         assert "Raw Data Analysis" in captured.out
