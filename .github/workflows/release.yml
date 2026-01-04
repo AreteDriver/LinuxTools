@@ -29,9 +29,39 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
-  build-and-publish:
+  build-appimage:
     runs-on: ubuntu-latest
     needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libhidapi-dev libhidapi-hidraw0 libusb-1.0-0-dev wget
+
+      - name: Install PIL for icon generation
+        run: pip install Pillow
+
+      - name: Build AppImage
+        run: |
+          chmod +x packaging/appimage/build-appimage.sh
+          ./packaging/appimage/build-appimage.sh
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: dist/*.AppImage
+
+  build-and-publish:
+    runs-on: ubuntu-latest
+    needs: [test, build-appimage]
     environment:
       name: pypi
       url: https://pypi.org/p/g13-linux
@@ -56,6 +86,12 @@ jobs:
       - name: Check package
         run: python -m twine check dist/*
 
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: appimage
+          path: dist/
+
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -69,12 +105,19 @@ jobs:
           files: |
             dist/*.whl
             dist/*.tar.gz
+            dist/*.AppImage
           body: |
             ## g13-linux v${{ steps.get_version.outputs.VERSION }}
 
             Linux userspace driver for the Logitech G13 Gaming Keyboard.
 
             ### Installation
+
+            **AppImage (recommended - no dependencies):**
+            ```bash
+            chmod +x G13_Linux-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage
+            ./G13_Linux-${{ steps.get_version.outputs.VERSION }}-x86_64.AppImage
+            ```
 
             **From PyPI:**
             ```bash
@@ -101,7 +144,6 @@ jobs:
 
             ### Requirements
             - Linux with hidapi and evdev support
-            - Python 3.9+
             - Logitech G13 connected via USB
 
             See [README](https://github.com/AreteDriver/G13_Linux) for full documentation.
