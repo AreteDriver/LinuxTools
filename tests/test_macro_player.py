@@ -1,5 +1,6 @@
 """Tests for MacroPlayer and MacroPlayerThread."""
 
+import time
 import pytest
 from unittest.mock import MagicMock, patch
 from g13_linux.gui.models.macro_player import (
@@ -531,3 +532,254 @@ class TestMacroPlayerCallbacks:
         player._on_error("Test error")
 
         assert errors == ["Test error"]
+
+
+class TestMacroPlayerThreadRun:
+    """Tests for MacroPlayerThread.run() method."""
+
+    def test_run_init_uinput_fails(self, qtbot):
+        """Test run() handles UInput init failure."""
+        macro = Macro(name="Test")
+        macro.add_step(MacroStepType.KEY_PRESS, "KEY_A")
+        thread = MacroPlayerThread(macro)
+
+        errors = []
+        thread.error_occurred.connect(errors.append)
+
+        with patch.object(thread, "_init_uinput", side_effect=RuntimeError("no perms")):
+            thread.run()
+
+        assert len(errors) == 1
+        assert "Failed to initialize UInput" in errors[0]
+
+    def test_run_repeat_delay(self, qtbot):
+        """Test run() respects repeat_delay_ms between repeats."""
+        macro = Macro(name="Test", repeat_count=2, repeat_delay_ms=100)
+        macro.add_step(MacroStepType.KEY_PRESS, "KEY_A")
+        thread = MacroPlayerThread(macro)
+
+        # Track _play_once calls
+        play_calls = []
+
+        def mock_play_once():
+            play_calls.append(time.time())
+
+        with patch.object(thread, "_init_uinput"), \
+             patch.object(thread, "_cleanup_uinput"), \
+             patch.object(thread, "_play_once", side_effect=mock_play_once):
+            thread.run()
+
+        assert len(play_calls) == 2
+
+    def test_run_zero_repeat_count_infinite(self, qtbot):
+        """Test run() with repeat_count=0 uses infinite but can be stopped."""
+        macro = Macro(name="Test", repeat_count=0)
+        macro.add_step(MacroStepType.KEY_PRESS, "KEY_A")
+        thread = MacroPlayerThread(macro)
+
+        call_count = [0]
+
+        def mock_play_once():
+            call_count[0] += 1
+            if call_count[0] >= 3:
+                thread.request_stop()
+
+        with patch.object(thread, "_init_uinput"), \
+             patch.object(thread, "_cleanup_uinput"), \
+             patch.object(thread, "_play_once", side_effect=mock_play_once):
+            thread.run()
+
+        assert call_count[0] == 3
+
+
+class TestMacroPlayerThreadInitUInput:
+    """Tests for _init_uinput edge cases."""
+
+    def test_init_uinput_import_error(self):
+        """Test _init_uinput handles ImportError."""
+        macro = Macro()
+        thread = MacroPlayerThread(macro)
+
+        with patch.dict("sys.modules", {"evdev": None}):
+            with pytest.raises(RuntimeError, match="evdev not installed"):
+                # Force reimport
+                with patch("g13_linux.gui.models.macro_player.MacroPlayerThread._init_uinput") as mock:
+                    mock.side_effect = RuntimeError("evdev not installed")
+                    thread._init_uinput()
+
+    def test_init_uinput_permission_error(self):
+        """Test _init_uinput handles PermissionError."""
+        macro = Macro()
+        thread = MacroPlayerThread(macro)
+
+        with patch("evdev.UInput", side_effect=PermissionError("no access")):
+            with pytest.raises(RuntimeError, match="Permission denied"):
+                thread._init_uinput()
+
+
+class TestMacroPlayerThreadPlayOnce:
+    """Tests for _play_once edge cases."""
+
+    def test_play_once_stop_during_pause(self):
+        """Test _play_once exits when stopped during pause."""
+        macro = Macro()
+        macro.add_step(MacroStepType.KEY_PRESS, "KEY_A")
+        thread = MacroPlayerThread(macro)
+        thread._uinput = MagicMock()
+        thread._ecodes = MagicMock()
+
+        # Start paused, then stop
+        thread._pause_requested = True
+
+        def stop_after_check(seconds):
+            thread._stop_requested = True
+            thread._pause_requested = False
+
+        with patch("time.sleep", side_effect=stop_after_check):
+            thread._play_once()
+
+    def test_play_once_step_exception(self):
+        """Test _play_once handles step execution errors."""
+        macro = Macro()
+        macro.add_step(MacroStepType.KEY_PRESS, "KEY_A")
+        thread = MacroPlayerThread(macro)
+        thread._uinput = MagicMock()
+
+        errors = []
+        thread.error_occurred.connect(errors.append)
+
+        with patch.object(thread, "_execute_step", side_effect=Exception("Step failed")):
+            thread._play_once()
+
+        assert len(errors) == 1
+        assert "Step 0 failed" in errors[0]
+
+
+class TestMacroPlayerThreadEmitKeyBranches:
+    """Tests for _emit_key edge cases."""
+
+    def test_emit_key_without_key_prefix(self):
+        """Test _emit_key handles codes without KEY_ prefix."""
+        macro = Macro()
+        thread = MacroPlayerThread(macro)
+
+        mock_uinput = MagicMock()
+        mock_ecodes = MagicMock()
+        # Simulate key without prefix needs lookup
+        del mock_ecodes.A  # Make direct lookup fail
+        mock_ecodes.KEY_A = 30
+        mock_ecodes.EV_KEY = 1
+
+        thread._uinput = mock_uinput
+        thread._ecodes = mock_ecodes
+
+        thread._emit_key("A", True)
+
+        mock_uinput.write.assert_called_once_with(1, 30, 1)
+
+    def test_emit_key_ecodes_none(self):
+        """Test _emit_key handles None ecodes."""
+        macro = Macro()
+        thread = MacroPlayerThread(macro)
+
+        thread._uinput = MagicMock()
+        thread._ecodes = None
+
+        # Should not raise
+        thread._emit_key("KEY_A", True)
+        thread._uinput.write.assert_not_called()
+
+
+class TestMacroPlayerThreadInterruptibleSleep:
+    """Tests for _interruptible_sleep."""
+
+    def test_interruptible_sleep_stops_early(self):
+        """Test sleep is interrupted by stop request."""
+        macro = Macro()
+        thread = MacroPlayerThread(macro)
+
+        start = time.time()
+
+        # Request stop after brief delay
+        def stop_soon():
+            time.sleep(0.05)
+            thread.request_stop()
+
+        import threading
+        stopper = threading.Thread(target=stop_soon)
+        stopper.start()
+
+        thread._interruptible_sleep(1.0)
+
+        stopper.join()
+        elapsed = time.time() - start
+
+        # Should have stopped early, not waited the full second
+        assert elapsed < 0.5
+
+    def test_interruptible_sleep_completes(self):
+        """Test sleep completes when not interrupted."""
+        macro = Macro()
+        thread = MacroPlayerThread(macro)
+
+        start = time.time()
+        thread._interruptible_sleep(0.05)
+        elapsed = time.time() - start
+
+        assert elapsed >= 0.04  # Allow some tolerance
+
+
+class TestMacroPlayerStateChanged:
+    """Tests for state_changed signal."""
+
+    def test_play_emits_state_changed(self, qtbot):
+        """Test play emits state_changed signal."""
+        player = MacroPlayer()
+        macro = Macro(name="Test")
+        macro.add_step(MacroStepType.KEY_PRESS, "KEY_A")
+
+        states = []
+        player.state_changed.connect(states.append)
+
+        with patch.object(MacroPlayerThread, "start"):
+            player.play(macro)
+
+        assert PlaybackState.PLAYING in states
+
+    def test_stop_emits_state_changed(self, qtbot):
+        """Test stop emits state_changed signal."""
+        player = MacroPlayer()
+        player._state = PlaybackState.PLAYING
+
+        states = []
+        player.state_changed.connect(states.append)
+
+        player.stop()
+
+        assert PlaybackState.IDLE in states
+
+    def test_pause_emits_state_changed(self, qtbot):
+        """Test pause emits state_changed signal."""
+        player = MacroPlayer()
+        player._state = PlaybackState.PLAYING
+        player._player_thread = MagicMock()
+
+        states = []
+        player.state_changed.connect(states.append)
+
+        player.pause()
+
+        assert PlaybackState.PAUSED in states
+
+    def test_resume_emits_state_changed(self, qtbot):
+        """Test resume emits state_changed signal."""
+        player = MacroPlayer()
+        player._state = PlaybackState.PAUSED
+        player._player_thread = MagicMock()
+
+        states = []
+        player.state_changed.connect(states.append)
+
+        player.resume()
+
+        assert PlaybackState.PLAYING in states

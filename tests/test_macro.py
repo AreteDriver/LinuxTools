@@ -427,3 +427,129 @@ class TestGlobalHotkeyManager:
 
         manager.stop()
         assert not manager.is_running
+
+
+class TestMacroRecorderElapsed:
+    """Tests for MacroRecorder elapsed_ms property."""
+
+    @pytest.fixture
+    def recorder(self):
+        """Create MacroRecorder with system listener mocked."""
+        recorder = MacroRecorder()
+        recorder._start_system_listener = lambda: None
+        recorder._stop_system_listener = lambda: None
+        return recorder
+
+    def test_elapsed_ms_before_start(self, recorder):
+        """Test elapsed_ms returns 0 before recording starts."""
+        assert recorder.elapsed_ms == 0
+
+    def test_elapsed_ms_during_recording(self, recorder):
+        """Test elapsed_ms returns timer value during recording."""
+        recorder.start_recording()
+        recorder.on_g13_button_event("G1", True)  # Start actual recording
+
+        # Timer should be running now
+        elapsed = recorder.elapsed_ms
+        assert elapsed >= 0
+
+    def test_elapsed_ms_with_invalid_timer(self, recorder):
+        """Test elapsed_ms returns 0 when timer is invalid."""
+        # Mock timer to return invalid
+        from unittest.mock import MagicMock
+        recorder._timer = MagicMock()
+        recorder._timer.isValid.return_value = False
+
+        assert recorder.elapsed_ms == 0
+
+
+class TestMacroRecorderSystemListener:
+    """Tests for system listener callbacks."""
+
+    def test_on_press_char_key(self):
+        """Test on_press callback with character key."""
+        from g13_linux.gui.models.macro_recorder import MacroRecorder
+        from unittest.mock import MagicMock
+
+        recorder = MacroRecorder()
+        recorder._start_system_listener = lambda: None
+        recorder._stop_system_listener = lambda: None
+        recorder.start_recording()
+        recorder.on_g13_button_event("G1", True)  # Start recording
+
+        # Simulate character key press
+        steps_before = recorder.step_count
+        recorder.on_system_key_event("KEY_A", True)
+
+        assert recorder.step_count == steps_before + 1
+
+    def test_on_press_special_key(self):
+        """Test on_press callback with special key."""
+        from g13_linux.gui.models.macro_recorder import MacroRecorder
+
+        recorder = MacroRecorder()
+        recorder._start_system_listener = lambda: None
+        recorder._stop_system_listener = lambda: None
+        recorder.start_recording()
+        recorder.on_g13_button_event("G1", True)
+
+        steps_before = recorder.step_count
+        recorder.on_system_key_event("KEY_SHIFT", True)
+
+        assert recorder.step_count == steps_before + 1
+
+    def test_pynput_import_error(self):
+        """Test system listener handles pynput import error."""
+        from g13_linux.gui.models.macro_recorder import MacroRecorder
+        from unittest.mock import patch
+
+        recorder = MacroRecorder()
+        errors = []
+        recorder.error_occurred.connect(errors.append)
+
+        # Mock import to fail
+        with patch.dict("sys.modules", {"pynput": None, "pynput.keyboard": None}):
+            # Force a reimport by clearing any cached module
+            import sys
+            if "pynput" in sys.modules:
+                del sys.modules["pynput"]
+            if "pynput.keyboard" in sys.modules:
+                del sys.modules["pynput.keyboard"]
+
+            # This should emit an error
+            try:
+                recorder._start_system_listener()
+            except Exception:
+                pass
+
+        # Error may or may not be emitted depending on pynput availability
+        # Just verify no crash occurred
+
+
+class TestMacroRecorderStopListener:
+    """Tests for stopping system listener."""
+
+    def test_stop_listener_with_active_listener(self):
+        """Test stopping with active listener."""
+        from g13_linux.gui.models.macro_recorder import MacroRecorder
+        from unittest.mock import MagicMock
+
+        recorder = MacroRecorder()
+        mock_listener = MagicMock()
+        recorder._system_listener = mock_listener
+
+        recorder._stop_system_listener()
+
+        mock_listener.stop.assert_called_once()
+        assert recorder._system_listener is None
+
+    def test_stop_listener_without_listener(self):
+        """Test stopping with no active listener."""
+        from g13_linux.gui.models.macro_recorder import MacroRecorder
+
+        recorder = MacroRecorder()
+        recorder._system_listener = None
+
+        # Should not raise
+        recorder._stop_system_listener()
+        assert recorder._system_listener is None

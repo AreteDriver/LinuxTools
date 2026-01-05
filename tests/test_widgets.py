@@ -66,11 +66,41 @@ class TestColorPickerWidget:
         from PyQt6.QtWidgets import QPushButton
         buttons = widget.findChildren(QPushButton)
         cyan_btn = next(b for b in buttons if b.text() == "Cyan")
-        
+
         with qtbot.waitSignal(widget.color_changed):
             qtbot.mouseClick(cyan_btn, Qt.MouseButton.LeftButton)
-        
+
         assert widget.current_color.name() == "#00ffff"
+
+    def test_color_dialog_valid(self, widget, qtbot):
+        """Test color dialog with valid color selection."""
+        from unittest.mock import patch, MagicMock
+
+        mock_color = MagicMock()
+        mock_color.isValid.return_value = True
+        mock_color.name.return_value = "#123456"
+
+        with patch("g13_linux.gui.widgets.color_picker.QColorDialog.getColor", return_value=mock_color):
+            with qtbot.waitSignal(widget.color_changed):
+                widget._open_color_dialog()
+
+        assert widget.current_color.name() == "#123456"
+
+    def test_color_dialog_cancelled(self, widget, qtbot):
+        """Test color dialog when cancelled (invalid color)."""
+        from unittest.mock import patch, MagicMock
+
+        mock_color = MagicMock()
+        mock_color.isValid.return_value = False
+
+        # Set initial color
+        widget.set_color("#aabbcc")
+
+        with patch("g13_linux.gui.widgets.color_picker.QColorDialog.getColor", return_value=mock_color):
+            widget._open_color_dialog()
+
+        # Color should not change
+        assert widget.current_color.name() == "#aabbcc"
 
 
 class TestG13Button:
