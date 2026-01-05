@@ -126,9 +126,75 @@ class TestG13Button:
     def test_clicked_signal(self, button, qtbot):
         """Test button emits clicked signal."""
         from g13_linux.gui.widgets.g13_button import G13Button
-        
+
         with qtbot.waitSignal(button.clicked, timeout=1000):
             qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+
+    def test_set_mapping_combo_with_label(self, button):
+        """Test setting combo key mapping with label."""
+        combo = {"keys": ["KEY_LEFTCTRL", "KEY_C"], "label": "Copy"}
+        button.set_mapping(combo)
+        assert button.mapped_key == combo
+        assert "Copy" in button.text()
+
+    def test_set_mapping_combo_without_label(self, button):
+        """Test setting combo key mapping without label."""
+        combo = {"keys": ["KEY_LEFTCTRL", "KEY_V"]}
+        button.set_mapping(combo)
+        assert "LEFTCTRL+V" in button.text()
+
+    def test_set_mapping_combo_empty_keys(self, button):
+        """Test setting combo with empty keys list."""
+        combo = {"keys": []}
+        button.set_mapping(combo)
+        assert button.text() == "G1"
+
+    def test_set_mapping_reserved(self, button):
+        """Test KEY_RESERVED shows only button ID."""
+        button.set_mapping("KEY_RESERVED")
+        assert button.text() == "G1"
+
+    def test_has_mapping_false_for_none(self, button):
+        """Test _has_mapping returns False for None."""
+        button.mapped_key = None
+        assert button._has_mapping() is False
+
+    def test_has_mapping_false_for_reserved(self, button):
+        """Test _has_mapping returns False for KEY_RESERVED."""
+        button.mapped_key = "KEY_RESERVED"
+        assert button._has_mapping() is False
+
+    def test_has_mapping_true_for_key(self, button):
+        """Test _has_mapping returns True for valid key."""
+        button.mapped_key = "KEY_A"
+        assert button._has_mapping() is True
+
+    def test_has_mapping_dict_with_keys(self, button):
+        """Test _has_mapping returns True for dict with keys."""
+        button.mapped_key = {"keys": ["KEY_A"]}
+        assert button._has_mapping() is True
+
+    def test_has_mapping_dict_empty_keys(self, button):
+        """Test _has_mapping returns False for dict with empty keys."""
+        button.mapped_key = {"keys": []}
+        assert button._has_mapping() is False
+
+    def test_lighten_color(self, button):
+        """Test _lighten_color lightens correctly."""
+        result = button._lighten_color("#808080")
+        # 0x80 * 1.2 = 153 = 0x99
+        assert result == "#999999"
+
+    def test_lighten_color_caps_at_255(self, button):
+        """Test _lighten_color caps at 255."""
+        result = button._lighten_color("#ffffff")
+        assert result == "#ffffff"
+
+    def test_darken_color(self, button):
+        """Test _darken_color darkens correctly."""
+        result = button._darken_color("#c8c8c8")
+        # 0xc8 (200) * 0.8 = 160 = 0xa0
+        assert result == "#a0a0a0"
 
 
 class TestLCDPreviewWidget:
@@ -194,3 +260,85 @@ class TestLCDPreviewWidget:
         widget._framebuffer = bytearray([0xFF] * 960)
         widget.clear()
         assert all(b == 0 for b in widget._framebuffer)
+
+    def test_get_pixel_out_of_bounds_x(self, widget):
+        """Test getting pixel outside X bounds."""
+        assert widget.get_pixel(200, 0) is False
+
+    def test_get_pixel_out_of_bounds_y(self, widget):
+        """Test getting pixel outside Y bounds."""
+        assert widget.get_pixel(0, 50) is False
+
+    def test_get_pixel_negative(self, widget):
+        """Test getting pixel with negative coords."""
+        assert widget.get_pixel(-1, -1) is False
+
+    def test_set_scale(self, widget):
+        """Test setting scale factor."""
+        widget.set_scale(3)
+        assert widget._scale == 3
+
+    def test_set_scale_min(self, widget):
+        """Test scale clamped to minimum."""
+        widget.set_scale(0)
+        assert widget._scale == 1
+
+    def test_set_scale_max(self, widget):
+        """Test scale clamped to maximum."""
+        widget.set_scale(10)
+        assert widget._scale == 4
+
+    def test_set_framebuffer_emits_signal(self, widget, qtbot):
+        """Test set_framebuffer emits content_changed."""
+        with qtbot.waitSignal(widget.content_changed, timeout=1000):
+            widget.set_framebuffer(bytes([0xFF] * 960))
+
+    def test_paint_event_no_crash(self, widget, qtbot):
+        """Test paintEvent doesn't crash."""
+        from PyQt6.QtGui import QPaintEvent
+        from PyQt6.QtCore import QRect
+
+        widget.set_framebuffer(bytes([0xAA] * 960))
+        event = QPaintEvent(QRect(0, 0, 100, 100))
+        widget.paintEvent(event)
+        # If we get here, no crash occurred
+
+    def test_paint_event_with_scale_1(self, widget, qtbot):
+        """Test paintEvent with scale=1."""
+        widget.set_scale(1)
+        from PyQt6.QtGui import QPaintEvent
+        from PyQt6.QtCore import QRect
+
+        event = QPaintEvent(QRect(0, 0, 200, 100))
+        widget.paintEvent(event)
+
+
+class TestLCDPreviewEmbedded:
+    """Tests for LCDPreviewEmbedded widget."""
+
+    @pytest.fixture
+    def widget(self, qtbot):
+        """Create LCDPreviewEmbedded instance."""
+        from g13_linux.gui.widgets.lcd_preview import LCDPreviewEmbedded
+        w = LCDPreviewEmbedded()
+        qtbot.addWidget(w)
+        return w
+
+    def test_init(self, widget):
+        """Test embedded widget initializes."""
+        assert widget._scale == 2
+
+    def test_translucent_background(self, widget):
+        """Test widget has translucent background."""
+        from PyQt6.QtCore import Qt
+        assert widget.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+    def test_paint_event_no_crash(self, widget, qtbot):
+        """Test embedded paintEvent doesn't crash."""
+        from PyQt6.QtGui import QPaintEvent
+        from PyQt6.QtCore import QRect
+
+        widget.resize(320, 86)
+        widget.set_framebuffer(bytes([0x55] * 960))
+        event = QPaintEvent(QRect(0, 0, 320, 86))
+        widget.paintEvent(event)
