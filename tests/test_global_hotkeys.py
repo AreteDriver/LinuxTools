@@ -560,3 +560,116 @@ class TestGlobalHotkeyManagerHotkeyTriggered:
             handler()
 
         assert blocker.args == ["test-macro-id"]
+
+
+class TestGlobalHotkeyManagerMissingCoverage:
+    """Tests for edge cases to achieve 100% coverage."""
+
+    def test_start_listener_import_error(self, manager, qtbot):
+        """Test _start_listener handles ImportError when pynput unavailable (lines 163-165)."""
+        import sys
+
+        manager._hotkeys = {"ctrl+f1": "macro-123"}
+
+        errors = []
+        manager.error_occurred.connect(errors.append)
+
+        # Remove pynput from modules to force fresh import attempt
+        cached_pynput = sys.modules.pop("pynput", None)
+        cached_keyboard = sys.modules.pop("pynput.keyboard", None)
+
+        try:
+            # Patch import to fail for pynput
+            original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
+
+            def mock_import(name, *args, **kwargs):
+                if name == "pynput" or name.startswith("pynput."):
+                    raise ImportError("No module named 'pynput'")
+                return original_import(name, *args, **kwargs)
+
+            with patch("builtins.__import__", side_effect=mock_import):
+                result = manager._start_listener()
+
+            assert result is False
+            assert len(errors) == 1
+            assert "pynput not installed" in errors[0]
+        finally:
+            # Restore cached modules
+            if cached_pynput:
+                sys.modules["pynput"] = cached_pynput
+            if cached_keyboard:
+                sys.modules["pynput.keyboard"] = cached_keyboard
+
+    def test_start_listener_generic_exception(self, manager, qtbot):
+        """Test _start_listener handles generic Exception (lines 166-168)."""
+        import sys
+
+        manager._hotkeys = {"ctrl+f1": "macro-123"}
+
+        errors = []
+        manager.error_occurred.connect(errors.append)
+
+        # Remove pynput from modules
+        cached_pynput = sys.modules.pop("pynput", None)
+        cached_keyboard = sys.modules.pop("pynput.keyboard", None)
+
+        try:
+            # Create mock that raises exception on GlobalHotKeys instantiation
+            mock_keyboard = MagicMock()
+            mock_keyboard.GlobalHotKeys.side_effect = RuntimeError("X11 display not found")
+
+            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+                result = manager._start_listener()
+
+            assert result is False
+            assert len(errors) == 1
+            assert "Failed to start hotkey listener" in errors[0]
+        finally:
+            if cached_pynput:
+                sys.modules["pynput"] = cached_pynput
+            if cached_keyboard:
+                sys.modules["pynput.keyboard"] = cached_keyboard
+
+    def test_handler_closure_emits_signal(self, manager, qtbot):
+        """Test the actual handler closure created in _start_listener emits signal (line 148)."""
+        import sys
+
+        manager._hotkeys = {"ctrl+a": "test-macro-id"}
+
+        # Remove pynput from modules
+        cached_pynput = sys.modules.pop("pynput", None)
+        cached_keyboard = sys.modules.pop("pynput.keyboard", None)
+
+        captured_handlers = {}
+
+        try:
+            mock_keyboard = MagicMock()
+            mock_listener = MagicMock()
+
+            def capture_handlers(handlers):
+                captured_handlers.update(handlers)
+                return mock_listener
+
+            mock_keyboard.GlobalHotKeys.side_effect = capture_handlers
+
+            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+                manager._start_listener()
+
+            # The handler should have been captured
+            assert len(captured_handlers) == 1
+            pynput_key = "<ctrl>+a"
+            assert pynput_key in captured_handlers
+
+            # Call the handler and verify signal is emitted
+            with qtbot.waitSignal(manager.hotkey_triggered, timeout=1000) as blocker:
+                captured_handlers[pynput_key]()
+
+            assert blocker.args == ["test-macro-id"]
+        finally:
+            if cached_pynput:
+                sys.modules["pynput"] = cached_pynput
+            if cached_keyboard:
+                sys.modules["pynput.keyboard"] = cached_keyboard
+
+        # Cleanup
+        manager._stop_listener()
