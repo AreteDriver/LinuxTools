@@ -476,3 +476,149 @@ class TestMain:
                 main()
 
             assert exc_info.value.code == 1
+
+
+class TestCLIMissingCoverage:
+    """Tests for edge cases to achieve 100% coverage."""
+
+    def test_cmd_run_read_event_returns_none(self, capsys):
+        """Test cmd_run when read_event returns None (line 47->45)."""
+        mock_handle = MagicMock()
+        mock_mapper = MagicMock()
+
+        call_count = [0]
+
+        def fake_read_event(h):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return None  # First call returns None
+            if call_count[0] == 2:
+                return b"\x00" * 8  # Second call returns data
+            raise KeyboardInterrupt  # Third call exits
+
+        with patch("g13_linux.device.open_g13", return_value=mock_handle), \
+             patch("g13_linux.device.read_event", side_effect=fake_read_event), \
+             patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper):
+            args = MagicMock()
+            cmd_run(args)
+
+        # Should only handle the one valid event (not the None)
+        assert mock_mapper.handle_raw_report.call_count == 1
+
+    def test_cmd_profile_show_dict_mapping(self, capsys):
+        """Test profile show with dict mapping value (line 154)."""
+        mock_pm = MagicMock()
+        mock_profile = MagicMock()
+        mock_profile.name = "test_profile"
+        mock_profile.description = None
+        mock_profile.backlight = {}
+        mock_profile.lcd = ""
+        mock_profile.mappings = {"G1": {"keys": ["a", "b"], "type": "macro"}}
+        mock_pm.load_profile.return_value = mock_profile
+
+        with patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm):
+            args = MagicMock()
+            args.profile_cmd = "show"
+            args.name = "test_profile"
+
+            cmd_profile(args)
+
+        captured = capsys.readouterr()
+        assert "['a', 'b']" in captured.out
+
+    def test_cmd_profile_show_reserved_key(self, capsys):
+        """Test profile show skips KEY_RESERVED mappings (line 155->152)."""
+        mock_pm = MagicMock()
+        mock_profile = MagicMock()
+        mock_profile.name = "test_profile"
+        mock_profile.description = None
+        mock_profile.backlight = {}
+        mock_profile.lcd = ""
+        mock_profile.mappings = {"G1": "a", "G2": "KEY_RESERVED", "G3": "b"}
+        mock_pm.load_profile.return_value = mock_profile
+
+        with patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm):
+            args = MagicMock()
+            args.profile_cmd = "show"
+            args.name = "test_profile"
+
+            cmd_profile(args)
+
+        captured = capsys.readouterr()
+        # Should show G1 and G3 but not G2 with KEY_RESERVED
+        assert "G1: a" in captured.out
+        assert "G3: b" in captured.out
+        assert "KEY_RESERVED" not in captured.out
+
+    def test_cmd_profile_load_color_without_hash(self, capsys):
+        """Test profile load with color that doesn't start with # (lines 175->182)."""
+        mock_pm = MagicMock()
+        mock_profile = MagicMock()
+        mock_profile.name = "test_profile"
+        mock_profile.backlight = {"color": "FF0000"}  # No hash prefix
+        mock_pm.load_profile.return_value = mock_profile
+
+        mock_device = MagicMock()
+        mock_backlight = MagicMock()
+
+        with patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm), \
+             patch("g13_linux.device.open_g13", return_value=mock_device), \
+             patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight):
+            args = MagicMock()
+            args.profile_cmd = "load"
+            args.name = "test_profile"
+
+            cmd_profile(args)
+
+        # Color without # prefix should skip the color application
+        mock_backlight.set_color.assert_not_called()
+        captured = capsys.readouterr()
+        assert "Loaded profile" in captured.out
+
+    def test_cmd_profile_load_not_found(self, capsys):
+        """Test profile load with non-existent profile (lines 186-188)."""
+        mock_pm = MagicMock()
+        mock_pm.load_profile.side_effect = FileNotFoundError()
+
+        with patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm):
+            args = MagicMock()
+            args.profile_cmd = "load"
+            args.name = "missing_profile"
+
+            with pytest.raises(SystemExit) as exc_info:
+                cmd_profile(args)
+
+            assert exc_info.value.code == 1
+
+        captured = capsys.readouterr()
+        assert "not found" in captured.err
+
+    def test_main_unknown_command_no_func(self, capsys):
+        """Test main when command exists but has no func attribute (lines 264-265)."""
+        # Create a namespace that looks like a parsed command but lacks func
+        mock_namespace = MagicMock()
+        mock_namespace.command = "unknown"
+        del mock_namespace.func  # Remove the func attribute
+
+        with patch("argparse.ArgumentParser.parse_args", return_value=mock_namespace):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+            assert exc_info.value.code == 1
+
+    def test_cmd_profile_unknown_subcommand(self, capsys):
+        """Test profile with unknown subcommand exits gracefully (line 198->exit)."""
+        mock_pm = MagicMock()
+
+        with patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm):
+            args = MagicMock()
+            args.profile_cmd = "unknown_cmd"  # Not list, show, load, create, or delete
+
+            # Should just return without error (falls through all if/elif)
+            cmd_profile(args)
+
+        # Should not have called any profile manager methods
+        mock_pm.list_profiles.assert_not_called()
+        mock_pm.load_profile.assert_not_called()
+        mock_pm.create_profile.assert_not_called()
+        mock_pm.delete_profile.assert_not_called()
