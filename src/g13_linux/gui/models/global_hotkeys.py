@@ -199,11 +199,8 @@ class GlobalHotkeyManager(QObject):
         # Lowercase and remove spaces
         normalized = hotkey.lower().replace(" ", "")
 
-        # Validate parts
+        # Split into parts and filter empty strings
         parts = normalized.split("+")
-        if not parts:
-            return None
-
         valid_parts = []
 
         for part in parts:
