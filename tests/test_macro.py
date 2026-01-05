@@ -458,6 +458,7 @@ class TestMacroRecorderElapsed:
         """Test elapsed_ms returns 0 when timer is invalid."""
         # Mock timer to return invalid
         from unittest.mock import MagicMock
+
         recorder._timer = MagicMock()
         recorder._timer.isValid.return_value = False
 
@@ -513,6 +514,7 @@ class TestMacroRecorderSystemListener:
         with patch.dict("sys.modules", {"pynput": None, "pynput.keyboard": None}):
             # Force a reimport by clearing any cached module
             import sys
+
             if "pynput" in sys.modules:
                 del sys.modules["pynput"]
             if "pynput.keyboard" in sys.modules:

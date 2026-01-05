@@ -209,9 +209,7 @@ def main():
         description="Logitech G13 Linux driver",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
-        "--version", "-v", action="version", version=f"g13-linux {__version__}"
-    )
+    parser.add_argument("--version", "-v", action="version", version=f"g13-linux {__version__}")
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 

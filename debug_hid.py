@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Debug script to enumerate all HID devices"""
+
 import hid
 
 print("Enumerating all HID devices...")
@@ -9,7 +10,7 @@ devices = hid.enumerate()
 g13_devices = []
 
 for i, dev in enumerate(devices):
-    is_g13 = dev["vendor_id"] == 0x046d and dev["product_id"] == 0xc21c
+    is_g13 = dev["vendor_id"] == 0x046D and dev["product_id"] == 0xC21C
 
     if is_g13:
         g13_devices.append(dev)
@@ -32,11 +33,11 @@ print(f"Found {len(g13_devices)} G13 device interface(s)")
 if g13_devices:
     print("\nAttempting to open each G13 interface...")
     for i, dev in enumerate(g13_devices):
-        print(f"\nInterface #{i+1}: {dev['path']}")
+        print(f"\nInterface #{i + 1}: {dev['path']}")
         try:
             h = hid.device()
             h.open_path(dev["path"])
-            print(f"  ✓ SUCCESS - Can open this interface")
+            print("  ✓ SUCCESS - Can open this interface")
             print(f"  Manufacturer: {h.get_manufacturer_string()}")
             print(f"  Product: {h.get_product_string()}")
             h.close()

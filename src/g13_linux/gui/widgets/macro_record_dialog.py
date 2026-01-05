@@ -27,9 +27,7 @@ class MacroRecordDialog(QDialog):
 
     macro_recorded = pyqtSignal(object)  # Macro
 
-    def __init__(
-        self, recorder: Optional[MacroRecorder] = None, parent: Optional[object] = None
-    ):
+    def __init__(self, recorder: Optional[MacroRecorder] = None, parent: Optional[object] = None):
         super().__init__(parent)
         self.recorder = recorder or MacroRecorder()
         self._recorded_macro: Optional[Macro] = None

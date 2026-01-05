@@ -400,6 +400,7 @@ class TestButtonMapperBackgroundImage:
             f.write(b"not an image")
 
         try:
+
             def exists_side_effect(path):
                 if path == temp_path:
                     return True

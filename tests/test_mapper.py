@@ -213,8 +213,9 @@ class TestMapperHandleRawReport:
             mapper.button_map = {"G1": [e.KEY_1]}
 
             # Mock decoder to return button press
-            with patch.object(mapper.decoder, "decode_report") as mock_decode, \
-                 patch.object(mapper.decoder, "get_button_changes") as mock_changes:
+            with patch.object(mapper.decoder, "decode_report") as mock_decode, patch.object(
+                mapper.decoder, "get_button_changes"
+            ) as mock_changes:
                 mock_changes.return_value = (["G1"], [])  # G1 pressed
 
                 mapper.handle_raw_report(bytes([0x00] * 8))
@@ -234,8 +235,9 @@ class TestMapperHandleRawReport:
             mapper = G13Mapper()
             mapper.button_map = {"G2": [e.KEY_2]}
 
-            with patch.object(mapper.decoder, "decode_report"), \
-                 patch.object(mapper.decoder, "get_button_changes") as mock_changes:
+            with patch.object(mapper.decoder, "decode_report"), patch.object(
+                mapper.decoder, "get_button_changes"
+            ) as mock_changes:
                 mock_changes.return_value = ([], ["G2"])  # G2 released
 
                 mapper.handle_raw_report(bytes([0x00] * 8))
@@ -269,8 +271,9 @@ class TestMapperHandleRawReport:
             mapper = G13Mapper()
             mapper.button_map = {"G3": [e.KEY_LEFTCTRL, e.KEY_C]}
 
-            with patch.object(mapper.decoder, "decode_report"), \
-                 patch.object(mapper.decoder, "get_button_changes") as mock_changes:
+            with patch.object(mapper.decoder, "decode_report"), patch.object(
+                mapper.decoder, "get_button_changes"
+            ) as mock_changes:
                 mock_changes.return_value = (["G3"], [])
 
                 mapper.handle_raw_report(bytes([0x00] * 8))
@@ -374,13 +377,15 @@ class TestG13MapperMissingCoverage:
 
             mapper = G13Mapper()
             # Mix of valid and invalid mappings
-            mapper.load_profile({
-                "mappings": {
-                    "G1": "KEY_1",  # Valid
-                    "G2": "KEY_INVALID_FAKE",  # Invalid - returns empty
-                    "G3": "KEY_2",  # Valid
+            mapper.load_profile(
+                {
+                    "mappings": {
+                        "G1": "KEY_1",  # Valid
+                        "G2": "KEY_INVALID_FAKE",  # Invalid - returns empty
+                        "G3": "KEY_2",  # Valid
+                    }
                 }
-            })
+            )
 
             # G1 and G3 should be in map, G2 should be skipped
             assert "G1" in mapper.button_map
@@ -397,14 +402,16 @@ class TestG13MapperMissingCoverage:
             from g13_linux.mapper import G13Mapper
 
             mapper = G13Mapper()
-            keycodes = mapper._parse_mapping({
-                "keys": [
-                    "KEY_LEFTCTRL",  # Valid
-                    "KEY_FAKE_INVALID",  # Invalid - skipped
-                    "KEY_A",  # Valid
-                ],
-                "label": "Test combo"
-            })
+            keycodes = mapper._parse_mapping(
+                {
+                    "keys": [
+                        "KEY_LEFTCTRL",  # Valid
+                        "KEY_FAKE_INVALID",  # Invalid - skipped
+                        "KEY_A",  # Valid
+                    ],
+                    "label": "Test combo",
+                }
+            )
 
             # Should have 2 keycodes (CTRL and A), not 3
             assert len(keycodes) == 2

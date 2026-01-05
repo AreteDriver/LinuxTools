@@ -84,7 +84,10 @@ class TestDeviceEventThreadRun:
         events = []
         thread.event_received.connect(events.append)
 
-        with patch("g13_linux.gui.controllers.device_event_controller.read_event", side_effect=mock_read_event):
+        with patch(
+            "g13_linux.gui.controllers.device_event_controller.read_event",
+            side_effect=mock_read_event,
+        ):
             thread.run()
 
         assert len(events) == 1

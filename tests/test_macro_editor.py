@@ -18,10 +18,9 @@ def qapp():
 @pytest.fixture
 def mock_dependencies():
     """Mock external dependencies for MacroEditorWidget."""
-    with patch("g13_linux.gui.views.macro_editor.MacroManager") as mock_mgr, \
-         patch("g13_linux.gui.views.macro_editor.MacroRecorder") as mock_rec, \
-         patch("g13_linux.gui.views.macro_editor.MacroPlayer") as mock_player:
-
+    with patch("g13_linux.gui.views.macro_editor.MacroManager") as mock_mgr, patch(
+        "g13_linux.gui.views.macro_editor.MacroRecorder"
+    ) as mock_rec, patch("g13_linux.gui.views.macro_editor.MacroPlayer") as mock_player:
         mock_mgr_instance = MagicMock()
         mock_mgr_instance.list_macros.return_value = []
         mock_mgr_instance.list_macro_summaries.return_value = []

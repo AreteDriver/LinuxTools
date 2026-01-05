@@ -25,9 +25,7 @@ class ProfileData:
     version: str = "0.1.0"
     mappings: dict = field(default_factory=dict)  # str | dict values
     lcd: dict = field(default_factory=lambda: {"enabled": True, "default_text": ""})
-    backlight: dict = field(
-        default_factory=lambda: {"color": "#FFFFFF", "brightness": 100}
-    )
+    backlight: dict = field(default_factory=lambda: {"color": "#FFFFFF", "brightness": 100})
     joystick: dict = field(default_factory=dict)  # Optional joystick config
 
 

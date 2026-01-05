@@ -36,9 +36,7 @@ class TestSetColor:
         backlight.set_color(255, 128, 0)
 
         assert backlight._current_color == (255, 128, 0)
-        mock_device.send_feature_report.assert_called_once_with(
-            bytes([0x07, 255, 128, 0, 0x00])
-        )
+        mock_device.send_feature_report.assert_called_once_with(bytes([0x07, 255, 128, 0, 0x00]))
 
     def test_set_color_black(self):
         mock_device = Mock()
@@ -153,8 +151,8 @@ class TestSetBrightness:
         # Check that scaled color was sent
         call_args = mock_device.send_feature_report.call_args[0][0]
         assert call_args[1] == 100  # 200 * 0.5
-        assert call_args[2] == 50   # 100 * 0.5
-        assert call_args[3] == 25   # 50 * 0.5
+        assert call_args[2] == 50  # 100 * 0.5
+        assert call_args[3] == 25  # 50 * 0.5
 
     def test_set_brightness_zero(self):
         mock_device = Mock()

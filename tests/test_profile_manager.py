@@ -124,9 +124,7 @@ class TestProfileManager:
         profile = ProfileData(name="Current")
         manager.save_profile(profile, "current")
 
-        assert (
-            manager.current_profile is None or manager.current_profile.name == "Current"
-        )
+        assert manager.current_profile is None or manager.current_profile.name == "Current"
 
         manager.load_profile("current")
         assert manager.current_profile.name == "Current"

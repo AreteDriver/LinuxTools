@@ -18,9 +18,7 @@ class TestMainFunction:
                 mock_app.exec.return_value = 0
                 mock_app_cls.return_value = mock_app
 
-                with patch(
-                    "g13_linux.gui.views.main_window.MainWindow"
-                ) as mock_window_cls:
+                with patch("g13_linux.gui.views.main_window.MainWindow") as mock_window_cls:
                     mock_window = MagicMock()
                     mock_window_cls.return_value = mock_window
 
@@ -52,9 +50,7 @@ class TestMainFunction:
                 mock_app.exec.return_value = 0
                 mock_app_cls.return_value = mock_app
 
-                with patch(
-                    "g13_linux.gui.views.main_window.MainWindow"
-                ) as mock_window_cls:
+                with patch("g13_linux.gui.views.main_window.MainWindow") as mock_window_cls:
                     mock_window = MagicMock()
                     mock_window_cls.return_value = mock_window
 
@@ -83,9 +79,7 @@ class TestMainFunction:
                 mock_app.exec.return_value = 0
                 mock_app_cls.return_value = mock_app
 
-                with patch(
-                    "g13_linux.gui.views.main_window.MainWindow"
-                ) as mock_window_cls:
+                with patch("g13_linux.gui.views.main_window.MainWindow") as mock_window_cls:
                     mock_window = MagicMock()
                     mock_window_cls.return_value = mock_window
 
@@ -113,9 +107,7 @@ class TestMainFunction:
                 mock_app = MagicMock()
                 mock_app_cls.return_value = mock_app
 
-                with patch(
-                    "g13_linux.gui.views.main_window.MainWindow"
-                ) as mock_window_cls:
+                with patch("g13_linux.gui.views.main_window.MainWindow") as mock_window_cls:
                     mock_window_cls.side_effect = Exception("Startup failed")
 
                     with patch("g13_linux.gui.main.QMessageBox") as mock_msgbox:
@@ -157,9 +149,7 @@ class TestMainImportErrors:
 
                     # We need to make the relative import in main() fail
                     # The import happens inside the function, so we patch where it's looked up
-                    with patch.object(
-                        importlib, "import_module", side_effect=mock_import
-                    ):
+                    with patch.object(importlib, "import_module", side_effect=mock_import):
                         # The import in main() uses relative import syntax
                         # We need to patch the __import__ builtin
                         import builtins

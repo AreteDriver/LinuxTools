@@ -5,25 +5,28 @@ G13 Button Capture Tool
 Captures raw HID reports from the G13 device for reverse engineering button mappings.
 Uses direct hidraw access which works with standard udev rules.
 """
-import os
+
 import glob
-import time
-import sys
+import os
 import select
+import sys
+import time
+
 
 def find_g13_hidraw():
     """Find the hidraw device path for the G13."""
-    for hidraw in glob.glob('/sys/class/hidraw/hidraw*'):
-        uevent_path = os.path.join(hidraw, 'device', 'uevent')
+    for hidraw in glob.glob("/sys/class/hidraw/hidraw*"):
+        uevent_path = os.path.join(hidraw, "device", "uevent")
         try:
-            with open(uevent_path, 'r') as f:
+            with open(uevent_path, "r") as f:
                 content = f.read()
-                if '0000046D' in content.upper() and '0000C21C' in content.upper():
+                if "0000046D" in content.upper() and "0000C21C" in content.upper():
                     device_name = os.path.basename(hidraw)
-                    return f'/dev/{device_name}'
+                    return f"/dev/{device_name}"
         except (IOError, OSError):
             continue
     return None
+
 
 def main():
     print("=" * 70)
@@ -40,7 +43,7 @@ def main():
     print(f"\nFound G13 at: {hidraw_path}")
 
     try:
-        f = open(hidraw_path, 'rb')
+        f = open(hidraw_path, "rb")
         print("Device opened successfully!")
 
         print("\n" + "=" * 70)
@@ -89,7 +92,7 @@ def main():
                     last_data = data
 
     except KeyboardInterrupt:
-        print(f"\n\n{'='*70}")
+        print(f"\n\n{'=' * 70}")
         print(f"Capture complete. Total events: {event_count}")
         print("=" * 70)
     except PermissionError:
@@ -100,6 +103,7 @@ def main():
         f.close()
 
     print("\nDone!")
+
 
 if __name__ == "__main__":
     main()

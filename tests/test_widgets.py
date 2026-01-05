@@ -11,6 +11,7 @@ class TestColorPickerWidget:
     def widget(self, qtbot):
         """Create ColorPickerWidget instance."""
         from g13_linux.gui.widgets.color_picker import ColorPickerWidget
+
         w = ColorPickerWidget()
         qtbot.addWidget(w)
         return w
@@ -45,6 +46,7 @@ class TestColorPickerWidget:
     def test_preset_buttons_exist(self, widget):
         """Test preset color buttons are created."""
         from PyQt6.QtWidgets import QPushButton
+
         buttons = widget.findChildren(QPushButton)
         # Should have "Pick Color" + 7 presets = 8 buttons
         assert len(buttons) == 8
@@ -52,6 +54,7 @@ class TestColorPickerWidget:
     def test_preset_red_button(self, widget, qtbot):
         """Test clicking red preset sets color."""
         from PyQt6.QtWidgets import QPushButton
+
         buttons = widget.findChildren(QPushButton)
         red_btn = next(b for b in buttons if b.text() == "Red")
 
@@ -63,6 +66,7 @@ class TestColorPickerWidget:
     def test_preset_cyan_button(self, widget, qtbot):
         """Test clicking cyan preset sets color."""
         from PyQt6.QtWidgets import QPushButton
+
         buttons = widget.findChildren(QPushButton)
         cyan_btn = next(b for b in buttons if b.text() == "Cyan")
 
@@ -79,7 +83,9 @@ class TestColorPickerWidget:
         mock_color.isValid.return_value = True
         mock_color.name.return_value = "#123456"
 
-        with patch("g13_linux.gui.widgets.color_picker.QColorDialog.getColor", return_value=mock_color):
+        with patch(
+            "g13_linux.gui.widgets.color_picker.QColorDialog.getColor", return_value=mock_color
+        ):
             with qtbot.waitSignal(widget.color_changed):
                 widget._open_color_dialog()
 
@@ -95,7 +101,9 @@ class TestColorPickerWidget:
         # Set initial color
         widget.set_color("#aabbcc")
 
-        with patch("g13_linux.gui.widgets.color_picker.QColorDialog.getColor", return_value=mock_color):
+        with patch(
+            "g13_linux.gui.widgets.color_picker.QColorDialog.getColor", return_value=mock_color
+        ):
             widget._open_color_dialog()
 
         # Color should not change
@@ -109,6 +117,7 @@ class TestG13Button:
     def button(self, qtbot):
         """Create G13Button instance."""
         from g13_linux.gui.widgets.g13_button import G13Button
+
         btn = G13Button("G1")
         qtbot.addWidget(btn)
         return btn
@@ -232,6 +241,7 @@ class TestLCDPreviewWidget:
     def widget(self, qtbot):
         """Create LCDPreviewWidget instance."""
         from g13_linux.gui.widgets.lcd_preview import LCDPreviewWidget
+
         w = LCDPreviewWidget()
         qtbot.addWidget(w)
         return w
@@ -239,6 +249,7 @@ class TestLCDPreviewWidget:
     def test_init_dimensions(self, widget):
         """Test widget initializes with correct dimensions."""
         from g13_linux.gui.widgets.lcd_preview import LCD_HEIGHT, LCD_WIDTH
+
         assert LCD_WIDTH == 160
         assert LCD_HEIGHT == 43
 
@@ -348,6 +359,7 @@ class TestLCDPreviewEmbedded:
     def widget(self, qtbot):
         """Create LCDPreviewEmbedded instance."""
         from g13_linux.gui.widgets.lcd_preview import LCDPreviewEmbedded
+
         w = LCDPreviewEmbedded()
         qtbot.addWidget(w)
         return w
@@ -359,6 +371,7 @@ class TestLCDPreviewEmbedded:
     def test_translucent_background(self, widget):
         """Test widget has translucent background."""
         from PyQt6.QtCore import Qt
+
         assert widget.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
     def test_paint_event_no_crash(self, widget, qtbot):

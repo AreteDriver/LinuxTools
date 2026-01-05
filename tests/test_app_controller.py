@@ -42,15 +42,21 @@ def mock_main_window():
 @pytest.fixture
 def mock_dependencies():
     """Patch all external dependencies."""
-    with patch("g13_linux.gui.controllers.app_controller.G13Device") as mock_device_cls, \
-         patch("g13_linux.gui.controllers.app_controller.ProfileManager") as mock_profile_cls, \
-         patch("g13_linux.gui.controllers.app_controller.EventDecoder") as mock_decoder_cls, \
-         patch("g13_linux.gui.controllers.app_controller.HardwareController") as mock_hw_cls, \
-         patch("g13_linux.gui.controllers.app_controller.MacroRecorder") as mock_recorder_cls, \
-         patch("g13_linux.gui.controllers.app_controller.MacroPlayer") as mock_player_cls, \
-         patch("g13_linux.gui.controllers.app_controller.MacroManager") as mock_macro_mgr_cls, \
-         patch("g13_linux.gui.controllers.app_controller.GlobalHotkeyManager") as mock_hotkey_cls:
-
+    with patch("g13_linux.gui.controllers.app_controller.G13Device") as mock_device_cls, patch(
+        "g13_linux.gui.controllers.app_controller.ProfileManager"
+    ) as mock_profile_cls, patch(
+        "g13_linux.gui.controllers.app_controller.EventDecoder"
+    ) as mock_decoder_cls, patch(
+        "g13_linux.gui.controllers.app_controller.HardwareController"
+    ) as mock_hw_cls, patch(
+        "g13_linux.gui.controllers.app_controller.MacroRecorder"
+    ) as mock_recorder_cls, patch(
+        "g13_linux.gui.controllers.app_controller.MacroPlayer"
+    ) as mock_player_cls, patch(
+        "g13_linux.gui.controllers.app_controller.MacroManager"
+    ) as mock_macro_mgr_cls, patch(
+        "g13_linux.gui.controllers.app_controller.GlobalHotkeyManager"
+    ) as mock_hotkey_cls:
         # Configure device mock
         mock_device = MagicMock()
         mock_device.device_connected = MagicMock()
@@ -749,9 +755,7 @@ class TestApplicationControllerMissingCoverage:
 
         mock_dependencies["recorder"].on_g13_button_event.assert_called_with("G5", False)
 
-    def test_on_raw_event_released_buttons_highlights(
-        self, mock_main_window, mock_dependencies
-    ):
+    def test_on_raw_event_released_buttons_highlights(self, mock_main_window, mock_dependencies):
         """Test raw event un-highlights released buttons (lines 154-155)."""
         mock_state = MagicMock()
         mock_state.joystick_x = 128
@@ -789,9 +793,7 @@ class TestApplicationControllerMissingCoverage:
 
     def test_assign_key_to_button_no_key_selected(self, mock_main_window, mock_dependencies):
         """Test assign key when dialog returns None key (line 259->exit)."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.KeySelectorDialog"
-        ) as mock_dialog:
+        with patch("g13_linux.gui.controllers.app_controller.KeySelectorDialog") as mock_dialog:
             mock_dialog_instance = MagicMock()
             mock_dialog_instance.exec.return_value = True
             mock_dialog_instance.selected_key = None  # No key selected
@@ -921,9 +923,7 @@ class TestApplicationControllerMissingCoverage:
 
         mock_dependencies["device"].disconnect.assert_not_called()
 
-    def test_on_device_disconnected_no_event_thread(
-        self, mock_main_window, mock_dependencies
-    ):
+    def test_on_device_disconnected_no_event_thread(self, mock_main_window, mock_dependencies):
         """Test device disconnection when event_thread is None (line 181->exit)."""
         controller = ApplicationController(mock_main_window)
         controller.event_thread = None  # No event thread

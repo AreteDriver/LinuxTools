@@ -60,15 +60,9 @@ class ButtonMapperWidget(QWidget):
         """Load G13 device background image if available"""
         # Try to find the image in the resources directory
         possible_paths = [
-            os.path.join(
-                os.path.dirname(__file__), "..", "resources", "images", "g13_device.png"
-            ),
-            os.path.join(
-                os.path.dirname(__file__), "..", "resources", "images", "g13_layout.png"
-            ),
-            os.path.join(
-                os.path.dirname(__file__), "..", "resources", "images", "g13_layout.jpg"
-            ),
+            os.path.join(os.path.dirname(__file__), "..", "resources", "images", "g13_device.png"),
+            os.path.join(os.path.dirname(__file__), "..", "resources", "images", "g13_layout.png"),
+            os.path.join(os.path.dirname(__file__), "..", "resources", "images", "g13_layout.jpg"),
         ]
 
         for path in possible_paths:
@@ -88,12 +82,8 @@ class ButtonMapperWidget(QWidget):
         """Create all G13 buttons based on layout"""
         for button_id, position in G13_BUTTON_POSITIONS.items():
             btn = G13Button(button_id, self)
-            btn.setGeometry(
-                position["x"], position["y"], position["width"], position["height"]
-            )
-            btn.clicked.connect(
-                lambda checked=False, bid=button_id: self.button_clicked.emit(bid)
-            )
+            btn.setGeometry(position["x"], position["y"], position["width"], position["height"])
+            btn.clicked.connect(lambda checked=False, bid=button_id: self.button_clicked.emit(bid))
             self.buttons[button_id] = btn
 
     def set_button_mapping(self, button_id: str, key_name: str):
@@ -169,9 +159,7 @@ class ButtonMapperWidget(QWidget):
         painter.setPen(QPen(QColor(20, 20, 22), 3))
         painter.setBrush(QColor(15, 15, 18))
         painter.drawRoundedRect(
-            x - bezel_margin, y - bezel_margin,
-            w + bezel_margin * 2, h + bezel_margin * 2,
-            8, 8
+            x - bezel_margin, y - bezel_margin, w + bezel_margin * 2, h + bezel_margin * 2, 8, 8
         )
 
         # LCD screen - classic green/black monochrome look
@@ -201,17 +189,13 @@ class ButtonMapperWidget(QWidget):
         painter.setPen(QPen(QColor(45, 45, 50), 3))
         painter.setBrush(QColor(30, 30, 35))
         painter.drawEllipse(
-            center_x - radius - 5, center_y - radius - 5,
-            (radius + 5) * 2, (radius + 5) * 2
+            center_x - radius - 5, center_y - radius - 5, (radius + 5) * 2, (radius + 5) * 2
         )
 
         # Inner recessed area (where stick moves)
         painter.setPen(QPen(QColor(25, 25, 28), 2))
         painter.setBrush(QColor(18, 18, 22))
-        painter.drawEllipse(
-            center_x - radius, center_y - radius,
-            radius * 2, radius * 2
-        )
+        painter.drawEllipse(center_x - radius, center_y - radius, radius * 2, radius * 2)
 
         # Map joystick position (0-255) to pixel offset from center
         offset_x = int((self._joystick_x - 128) / 128 * (radius - 20))
@@ -226,16 +210,17 @@ class ButtonMapperWidget(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(10, 10, 12, 150))
         painter.drawEllipse(
-            stick_x - stick_radius + 3, stick_y - stick_radius + 3,
-            stick_radius * 2, stick_radius * 2
+            stick_x - stick_radius + 3,
+            stick_y - stick_radius + 3,
+            stick_radius * 2,
+            stick_radius * 2,
         )
 
         # Stick base (dark rubber)
         painter.setPen(QPen(QColor(50, 50, 55), 2))
         painter.setBrush(QColor(35, 35, 40))
         painter.drawEllipse(
-            stick_x - stick_radius, stick_y - stick_radius,
-            stick_radius * 2, stick_radius * 2
+            stick_x - stick_radius, stick_y - stick_radius, stick_radius * 2, stick_radius * 2
         )
 
         # Stick top with concave grip pattern
@@ -243,8 +228,7 @@ class ButtonMapperWidget(QWidget):
         painter.setPen(QPen(QColor(60, 60, 65), 1))
         painter.setBrush(QColor(45, 45, 50))
         painter.drawEllipse(
-            stick_x - inner_radius, stick_y - inner_radius,
-            inner_radius * 2, inner_radius * 2
+            stick_x - inner_radius, stick_y - inner_radius, inner_radius * 2, inner_radius * 2
         )
 
         # Center dimple (like real thumbstick)
@@ -252,8 +236,7 @@ class ButtonMapperWidget(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(35, 35, 40))
         painter.drawEllipse(
-            stick_x - dimple_radius, stick_y - dimple_radius,
-            dimple_radius * 2, dimple_radius * 2
+            stick_x - dimple_radius, stick_y - dimple_radius, dimple_radius * 2, dimple_radius * 2
         )
 
         # Position indicator - subtle colored ring based on deflection
@@ -263,10 +246,14 @@ class ButtonMapperWidget(QWidget):
 
         if intensity > 0.1:
             # Show activity with teal glow (matches G13 backlight theme)
-            glow_color = QColor(0, int(150 + 50 * intensity), int(150 + 50 * intensity), int(100 * intensity))
+            glow_color = QColor(
+                0, int(150 + 50 * intensity), int(150 + 50 * intensity), int(100 * intensity)
+            )
             painter.setPen(QPen(glow_color, 2))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(
-                stick_x - stick_radius - 2, stick_y - stick_radius - 2,
-                (stick_radius + 2) * 2, (stick_radius + 2) * 2
+                stick_x - stick_radius - 2,
+                stick_y - stick_radius - 2,
+                (stick_radius + 2) * 2,
+                (stick_radius + 2) * 2,
             )

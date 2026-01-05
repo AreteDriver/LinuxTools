@@ -41,9 +41,7 @@ class MacroPlayerThread(QThread):
             return
 
         repeat = 0
-        max_repeats = (
-            self.macro.repeat_count if self.macro.repeat_count > 0 else float("inf")
-        )
+        max_repeats = self.macro.repeat_count if self.macro.repeat_count > 0 else float("inf")
 
         try:
             while repeat < max_repeats and not self._stop_requested:

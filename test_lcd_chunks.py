@@ -2,12 +2,13 @@
 """
 LCD test with chunked transfers and detailed diagnostics.
 """
+
 import usb.core
 import usb.util
-import time
 
 G13_VENDOR_ID = 0x046D
 G13_PRODUCT_ID = 0xC21C
+
 
 def main():
     print("Finding G13...")
@@ -36,15 +37,17 @@ def main():
             if usb.util.endpoint_direction(ep.bEndpointAddress) == usb.util.ENDPOINT_OUT:
                 ep_type = usb.util.endpoint_type(ep.bmAttributes)
                 type_name = {1: "ISO", 2: "BULK", 3: "INT"}.get(ep_type, "?")
-                print(f"  Interface {intf.bInterfaceNumber}: EP 0x{ep.bEndpointAddress:02X} "
-                      f"{type_name} maxPacket={ep.wMaxPacketSize}")
+                print(
+                    f"  Interface {intf.bInterfaceNumber}: EP 0x{ep.bEndpointAddress:02X} "
+                    f"{type_name} maxPacket={ep.wMaxPacketSize}"
+                )
                 out_eps.append((intf.bInterfaceNumber, ep))
 
     # Try each OUT endpoint
     for intf_num, ep in out_eps:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Testing endpoint 0x{ep.bEndpointAddress:02X} on interface {intf_num}")
-        print('='*60)
+        print("=" * 60)
 
         try:
             usb.util.claim_interface(dev, intf_num)
@@ -75,7 +78,7 @@ def main():
             dev.ctrl_transfer(0, 9, 1, 0, None, 1000)
             total = 0
             for i in range(0, 992, 64):
-                chunk = bytes(buf[i:i+64])
+                chunk = bytes(buf[i : i + 64])
                 written = ep.write(chunk, timeout=1000)
                 total += written
             print(f"  Wrote {total} bytes in chunks")
@@ -100,9 +103,9 @@ def main():
             pass
 
     # Also try direct write to endpoint address 0x02
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Testing direct write to 0x02")
-    print('='*60)
+    print("=" * 60)
 
     buf = bytearray(992)
     buf[0] = 0x03
@@ -129,6 +132,7 @@ def main():
         pass
 
     print("\nDone!")
+
 
 if __name__ == "__main__":
     main()

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Interactive button capture script"""
-import sys
+
 import select
 import time
 
-device_path = '/dev/hidraw3'
+device_path = "/dev/hidraw3"
 
 print("=" * 70)
 print("G13 BUTTON MAPPING CAPTURE TOOL")
@@ -12,7 +12,7 @@ print("=" * 70)
 print(f"\nOpening device: {device_path}")
 
 try:
-    with open(device_path, 'rb') as f:
+    with open(device_path, "rb") as f:
         print("✓ Device opened successfully!")
         print("\n" + "=" * 70)
         print("READY TO CAPTURE!")
@@ -40,13 +40,13 @@ try:
                     print("-" * 70)
 
                     # Hex dump
-                    hex_str = ' '.join(f'{b:02x}' for b in data)
+                    hex_str = " ".join(f"{b:02x}" for b in data)
                     print(f"RAW: {hex_str}")
 
                     # Non-zero bytes
                     non_zero = [(i, b) for i, b in enumerate(data) if b != 0]
                     if non_zero:
-                        print(f"Non-zero bytes:")
+                        print("Non-zero bytes:")
                         for idx, val in non_zero:
                             binary = bin(val)[2:].zfill(8)
                             print(f"  Byte[{idx:2d}] = 0x{val:02x} ({val:3d}) = {binary}")
@@ -61,10 +61,11 @@ except KeyboardInterrupt:
     print("=" * 70)
 
 except PermissionError:
-    print(f"✗ Permission denied")
+    print("✗ Permission denied")
     print(f"Fix: sudo chmod 666 {device_path}")
 
 except Exception as e:
     print(f"✗ Error: {e}")
     import traceback
+
     traceback.print_exc()

@@ -549,11 +549,14 @@ class TestSystemListenerCallbacks:
         recorder = MacroRecorder()
 
         # Patch the import inside _start_system_listener
-        with patch.dict("sys.modules", {"pynput": MagicMock(), "pynput.keyboard": mock_keyboard_module}):
+        with patch.dict(
+            "sys.modules", {"pynput": MagicMock(), "pynput.keyboard": mock_keyboard_module}
+        ):
             # Force reimport by calling the method
             # We need to exec the import inside the method context
             exec_globals = {"recorder": recorder, "keyboard": mock_keyboard_module}
-            exec("""
+            exec(
+                """
 def on_press(key):
     try:
         if hasattr(key, "char") and key.char:
@@ -580,7 +583,9 @@ def on_release(key):
 
 listener = keyboard.Listener(on_press=on_press, on_release=on_release)
 listener.start()
-""", exec_globals)
+""",
+                exec_globals,
+            )
 
         # Now test the captured callbacks work
         assert "on_press" in captured_callbacks
@@ -705,9 +710,7 @@ listener.start()
         errors = []
         recorder.error_occurred.connect(errors.append)
 
-        recorder.error_occurred.emit(
-            "pynput not installed - system keyboard capture disabled"
-        )
+        recorder.error_occurred.emit("pynput not installed - system keyboard capture disabled")
 
         assert len(errors) == 1
         assert "pynput not installed" in errors[0]

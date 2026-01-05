@@ -22,7 +22,7 @@ class TestPyQt6Fallback:
         import sys
 
         # Python script that tests the fallback code by blocking PyQt6 import
-        test_script = '''
+        test_script = """
 import sys
 
 # Block PyQt6 imports by raising ImportError
@@ -57,13 +57,16 @@ try:
 except Exception as e:
     print(f"FAILED: {e}")
     sys.exit(1)
-'''
+"""
         result = subprocess.run(
             [sys.executable, "-c", test_script],
             capture_output=True,
             text=True,
             cwd="/home/arete/projects/G13_Linux",
-            env={**dict(__import__("os").environ), "PYTHONPATH": "/home/arete/projects/G13_Linux/src"},
+            env={
+                **dict(__import__("os").environ),
+                "PYTHONPATH": "/home/arete/projects/G13_Linux/src",
+            },
         )
 
         assert result.returncode == 0, f"Fallback test failed: {result.stderr}"
@@ -110,9 +113,7 @@ class TestG13DeviceConnect:
         connected = []
         device.device_connected.connect(lambda: connected.append(True))
 
-        with patch(
-            "g13_linux.gui.models.g13_device.open_g13", return_value=mock_handle
-        ):
+        with patch("g13_linux.gui.models.g13_device.open_g13", return_value=mock_handle):
             result = device.connect()
 
         assert result is True
@@ -126,9 +127,7 @@ class TestG13DeviceConnect:
 
         mock_handle = MagicMock()
 
-        with patch(
-            "g13_linux.gui.models.g13_device.open_g13_libusb", return_value=mock_handle
-        ):
+        with patch("g13_linux.gui.models.g13_device.open_g13_libusb", return_value=mock_handle):
             result = device.connect()
 
         assert result is True
@@ -252,9 +251,7 @@ class TestG13DeviceReadEvent:
         events = []
         device.raw_event_received.connect(events.append)
 
-        with patch(
-            "g13_linux.gui.models.g13_device.read_event", return_value=test_data
-        ):
+        with patch("g13_linux.gui.models.g13_device.read_event", return_value=test_data):
             result = device.read_event_once()
 
         assert result == test_data

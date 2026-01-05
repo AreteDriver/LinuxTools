@@ -98,7 +98,7 @@ class TestG13LCDClear:
         lcd._framebuffer[0] = 0xFF
         lcd._framebuffer[100] = 0xAA
 
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.clear()
 
         assert all(b == 0 for b in lcd._framebuffer)
@@ -107,7 +107,7 @@ class TestG13LCDClear:
         mock_device = MagicMock()
         lcd = G13LCD(mock_device)
 
-        with patch.object(lcd, '_send_framebuffer') as mock_send:
+        with patch.object(lcd, "_send_framebuffer") as mock_send:
             lcd.clear()
             mock_send.assert_called_once()
 
@@ -118,7 +118,7 @@ class TestG13LCDFill:
     def test_fill_sets_all_pixels(self):
         lcd = G13LCD()
 
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.fill()
 
         assert all(b == 0xFF for b in lcd._framebuffer)
@@ -127,7 +127,7 @@ class TestG13LCDFill:
         mock_device = MagicMock()
         lcd = G13LCD(mock_device)
 
-        with patch.object(lcd, '_send_framebuffer') as mock_send:
+        with patch.object(lcd, "_send_framebuffer") as mock_send:
             lcd.fill()
             mock_send.assert_called_once()
 
@@ -199,32 +199,32 @@ class TestG13LCDWriteText:
 
     def test_write_single_char(self):
         lcd = G13LCD()
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_text("A", 0, 0)
         assert lcd._framebuffer[0] != 0 or lcd._framebuffer[1] != 0
 
     def test_write_text_position(self):
         lcd = G13LCD()
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_text("X", 10, 0)
         for x in range(10):
             assert lcd._framebuffer[x] == 0
 
     def test_write_text_unknown_char(self):
         lcd = G13LCD()
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_text("\x80", 0, 0)
         assert any(b != 0 for b in lcd._framebuffer[:6])
 
     def test_write_text_send_false(self):
         lcd = G13LCD()
-        with patch.object(lcd, '_send_framebuffer') as mock_send:
+        with patch.object(lcd, "_send_framebuffer") as mock_send:
             lcd.write_text("A", 0, 0, send=False)
             mock_send.assert_not_called()
 
     def test_write_text_clips_at_edge(self):
         lcd = G13LCD()
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_text("A" * 50, 0, 0)
         assert len(lcd._framebuffer) == G13LCD.FRAMEBUFFER_SIZE
 
@@ -234,14 +234,14 @@ class TestG13LCDWriteTextCentered:
 
     def test_center_short_text(self):
         lcd = G13LCD()
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_text_centered("Hi", y=0)
         for x in range(74):
             assert lcd._framebuffer[x] == 0
 
     def test_center_uses_default_y(self):
         lcd = G13LCD()
-        with patch.object(lcd, 'write_text') as mock_write:
+        with patch.object(lcd, "write_text") as mock_write:
             lcd.write_text_centered("Test")
             assert mock_write.call_args[0][2] == 18
 
@@ -252,14 +252,14 @@ class TestG13LCDWriteBitmap:
     def test_write_full_bitmap(self):
         lcd = G13LCD()
         bitmap = bytes([0xAA] * G13LCD.FRAMEBUFFER_SIZE)
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_bitmap(bitmap)
         assert bytes(lcd._framebuffer) == bitmap
 
     def test_write_partial_bitmap(self):
         lcd = G13LCD()
         bitmap = bytes([0xFF] * 100)
-        with patch.object(lcd, '_send_framebuffer'):
+        with patch.object(lcd, "_send_framebuffer"):
             lcd.write_bitmap(bitmap)
         assert all(b == 0xFF for b in lcd._framebuffer[:100])
         assert all(b == 0 for b in lcd._framebuffer[100:])

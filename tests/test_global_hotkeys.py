@@ -220,6 +220,7 @@ class TestGlobalHotkeyManagerListener:
     def test_start_listener_success(self, manager):
         """Test successful listener start with pynput mocked."""
         import sys
+
         manager._hotkeys = {"ctrl+f1": "macro-123"}
 
         # Mock pynput module to avoid X11 requirement in CI
@@ -232,7 +233,10 @@ class TestGlobalHotkeyManagerListener:
             mock_listener = MagicMock()
             mock_keyboard.GlobalHotKeys.return_value = mock_listener
 
-            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+            with patch.dict(
+                "sys.modules",
+                {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard},
+            ):
                 result = manager._start_listener()
 
                 assert result is True
@@ -251,6 +255,7 @@ class TestGlobalHotkeyManagerListener:
     def test_start_listener_no_handlers(self, manager):
         """Test listener start with invalid hotkeys still marks running."""
         import sys
+
         manager._hotkeys = {"invalid+++key": "macro-123"}
 
         # Mock pynput to avoid X11 requirement
@@ -259,7 +264,10 @@ class TestGlobalHotkeyManagerListener:
 
         try:
             mock_keyboard = MagicMock()
-            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+            with patch.dict(
+                "sys.modules",
+                {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard},
+            ):
                 result = manager._start_listener()
 
                 # Still returns True even if no valid handlers (handlers dict empty)
@@ -274,6 +282,7 @@ class TestGlobalHotkeyManagerListener:
     def test_start_listener_with_valid_hotkeys(self, manager):
         """Test listener start creates actual listener."""
         import sys
+
         manager._hotkeys = {"ctrl+a": "macro-123"}
 
         # Mock pynput for CI
@@ -285,7 +294,10 @@ class TestGlobalHotkeyManagerListener:
             mock_listener = MagicMock()
             mock_keyboard.GlobalHotKeys.return_value = mock_listener
 
-            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+            with patch.dict(
+                "sys.modules",
+                {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard},
+            ):
                 result = manager._start_listener()
 
                 assert result is True
@@ -446,9 +458,23 @@ class TestGlobalHotkeyManagerPynputFormat:
 
     def test_to_pynput_format_special_keys(self, manager):
         """Test converting special keys to pynput format."""
-        for key in ["space", "tab", "enter", "backspace", "delete",
-                    "home", "end", "pageup", "pagedown", "up", "down",
-                    "left", "right", "insert", "escape"]:
+        for key in [
+            "space",
+            "tab",
+            "enter",
+            "backspace",
+            "delete",
+            "home",
+            "end",
+            "pageup",
+            "pagedown",
+            "up",
+            "down",
+            "left",
+            "right",
+            "insert",
+            "escape",
+        ]:
             result = manager._to_pynput_format(key)
             assert result == f"<{key}>"
 
@@ -549,10 +575,12 @@ class TestGlobalHotkeyManagerHotkeyTriggered:
 
     def test_make_handler_closure(self, manager, qtbot):
         """Test the closure pattern used for hotkey handlers."""
+
         # Test the pattern used in _start_listener
         def make_handler(mid: str):
             def handler():
                 manager.hotkey_triggered.emit(mid)
+
             return handler
 
         handler = make_handler("test-macro-id")
@@ -581,7 +609,9 @@ class TestGlobalHotkeyManagerMissingCoverage:
 
         try:
             # Patch import to fail for pynput
-            original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
+            original_import = (
+                __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
+            )
 
             def mock_import(name, *args, **kwargs):
                 if name == "pynput" or name.startswith("pynput."):
@@ -619,7 +649,10 @@ class TestGlobalHotkeyManagerMissingCoverage:
             mock_keyboard = MagicMock()
             mock_keyboard.GlobalHotKeys.side_effect = RuntimeError("X11 display not found")
 
-            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+            with patch.dict(
+                "sys.modules",
+                {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard},
+            ):
                 result = manager._start_listener()
 
             assert result is False
@@ -653,7 +686,10 @@ class TestGlobalHotkeyManagerMissingCoverage:
 
             mock_keyboard.GlobalHotKeys.side_effect = capture_handlers
 
-            with patch.dict("sys.modules", {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard}):
+            with patch.dict(
+                "sys.modules",
+                {"pynput": MagicMock(keyboard=mock_keyboard), "pynput.keyboard": mock_keyboard},
+            ):
                 manager._start_listener()
 
             # The handler should have been captured

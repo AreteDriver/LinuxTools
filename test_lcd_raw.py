@@ -2,12 +2,15 @@
 """
 Minimal LCD test - bypasses all abstractions to test raw USB protocol.
 """
+
+import time
+
 import usb.core
 import usb.util
-import time
 
 G13_VENDOR_ID = 0x046D
 G13_PRODUCT_ID = 0xC21C
+
 
 def main():
     print("Finding G13...")
@@ -48,14 +51,22 @@ def main():
     for intf in cfg:
         print(f"\nInterface {intf.bInterfaceNumber}, Alt {intf.bAlternateSetting}")
         for ep in intf:
-            direction = "IN" if usb.util.endpoint_direction(ep.bEndpointAddress) == usb.util.ENDPOINT_IN else "OUT"
-            ep_type = {1: "ISO", 2: "BULK", 3: "INT"}.get(usb.util.endpoint_type(ep.bmAttributes), "?")
-            print(f"  EP 0x{ep.bEndpointAddress:02X} {direction} {ep_type} maxPacket={ep.wMaxPacketSize}")
+            direction = (
+                "IN"
+                if usb.util.endpoint_direction(ep.bEndpointAddress) == usb.util.ENDPOINT_IN
+                else "OUT"
+            )
+            ep_type = {1: "ISO", 2: "BULK", 3: "INT"}.get(
+                usb.util.endpoint_type(ep.bmAttributes), "?"
+            )
+            print(
+                f"  EP 0x{ep.bEndpointAddress:02X} {direction} {ep_type} maxPacket={ep.wMaxPacketSize}"
+            )
 
     # Build test patterns
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing LCD patterns...")
-    print("="*60)
+    print("=" * 60)
 
     # Pattern 1: All white (all pixels on)
     print("\n[1] All white...")
@@ -167,7 +178,7 @@ def main():
     except Exception as e:
         print(f"    Error: {e}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Done! Check what you saw on the LCD:")
     print("  1. All white - screen should be fully lit")
     print("  2. All black - screen should be blank")
@@ -177,7 +188,7 @@ def main():
     print("  6. Single pixel - dot in top-left")
     print("  7. Top row - horizontal line at top")
     print("  8. Clear - blank screen")
-    print("="*60)
+    print("=" * 60)
 
     # Cleanup
     for i in range(2):
@@ -185,6 +196,7 @@ def main():
             usb.util.release_interface(dev, i)
         except:
             pass
+
 
 if __name__ == "__main__":
     main()

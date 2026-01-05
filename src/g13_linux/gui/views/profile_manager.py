@@ -38,9 +38,7 @@ class ProfileManagerWidget(QWidget):
 
         # Profile list
         self.profile_list = QListWidget()
-        self.profile_list.itemClicked.connect(
-            lambda item: self.profile_selected.emit(item.text())
-        )
+        self.profile_list.itemClicked.connect(lambda item: self.profile_selected.emit(item.text()))
         layout.addWidget(self.profile_list)
 
         # Buttons
@@ -76,9 +74,7 @@ class ProfileManagerWidget(QWidget):
 
         # Restore selection if possible
         if current_selection and current_selection in profiles:
-            items = self.profile_list.findItems(
-                current_selection, Qt.MatchFlag.MatchExactly
-            )
+            items = self.profile_list.findItems(current_selection, Qt.MatchFlag.MatchExactly)
             if items:
                 self.profile_list.setCurrentItem(items[0])
 

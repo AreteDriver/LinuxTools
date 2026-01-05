@@ -274,7 +274,7 @@ class G13LCD:
 
         Sends SET_CONFIGURATION control transfer (required before each write).
         """
-        if hasattr(self.device, '_dev') and self.device._dev:
+        if hasattr(self.device, "_dev") and self.device._dev:
             try:
                 # Control transfer: SET_CONFIGURATION
                 # bmRequestType=0, bRequest=9, wValue=1, wIndex=0

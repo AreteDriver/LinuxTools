@@ -9,16 +9,17 @@ Usage:
     sudo .venv/bin/python test_buttons_sudo.py
     sudo .venv/bin/python test_buttons_sudo.py --emit   # Also emit keys
 """
+
 import sys
 import time
 
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
 
 from g13_linux.device import open_g13_libusb
 from g13_linux.gui.models.event_decoder import EventDecoder
 
 # Check for --emit flag
-EMIT_KEYS = '--emit' in sys.argv
+EMIT_KEYS = "--emit" in sys.argv
 
 print("=" * 60)
 print("G13 Button Test (using libusb - requires sudo)")
@@ -28,15 +29,25 @@ print()
 mapper = None
 if EMIT_KEYS:
     from g13_linux.mapper import G13Mapper
+
     mapper = G13Mapper()
     # Load a basic test profile
-    mapper.load_profile({
-        "mappings": {
-            "G1": "KEY_1", "G2": "KEY_2", "G3": "KEY_3", "G4": "KEY_4",
-            "G5": "KEY_5", "G6": "KEY_6", "G7": "KEY_7", "G8": "KEY_8",
-            "G9": "KEY_9", "G10": "KEY_0",
+    mapper.load_profile(
+        {
+            "mappings": {
+                "G1": "KEY_1",
+                "G2": "KEY_2",
+                "G3": "KEY_3",
+                "G4": "KEY_4",
+                "G5": "KEY_5",
+                "G6": "KEY_6",
+                "G7": "KEY_7",
+                "G8": "KEY_8",
+                "G9": "KEY_9",
+                "G10": "KEY_0",
+            }
         }
-    })
+    )
     print("KEY EMISSION ENABLED - G1-G10 will type 1-0")
     print()
 

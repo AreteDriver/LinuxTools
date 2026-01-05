@@ -118,12 +118,8 @@ class EventDecoder:
         m_buttons = self._decode_m_buttons(data)
 
         # Decode joystick (if bytes are within range)
-        joystick_x = (
-            data[self.JOYSTICK_X_BYTE] if len(data) > self.JOYSTICK_X_BYTE else 128
-        )
-        joystick_y = (
-            data[self.JOYSTICK_Y_BYTE] if len(data) > self.JOYSTICK_Y_BYTE else 128
-        )
+        joystick_x = data[self.JOYSTICK_X_BYTE] if len(data) > self.JOYSTICK_X_BYTE else 128
+        joystick_y = data[self.JOYSTICK_Y_BYTE] if len(data) > self.JOYSTICK_Y_BYTE else 128
 
         state = G13ButtonState(
             g_buttons=g_buttons,
@@ -225,9 +221,7 @@ class EventDecoder:
 
         return pressed
 
-    def get_button_changes(
-        self, new_state: G13ButtonState
-    ) -> Tuple[List[str], List[str]]:
+    def get_button_changes(self, new_state: G13ButtonState) -> Tuple[List[str], List[str]]:
         """
         Compare with previous state to detect button press/release events.
 

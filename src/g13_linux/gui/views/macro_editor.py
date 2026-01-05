@@ -184,9 +184,7 @@ class MacroEditorWidget(QWidget):
         playback_layout.addRow("Repeat Delay:", self.repeat_delay_spin)
 
         self.playback_mode_combo = QComboBox()
-        self.playback_mode_combo.addItems(
-            ["Recorded Timing", "Fixed Delay", "As Fast As Possible"]
-        )
+        self.playback_mode_combo.addItems(["Recorded Timing", "Fixed Delay", "As Fast As Possible"])
         self.playback_mode_combo.currentIndexChanged.connect(self._on_property_changed)
         playback_layout.addRow("Timing Mode:", self.playback_mode_combo)
 
@@ -382,9 +380,7 @@ class MacroEditorWidget(QWidget):
     def _on_macro_recorded(self, macro: Macro) -> None:
         """Handle newly recorded macro."""
         # Prompt for name
-        name, ok = QInputDialog.getText(
-            self, "Save Macro", "Macro name:", text=macro.name
-        )
+        name, ok = QInputDialog.getText(self, "Save Macro", "Macro name:", text=macro.name)
         if ok and name:
             macro.name = name
             self.macro_manager.save_macro(macro)
@@ -416,9 +412,7 @@ class MacroEditorWidget(QWidget):
         if not self._current_macro:
             return
 
-        delay_ms, ok = QInputDialog.getInt(
-            self, "Insert Delay", "Delay (ms):", 100, 1, 60000
-        )
+        delay_ms, ok = QInputDialog.getInt(self, "Insert Delay", "Delay (ms):", 100, 1, 60000)
         if ok:
             from ..models.macro_types import MacroStepType
 

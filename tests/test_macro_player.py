@@ -87,9 +87,7 @@ class TestMacroPlayerThreadDelayCalculation:
         macro = Macro(playback_mode=PlaybackMode.AS_FAST)
         thread = MacroPlayerThread(macro)
 
-        step = MacroStep(
-            step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=1000
-        )
+        step = MacroStep(step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=1000)
         delay = thread._calculate_delay(step, 0)
 
         assert delay == 0
@@ -99,23 +97,17 @@ class TestMacroPlayerThreadDelayCalculation:
         macro = Macro(playback_mode=PlaybackMode.FIXED, fixed_delay_ms=50)
         thread = MacroPlayerThread(macro)
 
-        step = MacroStep(
-            step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=1000
-        )
+        step = MacroStep(step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=1000)
         delay = thread._calculate_delay(step, 0)
 
         assert delay == 50
 
     def test_delay_fixed_mode_with_speed(self):
         """Test FIXED mode respects speed multiplier."""
-        macro = Macro(
-            playback_mode=PlaybackMode.FIXED, fixed_delay_ms=100, speed_multiplier=2.0
-        )
+        macro = Macro(playback_mode=PlaybackMode.FIXED, fixed_delay_ms=100, speed_multiplier=2.0)
         thread = MacroPlayerThread(macro)
 
-        step = MacroStep(
-            step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=1000
-        )
+        step = MacroStep(step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=1000)
         delay = thread._calculate_delay(step, 0)
 
         assert delay == 50  # 100 / 2.0
@@ -125,9 +117,7 @@ class TestMacroPlayerThreadDelayCalculation:
         macro = Macro(playback_mode=PlaybackMode.RECORDED)
         thread = MacroPlayerThread(macro)
 
-        step = MacroStep(
-            step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=500
-        )
+        step = MacroStep(step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=500)
         delay = thread._calculate_delay(step, 200)
 
         assert delay == 300  # 500 - 200
@@ -137,9 +127,7 @@ class TestMacroPlayerThreadDelayCalculation:
         macro = Macro(playback_mode=PlaybackMode.RECORDED, speed_multiplier=2.0)
         thread = MacroPlayerThread(macro)
 
-        step = MacroStep(
-            step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=400
-        )
+        step = MacroStep(step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=400)
         delay = thread._calculate_delay(step, 0)
 
         assert delay == 200  # 400 / 2.0
@@ -149,9 +137,7 @@ class TestMacroPlayerThreadDelayCalculation:
         macro = Macro(playback_mode=PlaybackMode.RECORDED)
         thread = MacroPlayerThread(macro)
 
-        step = MacroStep(
-            step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=100
-        )
+        step = MacroStep(step_type=MacroStepType.KEY_PRESS, value="KEY_A", timestamp_ms=100)
         delay = thread._calculate_delay(step, 500)
 
         assert delay == 0  # max(0, 100 - 500)
@@ -566,9 +552,9 @@ class TestMacroPlayerThreadRun:
         def mock_play_once():
             play_calls.append(time.time())
 
-        with patch.object(thread, "_init_uinput"), \
-             patch.object(thread, "_cleanup_uinput"), \
-             patch.object(thread, "_play_once", side_effect=mock_play_once):
+        with patch.object(thread, "_init_uinput"), patch.object(
+            thread, "_cleanup_uinput"
+        ), patch.object(thread, "_play_once", side_effect=mock_play_once):
             thread.run()
 
         assert len(play_calls) == 2
@@ -586,9 +572,9 @@ class TestMacroPlayerThreadRun:
             if call_count[0] >= 3:
                 thread.request_stop()
 
-        with patch.object(thread, "_init_uinput"), \
-             patch.object(thread, "_cleanup_uinput"), \
-             patch.object(thread, "_play_once", side_effect=mock_play_once):
+        with patch.object(thread, "_init_uinput"), patch.object(
+            thread, "_cleanup_uinput"
+        ), patch.object(thread, "_play_once", side_effect=mock_play_once):
             thread.run()
 
         assert call_count[0] == 3
@@ -605,7 +591,9 @@ class TestMacroPlayerThreadInitUInput:
         with patch.dict("sys.modules", {"evdev": None}):
             with pytest.raises(RuntimeError, match="evdev not installed"):
                 # Force reimport
-                with patch("g13_linux.gui.models.macro_player.MacroPlayerThread._init_uinput") as mock:
+                with patch(
+                    "g13_linux.gui.models.macro_player.MacroPlayerThread._init_uinput"
+                ) as mock:
                     mock.side_effect = RuntimeError("evdev not installed")
                     thread._init_uinput()
 
@@ -708,6 +696,7 @@ class TestMacroPlayerThreadInterruptibleSleep:
             thread.request_stop()
 
         import threading
+
         stopper = threading.Thread(target=stop_soon)
         stopper.start()
 

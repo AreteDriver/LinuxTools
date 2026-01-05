@@ -30,9 +30,7 @@ class TestHardwareControllerInitialize:
         controller = HardwareController()
         mock_handle = MagicMock()
 
-        with patch(
-            "g13_linux.gui.models.hardware_controller.G13LCD"
-        ) as mock_lcd_class:
+        with patch("g13_linux.gui.models.hardware_controller.G13LCD") as mock_lcd_class:
             controller.initialize(mock_handle)
 
             mock_lcd_class.assert_called_once_with(mock_handle)
@@ -43,9 +41,7 @@ class TestHardwareControllerInitialize:
         controller = HardwareController()
         mock_handle = MagicMock()
 
-        with patch(
-            "g13_linux.gui.models.hardware_controller.G13Backlight"
-        ) as mock_bl_class:
+        with patch("g13_linux.gui.models.hardware_controller.G13Backlight") as mock_bl_class:
             controller.initialize(mock_handle)
 
             mock_bl_class.assert_called_once_with(mock_handle)

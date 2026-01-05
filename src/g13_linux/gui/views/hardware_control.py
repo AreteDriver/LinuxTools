@@ -47,9 +47,7 @@ class HardwareControlWidget(QWidget):
 
         lcd_btn_layout = QHBoxLayout()
         send_btn = QPushButton("Send to LCD")
-        send_btn.clicked.connect(
-            lambda: self.lcd_text_changed.emit(self.lcd_text.toPlainText())
-        )
+        send_btn.clicked.connect(lambda: self.lcd_text_changed.emit(self.lcd_text.toPlainText()))
         lcd_btn_layout.addWidget(send_btn)
 
         clear_btn = QPushButton("Clear LCD")
@@ -80,9 +78,7 @@ class HardwareControlWidget(QWidget):
         self.brightness_slider = QSlider(Qt.Orientation.Horizontal)
         self.brightness_slider.setRange(0, 100)
         self.brightness_slider.setValue(100)
-        self.brightness_slider.valueChanged.connect(
-            self.backlight_brightness_changed.emit
-        )
+        self.brightness_slider.valueChanged.connect(self.backlight_brightness_changed.emit)
         brightness_layout.addWidget(self.brightness_slider)
 
         self.brightness_value = QLabel("100%")

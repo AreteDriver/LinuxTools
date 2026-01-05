@@ -6,27 +6,44 @@ Interactive tool to verify and correct button mappings.
 Tests each button and compares actual data with predictions.
 """
 
-import sys
 import select
-import time
+import sys
 
 # Current predictions from event_decoder.py
 BUTTON_MAP = {
     # Confirmed
-    'G1': (3, 0), 'G2': (3, 1), 'G3': (3, 2), 'G4': (3, 3), 'G5': (3, 4),
-    'MR': (7, 1),
+    "G1": (3, 0),
+    "G2": (3, 1),
+    "G3": (3, 2),
+    "G4": (3, 3),
+    "G5": (3, 4),
+    "MR": (7, 1),
     # Predicted - Row 1 remainder
-    'G6': (3, 5), 'G7': (3, 6), 'G8': (3, 7),
+    "G6": (3, 5),
+    "G7": (3, 6),
+    "G8": (3, 7),
     # Predicted - Row 2 (Byte 4)
-    'G9': (4, 0), 'G10': (4, 1), 'G11': (4, 2), 'G12': (4, 3),
-    'G13': (4, 4), 'G14': (4, 5), 'G15': (4, 6), 'G16': (4, 7),
+    "G9": (4, 0),
+    "G10": (4, 1),
+    "G11": (4, 2),
+    "G12": (4, 3),
+    "G13": (4, 4),
+    "G14": (4, 5),
+    "G15": (4, 6),
+    "G16": (4, 7),
     # Predicted - Row 3-4 (Byte 6)
-    'G17': (6, 0), 'G18': (6, 1), 'G19': (6, 2),
-    'G20': (6, 3), 'G21': (6, 4), 'G22': (6, 5),
+    "G17": (6, 0),
+    "G18": (6, 1),
+    "G19": (6, 2),
+    "G20": (6, 3),
+    "G21": (6, 4),
+    "G22": (6, 5),
     # Predicted - M keys
-    'M1': (6, 6), 'M2': (6, 7), 'M3': (7, 0),
+    "M1": (6, 6),
+    "M2": (6, 7),
+    "M3": (7, 0),
     # Predicted - Joystick click
-    'JOYSTICK': (7, 2),
+    "JOYSTICK": (7, 2),
 }
 
 # Baseline captured dynamically at startup
@@ -35,20 +52,41 @@ BASELINE = None  # Will be set from first read
 # Test order - confirmed first, then predicted
 TEST_ORDER = [
     # Confirmed
-    'G1', 'G2', 'G3', 'G4', 'G5', 'MR',
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "MR",
     # Row 1 predictions
-    'G6', 'G7',
+    "G6",
+    "G7",
     # Row 2
-    'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 'G14',
+    "G8",
+    "G9",
+    "G10",
+    "G11",
+    "G12",
+    "G13",
+    "G14",
     # Row 3
-    'G15', 'G16', 'G17', 'G18', 'G19',
+    "G15",
+    "G16",
+    "G17",
+    "G18",
+    "G19",
     # Row 4
-    'G20', 'G21', 'G22',
+    "G20",
+    "G21",
+    "G22",
     # Mode keys
-    'M1', 'M2', 'M3',
+    "M1",
+    "M2",
+    "M3",
     # Joystick
-    'JOYSTICK',
+    "JOYSTICK",
 ]
+
 
 def find_changed_bits(baseline: list, data: bytes) -> list:
     """Find which byte/bit positions changed from baseline."""
@@ -62,14 +100,16 @@ def find_changed_bits(baseline: list, data: bytes) -> list:
                     changes.append((byte_idx, bit, data[byte_idx] & (1 << bit) != 0))
     return changes
 
+
 def format_prediction(button: str) -> str:
     """Format the predicted mapping."""
     byte_idx, bit_pos = BUTTON_MAP[button]
     hex_val = 1 << bit_pos
     return f"Byte[{byte_idx}] bit {bit_pos} (0x{hex_val:02x})"
 
+
 def main():
-    device_path = '/dev/hidraw3'
+    device_path = "/dev/hidraw3"
 
     print("=" * 70)
     print("G13 BUTTON VERIFICATION TOOL")
@@ -81,7 +121,7 @@ def main():
     results = {}  # button -> (predicted, actual, match)
 
     try:
-        with open(device_path, 'rb') as f:
+        with open(device_path, "rb") as f:
             print("✓ Device opened successfully!")
 
             # Set baseline - button bytes are 0 when idle, joystick varies
@@ -98,7 +138,7 @@ def main():
                 BASELINE[4] = 0  # G9-G16 buttons
                 BASELINE[6] = 0  # G17-G22, M1-M2
                 BASELINE[7] = BASELINE[7] & 0x80  # Keep joystick Y high bit, clear M3/MR/etc
-                print(f"OK\n")
+                print("OK\n")
 
             current_idx = 0
             waiting_for_press = True
@@ -113,7 +153,7 @@ def main():
                     print(f"TEST {current_idx + 1}/{len(TEST_ORDER)}: Press {button}")
                     print("-" * 70)
                     print(f"  Expected: {format_prediction(button)}")
-                    print(f"  Press and HOLD the button, then release...")
+                    print("  Press and HOLD the button, then release...")
                     print()
 
                 # Read with timeout
@@ -143,7 +183,7 @@ def main():
                             waiting_for_press = False
 
                             # Format raw data
-                            hex_str = ' '.join(f'{b:02x}' for b in data[:8])
+                            hex_str = " ".join(f"{b:02x}" for b in data[:8])
                             print(f"  RAW: {hex_str}")
 
                             # Check if prediction matches
@@ -159,12 +199,12 @@ def main():
                                 print(f"  ✅ MATCH! Byte[{actual[0]}] bit {actual[1]}")
                                 results[button] = (predicted, actual, True)
                             elif actual:
-                                print(f"  ❌ MISMATCH!")
+                                print("  ❌ MISMATCH!")
                                 print(f"     Predicted: Byte[{predicted[0]}] bit {predicted[1]}")
                                 print(f"     Actual:    Byte[{actual[0]}] bit {actual[1]}")
                                 results[button] = (predicted, actual, False)
                             else:
-                                print(f"  ⚠️  No button change detected")
+                                print("  ⚠️  No button change detected")
                                 results[button] = (predicted, None, False)
 
                             print()
@@ -172,14 +212,18 @@ def main():
                         elif not waiting_for_press:
                             # Check if all button bytes are zero (released)
                             buttons_idle = (
-                                data[3] == 0 and
-                                data[4] == 0 and
-                                data[6] == 0 and
-                                (data[7] & 0x03) == 0  # M3 and MR bits
+                                data[3] == 0
+                                and data[4] == 0
+                                and data[6] == 0
+                                and (data[7] & 0x03) == 0  # M3 and MR bits
                             )
                             # Debug: show what we're seeing
-                            hex_str = ' '.join(f'{b:02x}' for b in data[:8])
-                            print(f"\r  Waiting release... [{hex_str}] idle={buttons_idle}", end="", flush=True)
+                            hex_str = " ".join(f"{b:02x}" for b in data[:8])
+                            print(
+                                f"\r  Waiting release... [{hex_str}] idle={buttons_idle}",
+                                end="",
+                                flush=True,
+                            )
                             if buttons_idle:
                                 # Button released - move to next
                                 waiting_for_press = True
@@ -211,7 +255,9 @@ def main():
                 print(f"\n❌ Mismatched ({len(mismatched)}):")
                 for button, pred, actual in mismatched:
                     if actual:
-                        print(f"   {button}: Byte[{pred[0]}]b{pred[1]} -> Byte[{actual[0]}]b{actual[1]}")
+                        print(
+                            f"   {button}: Byte[{pred[0]}]b{pred[1]} -> Byte[{actual[0]}]b{actual[1]}"
+                        )
                     else:
                         print(f"   {button}: Not detected")
 
@@ -251,5 +297,6 @@ def main():
         print("Is the G13 connected?")
         sys.exit(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

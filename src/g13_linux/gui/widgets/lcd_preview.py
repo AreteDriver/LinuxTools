@@ -24,10 +24,10 @@ class LCDPreviewWidget(QWidget):
     content_changed = pyqtSignal()
 
     # LCD colors (classic green monochrome)
-    BG_COLOR = QColor(10, 25, 10)      # Dark green background
-    PIXEL_ON = QColor(80, 200, 80)     # Bright green for on pixels
-    PIXEL_OFF = QColor(15, 35, 15)     # Slightly lighter than bg for off pixels
-    BEZEL_COLOR = QColor(20, 20, 22)   # Dark bezel
+    BG_COLOR = QColor(10, 25, 10)  # Dark green background
+    PIXEL_ON = QColor(80, 200, 80)  # Bright green for on pixels
+    PIXEL_OFF = QColor(15, 35, 15)  # Slightly lighter than bg for off pixels
+    BEZEL_COLOR = QColor(20, 20, 22)  # Dark bezel
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -38,8 +38,7 @@ class LCDPreviewWidget(QWidget):
         # Set minimum size based on LCD dimensions + bezel
         bezel = 8
         self.setMinimumSize(
-            LCD_WIDTH * self._scale + bezel * 2,
-            LCD_HEIGHT * self._scale + bezel * 2
+            LCD_WIDTH * self._scale + bezel * 2, LCD_HEIGHT * self._scale + bezel * 2
         )
 
     def set_framebuffer(self, framebuffer: bytes | bytearray):
@@ -80,8 +79,7 @@ class LCDPreviewWidget(QWidget):
         self._scale = max(1, min(4, scale))
         bezel = 8
         self.setMinimumSize(
-            LCD_WIDTH * self._scale + bezel * 2,
-            LCD_HEIGHT * self._scale + bezel * 2
+            LCD_WIDTH * self._scale + bezel * 2, LCD_HEIGHT * self._scale + bezel * 2
         )
         self.update()
 
@@ -107,9 +105,7 @@ class LCDPreviewWidget(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(self.BEZEL_COLOR)
         painter.drawRoundedRect(
-            lcd_x - bezel, lcd_y - bezel,
-            lcd_w + bezel * 2, lcd_h + bezel * 2,
-            4, 4
+            lcd_x - bezel, lcd_y - bezel, lcd_w + bezel * 2, lcd_h + bezel * 2, 4, 4
         )
 
         # Draw LCD background

@@ -163,6 +163,7 @@ class LibUSBDevice:
 
         # Claim both interfaces
         import usb.util
+
         for intf_num in range(2):
             try:
                 usb.util.claim_interface(self._dev, intf_num)

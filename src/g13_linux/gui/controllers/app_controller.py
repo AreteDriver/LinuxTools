@@ -68,9 +68,7 @@ class ApplicationController(QObject):
         hw_widget = self.main_window.hardware_widget
         hw_widget.lcd_text_changed.connect(self._update_lcd)
         hw_widget.backlight_color_changed.connect(self._update_backlight_color)
-        hw_widget.backlight_brightness_changed.connect(
-            self._update_backlight_brightness
-        )
+        hw_widget.backlight_brightness_changed.connect(self._update_backlight_brightness)
 
         # Macro recorder signals
         self.macro_recorder.state_changed.connect(self._on_recorder_state_changed)
@@ -156,9 +154,7 @@ class ApplicationController(QObject):
                 self.main_window.monitor_widget.on_button_event(button_id, False)
 
             # Update joystick visual indicator (always update for smooth movement)
-            self.main_window.button_mapper.update_joystick(
-                state.joystick_x, state.joystick_y
-            )
+            self.main_window.button_mapper.update_joystick(state.joystick_x, state.joystick_y)
 
             # Forward joystick movement to monitor (only if significantly moved)
             if abs(state.joystick_x - 128) > 20 or abs(state.joystick_y - 128) > 20:
@@ -269,9 +265,7 @@ class ApplicationController(QObject):
             self.hardware.set_lcd_text(text)
             # Update LCD preview in button mapper
             if self.hardware.lcd:
-                self.main_window.button_mapper.update_lcd(
-                    self.hardware.lcd._framebuffer
-                )
+                self.main_window.button_mapper.update_lcd(self.hardware.lcd._framebuffer)
             self.main_window.set_status("LCD updated")
         except Exception as e:
             self._on_error(f"LCD error: {e}")
@@ -306,9 +300,7 @@ class ApplicationController(QObject):
         else:
             # Start recording
             self.macro_recorder.start_recording()
-            self.main_window.set_status(
-                "Macro recording started - press MR again to stop"
-            )
+            self.main_window.set_status("Macro recording started - press MR again to stop")
 
     def _on_mr_button_released(self):
         """Handle MR button release"""
