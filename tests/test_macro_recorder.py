@@ -712,3 +712,189 @@ listener.start()
 
         assert len(errors) == 1
         assert "pynput not installed" in errors[0]
+
+
+class TestSystemListenerRealCallbacks:
+    """Tests that invoke the real _start_system_listener callbacks."""
+
+    @pytest.fixture
+    def captured_listener(self):
+        """Fixture that captures callbacks passed to pynput.keyboard.Listener."""
+        captured = {}
+
+        class MockListener:
+            def __init__(self, on_press=None, on_release=None):
+                captured["on_press"] = on_press
+                captured["on_release"] = on_release
+
+            def start(self):
+                pass
+
+        return captured, MockListener
+
+    def test_real_on_press_char_key(self, qtbot, captured_listener):
+        """Test real on_press callback with character key."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+        events = []
+        recorder.on_system_key_event = lambda k, p: events.append((k, p))
+
+        # Import pynput to get actual module, then patch Listener
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        # Now invoke the real callback with a char key
+        mock_key = MagicMock()
+        mock_key.char = "a"
+        captured["on_press"](mock_key)
+
+        assert events == [("KEY_A", True)]
+
+    def test_real_on_press_named_key(self, qtbot, captured_listener):
+        """Test real on_press callback with named key (shift, ctrl, etc)."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+        events = []
+        recorder.on_system_key_event = lambda k, p: events.append((k, p))
+
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        # Named key (no char, just name)
+        mock_key = MagicMock(spec=["name"])
+        mock_key.name = "shift"
+        captured["on_press"](mock_key)
+
+        assert events == [("KEY_SHIFT", True)]
+
+    def test_real_on_press_fallback_str(self, qtbot, captured_listener):
+        """Test real on_press callback with key that has no char or name."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+        events = []
+        recorder.on_system_key_event = lambda k, p: events.append((k, p))
+
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        # Key with no char or name - use a simple class
+        class UnknownKey:
+            def __str__(self):
+                return "UnknownKey123"
+
+        captured["on_press"](UnknownKey())
+
+        assert events == [("UnknownKey123", True)]
+
+    def test_real_on_release_char_key(self, qtbot, captured_listener):
+        """Test real on_release callback with character key."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+        events = []
+        recorder.on_system_key_event = lambda k, p: events.append((k, p))
+
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        mock_key = MagicMock()
+        mock_key.char = "z"
+        captured["on_release"](mock_key)
+
+        assert events == [("KEY_Z", False)]
+
+    def test_real_on_release_named_key(self, qtbot, captured_listener):
+        """Test real on_release callback with named key."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+        events = []
+        recorder.on_system_key_event = lambda k, p: events.append((k, p))
+
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        mock_key = MagicMock(spec=["name"])
+        mock_key.name = "ctrl"
+        captured["on_release"](mock_key)
+
+        assert events == [("KEY_CTRL", False)]
+
+    def test_real_on_release_fallback_str(self, qtbot, captured_listener):
+        """Test real on_release callback with unknown key type."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+        events = []
+        recorder.on_system_key_event = lambda k, p: events.append((k, p))
+
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        class UnknownKey:
+            def __str__(self):
+                return "SomeKey"
+
+        captured["on_release"](UnknownKey())
+
+        assert events == [("SomeKey", False)]
+
+    def test_real_callback_exception_caught(self, qtbot, captured_listener):
+        """Test real callback catches exceptions silently."""
+        captured, MockListener = captured_listener
+
+        recorder = MacroRecorder()
+
+        def raise_error(k, p):
+            raise ValueError("Test exception")
+
+        recorder.on_system_key_event = raise_error
+
+        import pynput.keyboard
+
+        with patch.object(pynput.keyboard, "Listener", MockListener):
+            recorder._start_system_listener()
+
+        # Should not raise - exception caught in callback
+        mock_key = MagicMock()
+        mock_key.char = "x"
+        captured["on_press"](mock_key)
+        captured["on_release"](mock_key)
+
+    def test_real_import_error_path(self, qtbot):
+        """Test real ImportError path emits error signal."""
+        recorder = MacroRecorder()
+        errors = []
+        recorder.error_occurred.connect(errors.append)
+
+        # Make pynput import fail by removing it from sys.modules temporarily
+        import sys
+
+        pynput_modules = {k: v for k, v in sys.modules.items() if "pynput" in k}
+        for k in pynput_modules:
+            del sys.modules[k]
+
+        try:
+            with patch("builtins.__import__", side_effect=ImportError("No pynput")):
+                recorder._start_system_listener()
+
+            assert len(errors) == 1
+            assert "pynput not installed" in errors[0]
+        finally:
+            # Restore pynput
+            sys.modules.update(pynput_modules)
