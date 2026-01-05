@@ -426,3 +426,199 @@ class TestHelperFunction:
         assert "Decoded State" in captured.out
         assert "G-buttons bitmask" in captured.out
         assert "Pressed buttons" in captured.out
+
+
+class TestEventDecoderMissingCoverage:
+    """Tests for edge cases to achieve 100% coverage."""
+
+    def test_decode_g_buttons_out_of_range(self):
+        """Test _decode_g_buttons with button number outside 1-22 (line 155->151)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        data = bytes([0x00, 0x80, 0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+
+        # Patch BUTTON_MAP to include out-of-range G button
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["G0"] = (3, 0)  # G0 is out of range (< 1)
+        patched_map["G25"] = (3, 1)  # G25 is out of range (> 22)
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            result = decoder._decode_g_buttons(data)
+
+        # Should still decode valid G buttons, ignore invalid ones
+        assert result & (1 << 1)  # G1 should be set
+
+    def test_decode_g_buttons_value_error(self):
+        """Test _decode_g_buttons handles ValueError (lines 159-160)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        data = bytes([0x00, 0x80, 0x80, 0xFF, 0x00, 0x00, 0x00, 0x00])
+
+        # Patch BUTTON_MAP to include invalid button name (non-numeric suffix)
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["Gx"] = (3, 0)  # "x" can't be converted to int
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            # Should not raise - exception is caught
+            result = decoder._decode_g_buttons(data)
+
+        # Result should still be valid (G1-G8 from byte 3 = 0xFF)
+        assert result > 0
+
+    def test_decode_g_buttons_index_error(self):
+        """Test _decode_g_buttons handles IndexError (lines 159-160)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        data = bytes([0x00, 0x80, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00])
+
+        # Patch BUTTON_MAP to include button at invalid byte index
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["G23"] = (99, 0)  # byte 99 doesn't exist in 8-byte data
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            # Should not raise - exception is caught
+            result = decoder._decode_g_buttons(data)
+
+        # G1 should still be detected
+        assert result & (1 << 1)
+
+    def test_decode_m_buttons_out_of_range(self):
+        """Test _decode_m_buttons with button number outside 1-3 (line 178->174)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        data = bytes([0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0xFF, 0x00])
+
+        # Patch BUTTON_MAP to include out-of-range M button
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["M0"] = (6, 0)  # M0 is out of range (< 1)
+        patched_map["M5"] = (6, 1)  # M5 is out of range (> 3)
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            result = decoder._decode_m_buttons(data)
+
+        # Should decode valid M buttons, ignore invalid ones
+        assert result & (1 << 1)  # M1 should be set (byte 6 bit 5)
+
+    def test_decode_m_buttons_value_error(self):
+        """Test _decode_m_buttons handles ValueError (lines 181-182)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        data = bytes([0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0x20, 0x00])
+
+        # Patch BUTTON_MAP to include invalid button name
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["Mx"] = (6, 0)  # "x" can't be converted to int
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            result = decoder._decode_m_buttons(data)
+
+        # M1 should still be detected
+        assert result & (1 << 1)
+
+    def test_decode_m_buttons_index_error(self):
+        """Test _decode_m_buttons handles IndexError (lines 181-182)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        data = bytes([0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0x20, 0x00])
+
+        # Patch BUTTON_MAP to include button at invalid byte index
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["M4"] = (99, 0)  # byte 99 doesn't exist
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            result = decoder._decode_m_buttons(data)
+
+        # M1 should still be detected
+        assert result & (1 << 1)
+
+    def test_get_pressed_buttons_short_raw_data(self):
+        """Test get_pressed_buttons with raw_data < 8 bytes (line 218->226)."""
+        decoder = EventDecoder()
+        # Create state with short raw_data
+        state = G13ButtonState(
+            g_buttons=(1 << 1),  # G1
+            m_buttons=0,
+            joystick_x=128,
+            joystick_y=128,
+            raw_data=bytes(5),  # Only 5 bytes, not 8
+        )
+
+        pressed = decoder.get_pressed_buttons(state)
+
+        # Should return G1 from g_buttons, but skip OTHER_BUTTONS check
+        assert "G1" in pressed
+        # Should NOT include any OTHER_BUTTONS since raw_data is too short
+        for btn in EventDecoder.OTHER_BUTTONS:
+            assert btn not in pressed
+
+    def test_get_pressed_buttons_empty_raw_data(self):
+        """Test get_pressed_buttons with empty raw_data (line 218->226)."""
+        decoder = EventDecoder()
+        state = G13ButtonState(
+            g_buttons=0,
+            m_buttons=(1 << 2),  # M2
+            joystick_x=128,
+            joystick_y=128,
+            raw_data=b"",  # Empty
+        )
+
+        pressed = decoder.get_pressed_buttons(state)
+
+        assert "M2" in pressed
+        # OTHER_BUTTONS not checked due to empty raw_data
+
+    def test_get_pressed_buttons_button_not_in_map(self):
+        """Test get_pressed_buttons when OTHER_BUTTONS has unknown button (line 220->219)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        raw = bytearray(8)
+        raw[7] = 0x01  # MR pressed
+
+        state = G13ButtonState(
+            g_buttons=0,
+            m_buttons=0,
+            joystick_x=128,
+            joystick_y=128,
+            raw_data=bytes(raw),
+        )
+
+        # Patch OTHER_BUTTONS to include a button not in BUTTON_MAP
+        with patch.object(EventDecoder, "OTHER_BUTTONS", ["MR", "UNKNOWN_BTN"]):
+            pressed = decoder.get_pressed_buttons(state)
+
+        # MR should be detected, UNKNOWN_BTN should be skipped
+        assert "MR" in pressed
+        assert "UNKNOWN_BTN" not in pressed
+
+    def test_get_pressed_buttons_byte_idx_out_of_range(self):
+        """Test get_pressed_buttons when byte_idx >= len(raw_data) (line 222->219)."""
+        from unittest.mock import patch
+
+        decoder = EventDecoder()
+        # Only 8 bytes of raw_data
+        raw = bytes(8)
+
+        state = G13ButtonState(
+            g_buttons=0,
+            m_buttons=0,
+            joystick_x=128,
+            joystick_y=128,
+            raw_data=raw,
+        )
+
+        # Patch BUTTON_MAP to have a button with byte_idx > 7
+        patched_map = dict(EventDecoder.BUTTON_MAP)
+        patched_map["BD"] = (99, 0)  # byte 99 doesn't exist
+
+        with patch.object(EventDecoder, "BUTTON_MAP", patched_map):
+            pressed = decoder.get_pressed_buttons(state)
+
+        # Should return empty list, BD skipped due to invalid byte_idx
+        assert "BD" not in pressed
