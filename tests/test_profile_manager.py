@@ -168,3 +168,19 @@ class TestProfileValidation:
         assert profile.name == "Minimal"
         assert profile.description == ""
         assert profile.mappings == {}
+
+
+class TestProfileManagerMissingCoverage:
+    """Tests for edge cases to achieve 100% coverage."""
+
+    def test_default_profiles_dir(self):
+        """Test ProfileManager uses default directory when None passed (lines 40-41)."""
+        # Create manager without specifying profiles_dir
+        manager = ProfileManager(profiles_dir=None)
+
+        # Should have set profiles_dir to project_root/configs/profiles
+        assert manager.profiles_dir is not None
+        assert manager.profiles_dir.name == "profiles"
+        assert manager.profiles_dir.parent.name == "configs"
+        # Directory should be created
+        assert manager.profiles_dir.exists()
