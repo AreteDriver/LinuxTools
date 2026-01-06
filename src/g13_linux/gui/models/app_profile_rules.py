@@ -134,7 +134,9 @@ class AppProfileRulesManager(QObject):
         super().__init__(parent)
         if config_path is None:
             # Default to configs/app_profiles.json relative to package
-            self.config_path = Path(__file__).parent.parent.parent.parent.parent / "configs" / "app_profiles.json"
+            self.config_path = (
+                Path(__file__).parent.parent.parent.parent.parent / "configs" / "app_profiles.json"
+            )
         else:
             self.config_path = config_path
 
@@ -239,9 +241,7 @@ class AppProfileRulesManager(QObject):
 
     def move_rule(self, from_index: int, to_index: int):
         """Move a rule from one position to another."""
-        if 0 <= from_index < len(self._config.rules) and 0 <= to_index < len(
-            self._config.rules
-        ):
+        if 0 <= from_index < len(self._config.rules) and 0 <= to_index < len(self._config.rules):
             rule = self._config.rules.pop(from_index)
             self._config.rules.insert(to_index, rule)
             self.save()

@@ -124,16 +124,13 @@ class WindowMonitorThread(QThread):
         # Check availability before starting
         if is_wayland():
             self.monitor_error.emit(
-                "Window monitoring not available under Wayland. "
-                "Per-application profiles disabled."
+                "Window monitoring not available under Wayland. Per-application profiles disabled."
             )
             self._available = False
             return
 
         if not is_xdotool_available():
-            self.monitor_error.emit(
-                "xdotool not installed. Install with: sudo apt install xdotool"
-            )
+            self.monitor_error.emit("xdotool not installed. Install with: sudo apt install xdotool")
             self._available = False
             return
 

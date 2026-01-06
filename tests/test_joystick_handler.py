@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from g13_linux.gui.models.joystick_handler import (
     JoystickConfig,
     JoystickHandler,
@@ -304,9 +302,7 @@ class TestJoystickHandlerUpdate:
 
     @patch("g13_linux.gui.models.joystick_handler.UInput")
     def test_update_sensitivity(self, mock_uinput):
-        handler = JoystickHandler(
-            JoystickConfig(mode=JoystickMode.ANALOG, sensitivity=2.0)
-        )
+        handler = JoystickHandler(JoystickConfig(mode=JoystickMode.ANALOG, sensitivity=2.0))
         handler.start()
 
         handler.update(150, 128)  # Small movement

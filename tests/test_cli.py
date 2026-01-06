@@ -50,9 +50,11 @@ class TestCmdRun:
         """Test cmd_run opens G13 device."""
         mock_handle = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_handle) as mock_open, patch(
-            "g13_linux.device.read_event", side_effect=KeyboardInterrupt
-        ), patch("g13_linux.mapper.G13Mapper"):
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_handle) as mock_open,
+            patch("g13_linux.device.read_event", side_effect=KeyboardInterrupt),
+            patch("g13_linux.mapper.G13Mapper"),
+        ):
             args = MagicMock()
             cmd_run(args)
 
@@ -86,9 +88,11 @@ class TestCmdRun:
                 raise KeyboardInterrupt
             return b"\x00" * 8
 
-        with patch("g13_linux.device.open_g13", return_value=mock_handle), patch(
-            "g13_linux.device.read_event", side_effect=fake_read_event
-        ), patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper):
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_handle),
+            patch("g13_linux.device.read_event", side_effect=fake_read_event),
+            patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper),
+        ):
             args = MagicMock()
             cmd_run(args)
 
@@ -103,8 +107,9 @@ class TestCmdLcd:
         mock_device = MagicMock()
         mock_lcd = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.lcd.G13LCD", return_value=mock_lcd
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.lcd.G13LCD", return_value=mock_lcd),
         ):
             args = MagicMock()
             args.clear = True
@@ -120,8 +125,9 @@ class TestCmdLcd:
         mock_device = MagicMock()
         mock_lcd = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.lcd.G13LCD", return_value=mock_lcd
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.lcd.G13LCD", return_value=mock_lcd),
         ):
             args = MagicMock()
             args.clear = False
@@ -138,8 +144,9 @@ class TestCmdLcd:
         mock_device = MagicMock()
         mock_lcd = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.lcd.G13LCD", return_value=mock_lcd
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.lcd.G13LCD", return_value=mock_lcd),
         ):
             args = MagicMock()
             args.clear = False
@@ -171,8 +178,9 @@ class TestCmdColor:
         mock_device = MagicMock()
         mock_backlight = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight),
         ):
             args = MagicMock()
             args.color = "red"
@@ -187,8 +195,9 @@ class TestCmdColor:
         mock_device = MagicMock()
         mock_backlight = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight),
         ):
             args = MagicMock()
             args.color = "FF8000"
@@ -202,8 +211,9 @@ class TestCmdColor:
         mock_device = MagicMock()
         mock_backlight = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight),
         ):
             args = MagicMock()
             args.color = "#00FF80"
@@ -217,8 +227,9 @@ class TestCmdColor:
         mock_device = MagicMock()
         mock_backlight = MagicMock()
 
-        with patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight),
         ):
             args = MagicMock()
             args.color = "100,200,50"
@@ -331,10 +342,10 @@ class TestCmdProfile:
         mock_device = MagicMock()
         mock_backlight = MagicMock()
 
-        with patch(
-            "g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm
-        ), patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight
+        with (
+            patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm),
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight),
         ):
             args = MagicMock()
             args.profile_cmd = "load"
@@ -352,9 +363,10 @@ class TestCmdProfile:
         mock_profile.backlight = {"color": "#FF0000"}
         mock_pm.load_profile.return_value = mock_profile
 
-        with patch(
-            "g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm
-        ), patch("g13_linux.device.open_g13", side_effect=Exception("No device")):
+        with (
+            patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm),
+            patch("g13_linux.device.open_g13", side_effect=Exception("No device")),
+        ):
             args = MagicMock()
             args.profile_cmd = "load"
             args.name = "test_profile"
@@ -449,9 +461,10 @@ class TestMain:
 
     def test_main_lcd_command(self):
         """Test main with lcd command."""
-        with patch.object(sys, "argv", ["g13-linux", "lcd", "--clear"]), patch(
-            "g13_linux.cli.cmd_lcd"
-        ) as mock_lcd:
+        with (
+            patch.object(sys, "argv", ["g13-linux", "lcd", "--clear"]),
+            patch("g13_linux.cli.cmd_lcd") as mock_lcd,
+        ):
             mock_lcd.side_effect = SystemExit(0)
 
             with pytest.raises(SystemExit):
@@ -461,9 +474,10 @@ class TestMain:
 
     def test_main_color_command(self):
         """Test main with color command."""
-        with patch.object(sys, "argv", ["g13-linux", "color", "red"]), patch(
-            "g13_linux.cli.cmd_color"
-        ) as mock_color:
+        with (
+            patch.object(sys, "argv", ["g13-linux", "color", "red"]),
+            patch("g13_linux.cli.cmd_color") as mock_color,
+        ):
             mock_color.side_effect = SystemExit(0)
 
             with pytest.raises(SystemExit):
@@ -473,9 +487,10 @@ class TestMain:
 
     def test_main_profile_list_command(self):
         """Test main with profile list command."""
-        with patch.object(sys, "argv", ["g13-linux", "profile", "list"]), patch(
-            "g13_linux.cli.cmd_profile"
-        ) as mock_profile:
+        with (
+            patch.object(sys, "argv", ["g13-linux", "profile", "list"]),
+            patch("g13_linux.cli.cmd_profile") as mock_profile,
+        ):
             mock_profile.side_effect = SystemExit(0)
 
             with pytest.raises(SystemExit):
@@ -510,9 +525,11 @@ class TestCLIMissingCoverage:
                 return b"\x00" * 8  # Second call returns data
             raise KeyboardInterrupt  # Third call exits
 
-        with patch("g13_linux.device.open_g13", return_value=mock_handle), patch(
-            "g13_linux.device.read_event", side_effect=fake_read_event
-        ), patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper):
+        with (
+            patch("g13_linux.device.open_g13", return_value=mock_handle),
+            patch("g13_linux.device.read_event", side_effect=fake_read_event),
+            patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper),
+        ):
             args = MagicMock()
             cmd_run(args)
 
@@ -575,10 +592,10 @@ class TestCLIMissingCoverage:
         mock_device = MagicMock()
         mock_backlight = MagicMock()
 
-        with patch(
-            "g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm
-        ), patch("g13_linux.device.open_g13", return_value=mock_device), patch(
-            "g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight
+        with (
+            patch("g13_linux.gui.models.profile_manager.ProfileManager", return_value=mock_pm),
+            patch("g13_linux.device.open_g13", return_value=mock_device),
+            patch("g13_linux.hardware.backlight.G13Backlight", return_value=mock_backlight),
         ):
             args = MagicMock()
             args.profile_cmd = "load"

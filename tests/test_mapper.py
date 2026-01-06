@@ -213,9 +213,10 @@ class TestMapperHandleRawReport:
             mapper.button_map = {"G1": [e.KEY_1]}
 
             # Mock decoder to return button press
-            with patch.object(mapper.decoder, "decode_report") as mock_decode, patch.object(
-                mapper.decoder, "get_button_changes"
-            ) as mock_changes:
+            with (
+                patch.object(mapper.decoder, "decode_report") as mock_decode,
+                patch.object(mapper.decoder, "get_button_changes") as mock_changes,
+            ):
                 mock_changes.return_value = (["G1"], [])  # G1 pressed
 
                 mapper.handle_raw_report(bytes([0x00] * 8))
@@ -235,9 +236,10 @@ class TestMapperHandleRawReport:
             mapper = G13Mapper()
             mapper.button_map = {"G2": [e.KEY_2]}
 
-            with patch.object(mapper.decoder, "decode_report"), patch.object(
-                mapper.decoder, "get_button_changes"
-            ) as mock_changes:
+            with (
+                patch.object(mapper.decoder, "decode_report"),
+                patch.object(mapper.decoder, "get_button_changes") as mock_changes,
+            ):
                 mock_changes.return_value = ([], ["G2"])  # G2 released
 
                 mapper.handle_raw_report(bytes([0x00] * 8))
@@ -271,9 +273,10 @@ class TestMapperHandleRawReport:
             mapper = G13Mapper()
             mapper.button_map = {"G3": [e.KEY_LEFTCTRL, e.KEY_C]}
 
-            with patch.object(mapper.decoder, "decode_report"), patch.object(
-                mapper.decoder, "get_button_changes"
-            ) as mock_changes:
+            with (
+                patch.object(mapper.decoder, "decode_report"),
+                patch.object(mapper.decoder, "get_button_changes") as mock_changes,
+            ):
                 mock_changes.return_value = (["G3"], [])
 
                 mapper.handle_raw_report(bytes([0x00] * 8))

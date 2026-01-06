@@ -3,8 +3,6 @@
 import subprocess
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestWindowInfo:
     """Tests for WindowInfo dataclass."""
@@ -44,7 +42,7 @@ class TestWindowInfo:
         info = WindowInfo(window_id="12345", name="Name", wm_class="class")
 
         assert info != "12345"
-        assert info != None
+        assert info is not None
         assert info != {"window_id": "12345"}
 
 
@@ -253,7 +251,9 @@ class TestWindowMonitorThread:
         monitor = WindowMonitorThread()
 
         mock_info = WindowInfo("123", "Test", "test")
-        with patch("g13_linux.gui.models.window_monitor.get_active_window_info", return_value=mock_info):
+        with patch(
+            "g13_linux.gui.models.window_monitor.get_active_window_info", return_value=mock_info
+        ):
             result = monitor.get_current_window()
             assert result == mock_info
 
@@ -281,7 +281,9 @@ class TestWindowMonitorThread:
         monitor.monitor_error.connect(lambda msg: error_messages.append(msg))
 
         with patch("g13_linux.gui.models.window_monitor.is_wayland", return_value=False):
-            with patch("g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=False):
+            with patch(
+                "g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=False
+            ):
                 monitor.run()
 
         assert len(error_messages) == 1
@@ -305,8 +307,13 @@ class TestWindowMonitorThread:
             return WindowInfo("123", "Test Window", "test-class")
 
         with patch("g13_linux.gui.models.window_monitor.is_wayland", return_value=False):
-            with patch("g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=True):
-                with patch("g13_linux.gui.models.window_monitor.get_active_window_info", side_effect=mock_get_window):
+            with patch(
+                "g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=True
+            ):
+                with patch(
+                    "g13_linux.gui.models.window_monitor.get_active_window_info",
+                    side_effect=mock_get_window,
+                ):
                     monitor.run()
 
         assert len(changes) == 1  # Should only emit once (no change after first)
@@ -332,8 +339,13 @@ class TestWindowMonitorThread:
             return WindowInfo("123", "Test Window", "test-class")  # Same ID
 
         with patch("g13_linux.gui.models.window_monitor.is_wayland", return_value=False):
-            with patch("g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=True):
-                with patch("g13_linux.gui.models.window_monitor.get_active_window_info", side_effect=mock_get_window):
+            with patch(
+                "g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=True
+            ):
+                with patch(
+                    "g13_linux.gui.models.window_monitor.get_active_window_info",
+                    side_effect=mock_get_window,
+                ):
                     monitor.run()
 
         assert len(changes) == 0  # No change - same window ID
@@ -355,8 +367,13 @@ class TestWindowMonitorThread:
             return None
 
         with patch("g13_linux.gui.models.window_monitor.is_wayland", return_value=False):
-            with patch("g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=True):
-                with patch("g13_linux.gui.models.window_monitor.get_active_window_info", side_effect=mock_get_window):
+            with patch(
+                "g13_linux.gui.models.window_monitor.is_xdotool_available", return_value=True
+            ):
+                with patch(
+                    "g13_linux.gui.models.window_monitor.get_active_window_info",
+                    side_effect=mock_get_window,
+                ):
                     monitor.run()
 
         assert len(changes) == 0

@@ -9,7 +9,7 @@ through systematic testing by pressing each button and recording the raw USB dat
 """
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Optional, Tuple, Union
 
 
 @dataclass
@@ -91,9 +91,9 @@ class EventDecoder:
     JOYSTICK_Y_BYTE = 2  # Byte 2: Y-axis (centered at ~127)
 
     def __init__(self):
-        self.last_state: G13ButtonState | None = None
+        self.last_state: Optional[G13ButtonState] = None
 
-    def decode_report(self, data: bytes | list) -> G13ButtonState:
+    def decode_report(self, data: Union[bytes, list]) -> G13ButtonState:
         """
         Decode 8-byte HID report into structured data.
 

@@ -1,8 +1,6 @@
 """Tests for AppProfilesWidget and RuleEditDialog."""
 
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from PyQt6.QtCore import Qt
@@ -277,7 +275,9 @@ class TestAppProfilesWidget:
 
         mock_info = WindowInfo("123", "Test Window", "test-class")
 
-        with patch("g13_linux.gui.views.app_profiles.get_active_window_info", return_value=mock_info):
+        with patch(
+            "g13_linux.gui.views.app_profiles.get_active_window_info", return_value=mock_info
+        ):
             with patch.object(QMessageBox, "information") as mock_msg:
                 widget._on_test_clicked()
                 mock_msg.assert_called_once()
@@ -298,7 +298,9 @@ class TestAppProfilesWidget:
 
         mock_info = WindowInfo("123", "Test Window", "test-class")
 
-        with patch("g13_linux.gui.views.app_profiles.get_active_window_info", return_value=mock_info):
+        with patch(
+            "g13_linux.gui.views.app_profiles.get_active_window_info", return_value=mock_info
+        ):
             with patch.object(QMessageBox, "information") as mock_msg:
                 widget._on_test_clicked()
                 call_args = mock_msg.call_args[0]

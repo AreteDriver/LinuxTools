@@ -1,9 +1,6 @@
 """Tests for JoystickSettingsWidget"""
 
-from unittest.mock import MagicMock, patch
-
 import pytest
-from PyQt6.QtCore import Qt
 
 from g13_linux.gui.views.joystick_settings import JoystickSettingsWidget
 
@@ -103,12 +100,14 @@ class TestJoystickSettingsWidgetConfig:
         assert widget.sensitivity_label.text() == "150%"
 
     def test_set_config_keys(self, widget):
-        widget.set_config({
-            "key_up": "KEY_W",
-            "key_down": "KEY_S",
-            "key_left": "KEY_A",
-            "key_right": "KEY_D",
-        })
+        widget.set_config(
+            {
+                "key_up": "KEY_W",
+                "key_down": "KEY_S",
+                "key_left": "KEY_A",
+                "key_right": "KEY_D",
+            }
+        )
         assert widget.key_up_combo.currentData() == "KEY_W"
         assert widget.key_down_combo.currentData() == "KEY_S"
         assert widget.key_left_combo.currentData() == "KEY_A"

@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 
 class TestInstanceLocking:
@@ -28,7 +28,6 @@ class TestInstanceLocking:
 
     def test_acquire_lock_failure_already_locked(self):
         """Test acquiring lock when another instance holds it."""
-        import fcntl
 
         from g13_linux.gui import main as main_module
 
@@ -63,7 +62,7 @@ class TestInstanceLocking:
         main_module._lock_file_handle = mock_file
 
         with patch("fcntl.flock") as mock_flock:
-            with patch.object(Path, "unlink") as mock_unlink:
+            with patch.object(Path, "unlink"):
                 main_module.release_instance_lock()
 
                 mock_flock.assert_called_once()
@@ -76,7 +75,7 @@ class TestInstanceLocking:
 
         main_module._lock_file_handle = None
 
-        with patch.object(Path, "unlink") as mock_unlink:
+        with patch.object(Path, "unlink"):
             # Should not raise
             main_module.release_instance_lock()
 
@@ -272,12 +271,16 @@ class TestMainImportErrors:
 
                             original_builtin_import = builtins.__import__
 
-                            def blocking_import(name, globals=None, locals=None, fromlist=(), level=0):
+                            def blocking_import(
+                                name, globals=None, locals=None, fromlist=(), level=0
+                            ):
                                 if level > 0 and fromlist:
                                     # Relative import
                                     if "main_window" in fromlist or "MainWindow" in fromlist:
                                         raise ImportError("Missing main_window")
-                                return original_builtin_import(name, globals, locals, fromlist, level)
+                                return original_builtin_import(
+                                    name, globals, locals, fromlist, level
+                                )
 
                             with patch.object(builtins, "__import__", blocking_import):
                                 result = main()

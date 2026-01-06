@@ -64,7 +64,9 @@ class RuleEditDialog(QDialog):
         layout.addLayout(form)
 
         # Buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -112,7 +114,9 @@ class AppProfilesWidget(QWidget):
 
     enabled_changed = pyqtSignal(bool)
 
-    def __init__(self, rules_manager: AppProfileRulesManager, profiles: list[str] = None, parent=None):
+    def __init__(
+        self, rules_manager: AppProfileRulesManager, profiles: list[str] = None, parent=None
+    ):
         super().__init__(parent)
         self.rules_manager = rules_manager
         self.profiles = profiles or []
@@ -208,7 +212,9 @@ class AppProfilesWidget(QWidget):
     def _update_status(self):
         """Update the status label."""
         if not self.window_monitor.is_available:
-            self.status_label.setText("⚠️ Window monitoring not available (xdotool missing or Wayland)")
+            self.status_label.setText(
+                "⚠️ Window monitoring not available (xdotool missing or Wayland)"
+            )
             self.status_label.setStyleSheet("color: orange;")
             self.enabled_check.setEnabled(False)
         elif self.rules_manager.enabled:

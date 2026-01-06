@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
 
-from evdev import AbsInfo, UInput, ecodes as e
+from evdev import AbsInfo, UInput
+from evdev import ecodes as e
 
 
 class JoystickMode(Enum):
@@ -260,9 +261,7 @@ class JoystickHandler:
             self._key_device.write(e.EV_KEY, keycode, 1 if pressed else 0)
             self._key_device.syn()
 
-    def _get_direction_string(
-        self, up: bool, down: bool, left: bool, right: bool
-    ) -> str:
+    def _get_direction_string(self, up: bool, down: bool, left: bool, right: bool) -> str:
         """Get human-readable direction string"""
         if not any([up, down, left, right]):
             return "center"

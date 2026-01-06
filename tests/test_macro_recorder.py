@@ -6,12 +6,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from g13_linux.gui.models.macro_recorder import MacroRecorder, RecorderState
+from g13_linux.gui.models.macro_types import InputSource, MacroStepType
 
 # Tests requiring pynput need an X display connection
 # Check for non-empty DISPLAY (empty string or None both mean no display)
 DISPLAY_AVAILABLE = bool(os.environ.get("DISPLAY"))
-
-from g13_linux.gui.models.macro_types import InputSource, MacroStepType
 
 
 class TestRecorderState:

@@ -42,21 +42,16 @@ def mock_main_window():
 @pytest.fixture
 def mock_dependencies():
     """Patch all external dependencies."""
-    with patch("g13_linux.gui.controllers.app_controller.G13Device") as mock_device_cls, patch(
-        "g13_linux.gui.controllers.app_controller.ProfileManager"
-    ) as mock_profile_cls, patch(
-        "g13_linux.gui.controllers.app_controller.EventDecoder"
-    ) as mock_decoder_cls, patch(
-        "g13_linux.gui.controllers.app_controller.HardwareController"
-    ) as mock_hw_cls, patch(
-        "g13_linux.gui.controllers.app_controller.MacroRecorder"
-    ) as mock_recorder_cls, patch(
-        "g13_linux.gui.controllers.app_controller.MacroPlayer"
-    ) as mock_player_cls, patch(
-        "g13_linux.gui.controllers.app_controller.MacroManager"
-    ) as mock_macro_mgr_cls, patch(
-        "g13_linux.gui.controllers.app_controller.GlobalHotkeyManager"
-    ) as mock_hotkey_cls:
+    with (
+        patch("g13_linux.gui.controllers.app_controller.G13Device") as mock_device_cls,
+        patch("g13_linux.gui.controllers.app_controller.ProfileManager") as mock_profile_cls,
+        patch("g13_linux.gui.controllers.app_controller.EventDecoder") as mock_decoder_cls,
+        patch("g13_linux.gui.controllers.app_controller.HardwareController") as mock_hw_cls,
+        patch("g13_linux.gui.controllers.app_controller.MacroRecorder") as mock_recorder_cls,
+        patch("g13_linux.gui.controllers.app_controller.MacroPlayer") as mock_player_cls,
+        patch("g13_linux.gui.controllers.app_controller.MacroManager") as mock_macro_mgr_cls,
+        patch("g13_linux.gui.controllers.app_controller.GlobalHotkeyManager") as mock_hotkey_cls,
+    ):
         # Configure device mock
         mock_device = MagicMock()
         mock_device.device_connected = MagicMock()
@@ -1000,9 +995,7 @@ class TestPerApplicationProfiles:
 
     def test_set_app_profiles_enabled_starts_monitor(self, mock_main_window, mock_dependencies):
         """Test enabling app profiles starts window monitor."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
-        ) as mock_wm_cls:
+        with patch("g13_linux.gui.controllers.app_controller.WindowMonitorThread") as mock_wm_cls:
             mock_wm = MagicMock()
             mock_wm.is_available = True
             mock_wm.isRunning.return_value = False
@@ -1023,9 +1016,7 @@ class TestPerApplicationProfiles:
 
     def test_set_app_profiles_enabled_stops_monitor(self, mock_main_window, mock_dependencies):
         """Test disabling app profiles stops window monitor."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
-        ) as mock_wm_cls:
+        with patch("g13_linux.gui.controllers.app_controller.WindowMonitorThread") as mock_wm_cls:
             mock_wm = MagicMock()
             mock_wm.is_available = True
             mock_wm.isRunning.return_value = True
@@ -1048,9 +1039,7 @@ class TestPerApplicationProfiles:
         self, mock_main_window, mock_dependencies
     ):
         """Test enabling when window monitor is not available."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
-        ) as mock_wm_cls:
+        with patch("g13_linux.gui.controllers.app_controller.WindowMonitorThread") as mock_wm_cls:
             mock_wm = MagicMock()
             mock_wm.is_available = False
             mock_wm.isRunning.return_value = False
@@ -1072,9 +1061,7 @@ class TestPerApplicationProfiles:
 
     def test_shutdown_stops_window_monitor(self, mock_main_window, mock_dependencies):
         """Test shutdown stops window monitor if running."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
-        ) as mock_wm_cls:
+        with patch("g13_linux.gui.controllers.app_controller.WindowMonitorThread") as mock_wm_cls:
             mock_wm = MagicMock()
             mock_wm.isRunning.return_value = True
             mock_wm_cls.return_value = mock_wm
@@ -1086,9 +1073,7 @@ class TestPerApplicationProfiles:
 
     def test_shutdown_window_monitor_not_running(self, mock_main_window, mock_dependencies):
         """Test shutdown doesn't stop monitor if not running."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
-        ) as mock_wm_cls:
+        with patch("g13_linux.gui.controllers.app_controller.WindowMonitorThread") as mock_wm_cls:
             mock_wm = MagicMock()
             mock_wm.isRunning.return_value = False
             mock_wm_cls.return_value = mock_wm
@@ -1106,11 +1091,10 @@ class TestJoystickMethods:
 
     def test_on_joystick_config_changed_analog(self, mock_main_window, mock_dependencies):
         """Test joystick config change to analog mode."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.JoystickHandler"
-        ) as mock_jh_cls, patch(
-            "g13_linux.gui.controllers.app_controller.JoystickConfig"
-        ) as mock_jc_cls:
+        with (
+            patch("g13_linux.gui.controllers.app_controller.JoystickHandler") as mock_jh_cls,
+            patch("g13_linux.gui.controllers.app_controller.JoystickConfig") as mock_jc_cls,
+        ):
             mock_jh = MagicMock()
             mock_jh_cls.return_value = mock_jh
 
@@ -1131,11 +1115,10 @@ class TestJoystickMethods:
 
     def test_on_joystick_config_changed_disabled(self, mock_main_window, mock_dependencies):
         """Test joystick config change to disabled mode."""
-        with patch(
-            "g13_linux.gui.controllers.app_controller.JoystickHandler"
-        ) as mock_jh_cls, patch(
-            "g13_linux.gui.controllers.app_controller.JoystickConfig"
-        ) as mock_jc_cls:
+        with (
+            patch("g13_linux.gui.controllers.app_controller.JoystickHandler") as mock_jh_cls,
+            patch("g13_linux.gui.controllers.app_controller.JoystickConfig") as mock_jc_cls,
+        ):
             mock_jh = MagicMock()
             mock_jh_cls.return_value = mock_jh
 
@@ -1167,11 +1150,10 @@ class TestJoystickMethods:
         mock_profile.joystick = {"mode": "digital", "deadzone": 0.2}
         mock_dependencies["profile_mgr"].load_profile.return_value = mock_profile
 
-        with patch(
-            "g13_linux.gui.controllers.app_controller.JoystickHandler"
-        ) as mock_jh_cls, patch(
-            "g13_linux.gui.controllers.app_controller.JoystickConfig"
-        ) as mock_jc_cls:
+        with (
+            patch("g13_linux.gui.controllers.app_controller.JoystickHandler") as mock_jh_cls,
+            patch("g13_linux.gui.controllers.app_controller.JoystickConfig") as mock_jc_cls,
+        ):
             mock_jh = MagicMock()
             mock_jh_cls.return_value = mock_jh
 
@@ -1201,9 +1183,7 @@ class TestStickButtonHandling:
         mock_dependencies["decoder"].decode_report.return_value = mock_state
         mock_dependencies["decoder"].get_button_changes.return_value = ({"STICK"}, set())
 
-        with patch(
-            "g13_linux.gui.controllers.app_controller.JoystickHandler"
-        ) as mock_jh_cls:
+        with patch("g13_linux.gui.controllers.app_controller.JoystickHandler") as mock_jh_cls:
             mock_jh = MagicMock()
             mock_jh_cls.return_value = mock_jh
 
@@ -1220,9 +1200,7 @@ class TestStickButtonHandling:
         mock_dependencies["decoder"].decode_report.return_value = mock_state
         mock_dependencies["decoder"].get_button_changes.return_value = (set(), {"STICK"})
 
-        with patch(
-            "g13_linux.gui.controllers.app_controller.JoystickHandler"
-        ) as mock_jh_cls:
+        with patch("g13_linux.gui.controllers.app_controller.JoystickHandler") as mock_jh_cls:
             mock_jh = MagicMock()
             mock_jh_cls.return_value = mock_jh
 
@@ -1264,11 +1242,12 @@ class TestAppProfilesWidgetIntegration:
         mock_dependencies["profile_mgr"].list_profiles.return_value = []
         mock_dependencies["device"].connect.return_value = False
 
-        with patch(
-            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
-        ) as mock_wm_cls, patch(
-            "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
-        ) as mock_apr_cls:
+        with (
+            patch("g13_linux.gui.controllers.app_controller.WindowMonitorThread") as mock_wm_cls,
+            patch(
+                "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
+            ) as mock_apr_cls,
+        ):
             mock_wm = MagicMock()
             mock_wm.is_available = True
             mock_wm_cls.return_value = mock_wm

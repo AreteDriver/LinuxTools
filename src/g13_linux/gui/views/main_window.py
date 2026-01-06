@@ -83,7 +83,6 @@ class MainWindow(QMainWindow):
 
         Called by ApplicationController after initialization.
         """
-        from ..models.app_profile_rules import AppProfileRulesManager
 
         self.app_profiles_widget = AppProfilesWidget(rules_manager, profiles)
         if self._tabs:

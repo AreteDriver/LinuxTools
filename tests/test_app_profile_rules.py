@@ -1,11 +1,7 @@
 """Tests for AppProfileRulesManager and related classes."""
 
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 
 class TestAppProfileRule:
@@ -210,7 +206,14 @@ class TestAppProfileConfig:
         from g13_linux.gui.models.app_profile_rules import AppProfileConfig
 
         data = {
-            "rules": [{"name": "Test", "pattern": "test", "match_type": "window_name", "profile_name": "p1"}],
+            "rules": [
+                {
+                    "name": "Test",
+                    "pattern": "test",
+                    "match_type": "window_name",
+                    "profile_name": "p1",
+                }
+            ],
             "default_profile": "default",
             "enabled": True,
         }
@@ -245,7 +248,12 @@ class TestAppProfileRulesManager:
             json.dumps(
                 {
                     "rules": [
-                        {"name": "Test", "pattern": "test", "match_type": "window_name", "profile_name": "p1"}
+                        {
+                            "name": "Test",
+                            "pattern": "test",
+                            "match_type": "window_name",
+                            "profile_name": "p1",
+                        }
                     ],
                     "default_profile": "default",
                     "enabled": False,

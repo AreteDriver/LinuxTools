@@ -552,9 +552,11 @@ class TestMacroPlayerThreadRun:
         def mock_play_once():
             play_calls.append(time.time())
 
-        with patch.object(thread, "_init_uinput"), patch.object(
-            thread, "_cleanup_uinput"
-        ), patch.object(thread, "_play_once", side_effect=mock_play_once):
+        with (
+            patch.object(thread, "_init_uinput"),
+            patch.object(thread, "_cleanup_uinput"),
+            patch.object(thread, "_play_once", side_effect=mock_play_once),
+        ):
             thread.run()
 
         assert len(play_calls) == 2
@@ -572,9 +574,11 @@ class TestMacroPlayerThreadRun:
             if call_count[0] >= 3:
                 thread.request_stop()
 
-        with patch.object(thread, "_init_uinput"), patch.object(
-            thread, "_cleanup_uinput"
-        ), patch.object(thread, "_play_once", side_effect=mock_play_once):
+        with (
+            patch.object(thread, "_init_uinput"),
+            patch.object(thread, "_cleanup_uinput"),
+            patch.object(thread, "_play_once", side_effect=mock_play_once),
+        ):
             thread.run()
 
         assert call_count[0] == 3

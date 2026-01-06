@@ -23,7 +23,9 @@ class TestPyQt6Fallback:
     The subprocess test below verifies the fallback works correctly.
     """
 
-    @pytest.mark.skipif(not DISPLAY_AVAILABLE, reason="Subprocess imports PyQt6 which requires X display")
+    @pytest.mark.skipif(
+        not DISPLAY_AVAILABLE, reason="Subprocess imports PyQt6 which requires X display"
+    )
     def test_fallback_import_via_subprocess(self):
         """Test module imports with fallback when PyQt6 is unavailable."""
         import subprocess

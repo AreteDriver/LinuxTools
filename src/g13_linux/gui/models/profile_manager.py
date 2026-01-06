@@ -33,16 +33,18 @@ class ProfileData:
     mappings: dict = field(default_factory=dict)  # str | dict values
     lcd: dict = field(default_factory=lambda: {"enabled": True, "default_text": ""})
     backlight: dict = field(default_factory=lambda: {"color": "#FFFFFF", "brightness": 100})
-    joystick: dict = field(default_factory=lambda: {
-        "mode": "analog",  # "analog", "digital", or "disabled"
-        "deadzone": 20,
-        "sensitivity": 1.0,
-        "key_up": "KEY_UP",
-        "key_down": "KEY_DOWN",
-        "key_left": "KEY_LEFT",
-        "key_right": "KEY_RIGHT",
-        "allow_diagonals": True,
-    })
+    joystick: dict = field(
+        default_factory=lambda: {
+            "mode": "analog",  # "analog", "digital", or "disabled"
+            "deadzone": 20,
+            "sensitivity": 1.0,
+            "key_up": "KEY_UP",
+            "key_down": "KEY_DOWN",
+            "key_left": "KEY_LEFT",
+            "key_right": "KEY_RIGHT",
+            "allow_diagonals": True,
+        }
+    )
 
 
 class ProfileManager:

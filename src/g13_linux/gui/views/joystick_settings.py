@@ -18,8 +18,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ..models.joystick_handler import JoystickConfig, JoystickMode
-
 
 class JoystickSettingsWidget(QWidget):
     """Widget for configuring joystick settings"""
@@ -107,9 +105,7 @@ class JoystickSettingsWidget(QWidget):
 
         # Current direction indicator
         self.direction_label = QLabel("Direction: center")
-        self.direction_label.setStyleSheet(
-            "background: #333; padding: 8px; border-radius: 4px;"
-        )
+        self.direction_label.setStyleSheet("background: #333; padding: 8px; border-radius: 4px;")
         layout.addWidget(self.direction_label)
 
         layout.addStretch()
