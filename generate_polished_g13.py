@@ -10,7 +10,7 @@ Key characteristics from reference photos:
 - LCD at top center
 """
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math
 
 # Canvas - portrait, sized to fit the curved shape
@@ -30,6 +30,10 @@ SILVER_LIGHT = (160, 165, 172)
 LCD_DARK = (10, 20, 10)
 LCD_GREEN = (60, 140, 60)
 
+# Default backlight color (orange like real G13)
+BACKLIGHT_COLOR = (255, 120, 0)
+BACKLIGHT_INTENSITY = 0.4  # 0.0 to 1.0
+
 
 def rotate_point(x, y, cx, cy, angle_deg):
     """Rotate point (x,y) around center (cx,cy) by angle in degrees."""
@@ -39,9 +43,36 @@ def rotate_point(x, y, cx, cy, angle_deg):
     return (cx + dx * cos_a - dy * sin_a, cy + dx * sin_a + dy * cos_a)
 
 
-def draw_rounded_key(draw, cx, cy, w, h, angle=0, radius=5, label=None, font=None):
-    """Draw a key centered at (cx, cy) with optional rotation and label."""
-    # For rotated keys, we draw a polygon approximation
+def draw_key_glow(draw, cx, cy, w, h, color, intensity=0.4):
+    """Draw a soft glow behind a key."""
+    # Draw multiple expanding rectangles with decreasing opacity
+    r, g, b = color
+    for i in range(8, 0, -1):
+        expand = i * 2
+        alpha = int(255 * intensity * (1 - i / 10))
+        glow_color = (
+            int(r * 0.3 + 20),
+            int(g * 0.3 + 20),
+            int(b * 0.3 + 20),
+        )
+        # Blend with background
+        blend = i / 8
+        blended = (
+            int(glow_color[0] * (1 - blend) + BODY_MID[0] * blend),
+            int(glow_color[1] * (1 - blend) + BODY_MID[1] * blend),
+            int(glow_color[2] * (1 - blend) + BODY_MID[2] * blend),
+        )
+        draw.rounded_rectangle(
+            (cx - w/2 - expand, cy - h/2 - expand,
+             cx + w/2 + expand, cy + h/2 + expand),
+            radius=8 + i,
+            fill=blended,
+        )
+
+
+def draw_rounded_key(draw, cx, cy, w, h, angle=0, radius=5, label=None, font=None,
+                     backlight=None, intensity=0.5):
+    """Draw a key centered at (cx, cy) with optional rotation, label, and backlight."""
     hw, hh = w / 2, h / 2
 
     # Key corners (before rotation)
@@ -59,12 +90,52 @@ def draw_rounded_key(draw, cx, cy, w, h, angle=0, radius=5, label=None, font=Non
     if angle != 0:
         corners = [rotate_point(x, y, cx, cy, angle) for x, y in corners]
 
+    # Backlight glow (drawn before shadow)
+    if backlight:
+        r, g, b = backlight
+        # Outer glow - larger, more diffuse
+        glow_corners = [
+            (cx - hw - 4 + radius, cy - hh - 4),
+            (cx + hw + 4 - radius, cy - hh - 4),
+            (cx + hw + 4, cy - hh - 4 + radius),
+            (cx + hw + 4, cy + hh + 4 - radius),
+            (cx + hw + 4 - radius, cy + hh + 4),
+            (cx - hw - 4 + radius, cy + hh + 4),
+            (cx - hw - 4, cy + hh + 4 - radius),
+            (cx - hw - 4, cy - hh - 4 + radius),
+        ]
+        if angle != 0:
+            glow_corners = [rotate_point(x, y, cx, cy, angle) for x, y in glow_corners]
+
+        glow_color = (
+            int(r * intensity * 0.4 + 30),
+            int(g * intensity * 0.4 + 30),
+            int(b * intensity * 0.4 + 30),
+        )
+        draw.polygon(glow_corners, fill=glow_color)
+
     # Shadow
     shadow = [(x + 2, y + 2) for x, y in corners]
     draw.polygon(shadow, fill=(15, 17, 20))
 
-    # Key base
-    draw.polygon(corners, fill=KEY_BASE, outline=(55, 58, 62))
+    # Key base with backlight tint
+    if backlight:
+        r, g, b = backlight
+        base_color = (
+            int(KEY_BASE[0] + r * intensity * 0.15),
+            int(KEY_BASE[1] + g * intensity * 0.15),
+            int(KEY_BASE[2] + b * intensity * 0.15),
+        )
+        outline_color = (
+            min(255, int(60 + r * intensity * 0.3)),
+            min(255, int(60 + g * intensity * 0.3)),
+            min(255, int(60 + b * intensity * 0.3)),
+        )
+    else:
+        base_color = KEY_BASE
+        outline_color = (55, 58, 62)
+
+    draw.polygon(corners, fill=base_color, outline=outline_color)
 
     # Key top surface (inset)
     inset = 3
@@ -83,29 +154,91 @@ def draw_rounded_key(draw, cx, cy, w, h, angle=0, radius=5, label=None, font=Non
     if angle != 0:
         inner_corners = [rotate_point(x, y, cx, cy, angle) for x, y in inner_corners]
 
-    draw.polygon(inner_corners, fill=KEY_TOP)
+    # Key top with subtle backlight tint
+    if backlight:
+        r, g, b = backlight
+        top_color = (
+            int(KEY_TOP[0] + r * intensity * 0.1),
+            int(KEY_TOP[1] + g * intensity * 0.1),
+            int(KEY_TOP[2] + b * intensity * 0.1),
+        )
+    else:
+        top_color = KEY_TOP
+
+    draw.polygon(inner_corners, fill=top_color)
 
     # Draw label
     if label and font:
-        draw.text((cx, cy - 1), label, fill=(140, 145, 150), font=font, anchor="mm")
+        # Tint label color with backlight
+        if backlight:
+            r, g, b = backlight
+            label_color = (
+                min(255, int(140 + r * intensity * 0.3)),
+                min(255, int(145 + g * intensity * 0.3)),
+                min(255, int(150 + b * intensity * 0.3)),
+            )
+        else:
+            label_color = (140, 145, 150)
+        draw.text((cx, cy - 1), label, fill=label_color, font=font, anchor="mm")
 
 
-def draw_m_key(draw, cx, cy, w, h, label=None, font=None):
-    """Draw smaller M-key."""
+def draw_m_key(draw, cx, cy, w, h, label=None, font=None, backlight=None, intensity=0.5):
+    """Draw smaller M-key with optional backlight."""
     hw, hh = w / 2, h / 2
+
+    # Backlight glow
+    if backlight:
+        r, g, b = backlight
+        glow_color = (
+            int(r * intensity * 0.3 + 25),
+            int(g * intensity * 0.3 + 25),
+            int(b * intensity * 0.3 + 25),
+        )
+        draw.rounded_rectangle(
+            (cx - hw - 3, cy - hh - 3, cx + hw + 3, cy + hh + 3),
+            radius=5, fill=glow_color
+        )
+
     # Shadow
     draw.rounded_rectangle(
         (cx - hw + 1, cy - hh + 1, cx + hw + 1, cy + hh + 1),
         radius=3, fill=(18, 20, 22)
     )
-    # Key
+
+    # Key base with backlight tint
+    if backlight:
+        r, g, b = backlight
+        key_color = (
+            int(50 + r * intensity * 0.12),
+            int(53 + g * intensity * 0.12),
+            int(58 + b * intensity * 0.12),
+        )
+        outline_color = (
+            min(255, int(65 + r * intensity * 0.2)),
+            min(255, int(68 + g * intensity * 0.2)),
+            min(255, int(72 + b * intensity * 0.2)),
+        )
+    else:
+        key_color = (50, 53, 58)
+        outline_color = (65, 68, 72)
+
     draw.rounded_rectangle(
         (cx - hw, cy - hh, cx + hw, cy + hh),
-        radius=3, fill=(50, 53, 58), outline=(65, 68, 72)
+        radius=3, fill=key_color, outline=outline_color
     )
-    # Label
+
+    # Label with backlight tint
     if label and font:
-        draw.text((cx, cy), label, fill=(130, 135, 140), font=font, anchor="mm")
+        if backlight:
+            r, g, b = backlight
+            label_color = (
+                min(255, int(130 + r * intensity * 0.25)),
+                min(255, int(135 + g * intensity * 0.25)),
+                min(255, int(140 + b * intensity * 0.25)),
+            )
+        else:
+            label_color = (130, 135, 140)
+        draw.text((cx, cy), label, fill=label_color, font=font, anchor="mm")
 
 
 def main():
@@ -211,13 +344,17 @@ def main():
     m_y = 130
     m_keys = [(185, "M1"), (230, "M2"), (275, "M3"), (320, "MR")]
     for mx, label in m_keys:
-        draw_m_key(draw, mx, m_y, 38, 18, label=label, font=font_m)
+        draw_m_key(draw, mx, m_y, 38, 18, label=label, font=font_m,
+                   backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
 
     # === G-KEYS - Arranged in ARCS ===
     # The real G13 keys follow curved arcs matching finger reach
     # Each row is an arc, outer keys angled outward
 
     key_w, key_h = 46, 40
+
+    # Collect all key positions for glow pass
+    all_keys = []
 
     # Row 1: G1-G7 (top arc)
     row1_y_base = 185
@@ -231,9 +368,11 @@ def main():
         (360, row1_y_base + 8,   6,  "G6"),
         (413, row1_y_base + 18,  12, "G7"),
     ]
+    all_keys.extend([(cx, cy, key_w, key_h) for cx, cy, _, _ in row1_keys])
 
     for cx, cy, angle, label in row1_keys:
-        draw_rounded_key(draw, cx, cy, key_w, key_h, angle, label=label, font=font_key)
+        draw_rounded_key(draw, cx, cy, key_w, key_h, angle, label=label, font=font_key,
+                         backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
 
     # Row 2: G8-G14
     row2_y_base = 240
@@ -248,7 +387,8 @@ def main():
     ]
 
     for cx, cy, angle, label in row2_keys:
-        draw_rounded_key(draw, cx, cy, key_w, key_h, angle, label=label, font=font_key)
+        draw_rounded_key(draw, cx, cy, key_w, key_h, angle, label=label, font=font_key,
+                         backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
 
     # Row 3: G15-G19 (5 keys, more centered)
     row3_y_base = 295
@@ -261,7 +401,8 @@ def main():
     ]
 
     for cx, cy, angle, label in row3_keys:
-        draw_rounded_key(draw, cx, cy, key_w, key_h, angle, label=label, font=font_key)
+        draw_rounded_key(draw, cx, cy, key_w, key_h, angle, label=label, font=font_key,
+                         backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
 
     # Row 4: G20-G22 (3 wider keys - thumb/space row)
     row4_y_base = 355
@@ -272,7 +413,8 @@ def main():
     ]
 
     for cx, cy, angle, label in row4_keys:
-        draw_rounded_key(draw, cx, cy, key_w + 14, key_h + 6, angle, label=label, font=font_key)
+        draw_rounded_key(draw, cx, cy, key_w + 14, key_h + 6, angle, label=label, font=font_key,
+                         backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
 
     # === PALM REST with THUMBSTICK ===
     # Large curved area at bottom
@@ -287,8 +429,10 @@ def main():
     # === THUMB BUTTONS (LEFT, DOWN) ===
     # To the left of thumbstick
     thumb_x = 265
-    draw_rounded_key(draw, thumb_x, 480, 48, 36, 0, label="LEFT", font=font_thumb)
-    draw_rounded_key(draw, thumb_x, 530, 48, 36, 0, label="DOWN", font=font_thumb)
+    draw_rounded_key(draw, thumb_x, 480, 48, 36, 0, label="LEFT", font=font_thumb,
+                     backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
+    draw_rounded_key(draw, thumb_x, 530, 48, 36, 0, label="DOWN", font=font_thumb,
+                     backlight=BACKLIGHT_COLOR, intensity=BACKLIGHT_INTENSITY)
 
     # === THUMBSTICK ===
     stick_cx, stick_cy = 385, 520
