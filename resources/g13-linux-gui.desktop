@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=G13 Linux
+Comment=Logitech G13 Configuration Tool
+Exec=/home/arete/projects/G13_Linux/g13-linux-gui.sh
+Icon=/home/arete/projects/G13_Linux/resources/g13-icon.png
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=logitech;g13;gaming;keypad;macro;
+StartupNotify=true

@@ -1,38 +1,20 @@
 #!/bin/bash
-# Install desktop entry and icon for G13 Linux GUI
-
-set -e
+# Install G13 Linux desktop launcher
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DESKTOP_FILE="$SCRIPT_DIR/packaging/g13-linux.desktop"
-ICON_FILE="$SCRIPT_DIR/g13-linux.svg"
 
-# Determine install locations
-if [ "$EUID" -eq 0 ]; then
-    DESKTOP_DIR="/usr/share/applications"
-    ICON_DIR="/usr/share/icons/hicolor/scalable/apps"
-else
-    DESKTOP_DIR="$HOME/.local/share/applications"
-    ICON_DIR="$HOME/.local/share/icons/hicolor/scalable/apps"
-fi
+echo "Installing G13 Linux desktop launcher..."
 
-# Create directories
-mkdir -p "$DESKTOP_DIR" "$ICON_DIR"
+# Create applications directory if needed
+mkdir -p ~/.local/share/applications
 
-# Install files
-cp "$DESKTOP_FILE" "$DESKTOP_DIR/g13-linux.desktop"
-cp "$ICON_FILE" "$ICON_DIR/g13-linux.svg"
+# Copy desktop file with correct paths
+sed "s|/home/arete/projects/G13_Linux|$SCRIPT_DIR|g" \
+    "$SCRIPT_DIR/resources/g13-linux-gui.desktop" > ~/.local/share/applications/g13-linux-gui.desktop
 
 # Update desktop database
-if command -v update-desktop-database &> /dev/null; then
-    update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
-fi
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
-# Update icon cache
-if command -v gtk-update-icon-cache &> /dev/null; then
-    gtk-update-icon-cache -f -t "$(dirname "$ICON_DIR")" 2>/dev/null || true
-fi
-
-echo "Installed G13 Linux desktop entry"
-echo "  Desktop: $DESKTOP_DIR/g13-linux.desktop"
-echo "  Icon: $ICON_DIR/g13-linux.svg"
+echo "Done! G13 Linux should now appear in your applications menu."
+echo ""
+echo "You can also run directly: $SCRIPT_DIR/g13-linux-gui.sh"
