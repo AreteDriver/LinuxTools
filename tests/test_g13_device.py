@@ -1,11 +1,15 @@
 """Tests for G13Device wrapper."""
 
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from g13_linux.gui.models.g13_device import G13Device
+
+# Get the project root directory (parent of tests/)
+PROJECT_ROOT = Path(__file__).parent.parent
 
 # Tests spawning subprocesses that import PyQt6 need an X display
 # Check for non-empty DISPLAY (empty string or None both mean no display)
@@ -72,10 +76,10 @@ except Exception as e:
             [sys.executable, "-c", test_script],
             capture_output=True,
             text=True,
-            cwd="/home/arete/projects/G13_Linux",
+            cwd=str(PROJECT_ROOT),
             env={
                 **dict(__import__("os").environ),
-                "PYTHONPATH": "/home/arete/projects/G13_Linux/src",
+                "PYTHONPATH": str(PROJECT_ROOT / "src"),
             },
         )
 
