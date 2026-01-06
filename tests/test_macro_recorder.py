@@ -1,10 +1,16 @@
 """Tests for MacroRecorder."""
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from g13_linux.gui.models.macro_recorder import MacroRecorder, RecorderState
+
+# Tests requiring pynput need an X display connection
+# Check for non-empty DISPLAY (empty string or None both mean no display)
+DISPLAY_AVAILABLE = bool(os.environ.get("DISPLAY"))
+
 from g13_linux.gui.models.macro_types import InputSource, MacroStepType
 
 
@@ -716,6 +722,7 @@ listener.start()
         assert "pynput not installed" in errors[0]
 
 
+@pytest.mark.skipif(not DISPLAY_AVAILABLE, reason="Requires X display for pynput")
 class TestSystemListenerRealCallbacks:
     """Tests that invoke the real _start_system_listener callbacks."""
 

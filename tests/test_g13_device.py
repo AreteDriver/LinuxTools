@@ -1,8 +1,15 @@
 """Tests for G13Device wrapper."""
 
+import os
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from g13_linux.gui.models.g13_device import G13Device
+
+# Tests spawning subprocesses that import PyQt6 need an X display
+# Check for non-empty DISPLAY (empty string or None both mean no display)
+DISPLAY_AVAILABLE = bool(os.environ.get("DISPLAY"))
 
 
 class TestPyQt6Fallback:
@@ -16,6 +23,7 @@ class TestPyQt6Fallback:
     The subprocess test below verifies the fallback works correctly.
     """
 
+    @pytest.mark.skipif(not DISPLAY_AVAILABLE, reason="Subprocess imports PyQt6 which requires X display")
     def test_fallback_import_via_subprocess(self):
         """Test module imports with fallback when PyQt6 is unavailable."""
         import subprocess
