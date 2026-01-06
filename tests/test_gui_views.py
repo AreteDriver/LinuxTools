@@ -59,6 +59,78 @@ class TestMainWindow:
 
         assert window.status_bar.currentMessage() == "Test message"
 
+    def test_setup_app_profiles(self, qapp):
+        """Test setup_app_profiles adds widget and tab."""
+        from unittest.mock import MagicMock
+
+        from PyQt6.QtWidgets import QWidget
+
+        from g13_linux.gui.views.main_window import MainWindow
+
+        window = MainWindow()
+        mock_rules_manager = MagicMock()
+        profiles = ["profile1", "profile2"]
+
+        # Initially no app_profiles_widget
+        assert window.app_profiles_widget is None
+
+        with patch("g13_linux.gui.views.main_window.AppProfilesWidget") as mock_widget_cls:
+            # Use a real QWidget to satisfy Qt's type checking
+            real_widget = QWidget()
+            mock_widget_cls.return_value = real_widget
+
+            window.setup_app_profiles(mock_rules_manager, profiles)
+
+            mock_widget_cls.assert_called_once_with(mock_rules_manager, profiles)
+            assert window.app_profiles_widget == real_widget
+
+    def test_setup_app_profiles_inserts_tab(self, qapp):
+        """Test setup_app_profiles inserts tab at correct position."""
+        from unittest.mock import MagicMock
+
+        from PyQt6.QtWidgets import QWidget
+
+        from g13_linux.gui.views.main_window import MainWindow
+
+        window = MainWindow()
+        mock_rules_manager = MagicMock()
+
+        # Count tabs before
+        initial_tab_count = window._tabs.count()
+
+        with patch("g13_linux.gui.views.main_window.AppProfilesWidget") as mock_widget_cls:
+            real_widget = QWidget()
+            mock_widget_cls.return_value = real_widget
+
+            window.setup_app_profiles(mock_rules_manager, [])
+
+            # Tab should be inserted
+            assert window._tabs.count() == initial_tab_count + 1
+            # Tab should be at index 1 (after Profiles)
+            assert window._tabs.tabText(1) == "App Profiles"
+
+    def test_setup_app_profiles_no_tabs(self, qapp):
+        """Test setup_app_profiles handles missing _tabs gracefully."""
+        from unittest.mock import MagicMock
+
+        from PyQt6.QtWidgets import QWidget
+
+        from g13_linux.gui.views.main_window import MainWindow
+
+        window = MainWindow()
+        window._tabs = None  # Simulate missing tabs
+        mock_rules_manager = MagicMock()
+
+        with patch("g13_linux.gui.views.main_window.AppProfilesWidget") as mock_widget_cls:
+            real_widget = QWidget()
+            mock_widget_cls.return_value = real_widget
+
+            # Should not raise
+            window.setup_app_profiles(mock_rules_manager, [])
+
+            # Widget should still be set
+            assert window.app_profiles_widget == real_widget
+
 
 class TestLiveMonitorWidget:
     """Tests for LiveMonitorWidget."""

@@ -943,3 +943,341 @@ class TestApplicationControllerMissingCoverage:
         mock_dependencies["hardware"].set_lcd_text.assert_called_with("Test")
         # Should not update LCD preview when hardware.lcd is None
         mock_main_window.button_mapper.update_lcd.assert_not_called()
+
+
+class TestPerApplicationProfiles:
+    """Tests for per-application profile switching."""
+
+    def test_on_window_monitor_error(self, mock_main_window, mock_dependencies, capsys):
+        """Test window monitor error handler prints message."""
+        controller = ApplicationController(mock_main_window)
+        controller._on_window_monitor_error("xdotool not found")
+
+        captured = capsys.readouterr()
+        assert "Window monitor: xdotool not found" in captured.out
+
+    def test_on_app_profile_switch_same_profile(self, mock_main_window, mock_dependencies):
+        """Test profile switch is skipped when already on same profile."""
+        controller = ApplicationController(mock_main_window)
+        controller.current_profile_name = "current_profile"
+
+        # Reset mock to track calls after this point
+        mock_dependencies["profile_mgr"].load_profile.reset_mock()
+
+        controller._on_app_profile_switch("current_profile")
+
+        # Should not load profile since already on it
+        mock_dependencies["profile_mgr"].load_profile.assert_not_called()
+
+    def test_on_app_profile_switch_profile_not_found(
+        self, mock_main_window, mock_dependencies, capsys
+    ):
+        """Test profile switch when profile doesn't exist."""
+        controller = ApplicationController(mock_main_window)
+        controller.current_profile_name = "old_profile"
+        mock_dependencies["profile_mgr"].profile_exists.return_value = False
+
+        controller._on_app_profile_switch("missing_profile")
+
+        captured = capsys.readouterr()
+        assert "Profile 'missing_profile' not found" in captured.out
+        mock_dependencies["profile_mgr"].load_profile.assert_not_called()
+
+    def test_on_app_profile_switch_success(self, mock_main_window, mock_dependencies):
+        """Test successful automatic profile switch."""
+        mock_profile = MagicMock()
+        mock_profile.mappings = {"G1": "a"}
+        mock_dependencies["profile_mgr"].load_profile.return_value = mock_profile
+        mock_dependencies["profile_mgr"].profile_exists.return_value = True
+
+        controller = ApplicationController(mock_main_window)
+        controller.current_profile_name = "old_profile"
+
+        controller._on_app_profile_switch("new_profile")
+
+        mock_dependencies["profile_mgr"].load_profile.assert_called_with("new_profile")
+        mock_main_window.set_status.assert_called_with("Auto-switched to profile: new_profile")
+
+    def test_set_app_profiles_enabled_starts_monitor(self, mock_main_window, mock_dependencies):
+        """Test enabling app profiles starts window monitor."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
+        ) as mock_wm_cls:
+            mock_wm = MagicMock()
+            mock_wm.is_available = True
+            mock_wm.isRunning.return_value = False
+            mock_wm_cls.return_value = mock_wm
+
+            with patch(
+                "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
+            ) as mock_apr_cls:
+                mock_apr = MagicMock()
+                mock_apr.enabled = False
+                mock_apr_cls.return_value = mock_apr
+
+                controller = ApplicationController(mock_main_window)
+                controller.set_app_profiles_enabled(True)
+
+                assert mock_apr.enabled is True
+                mock_wm.start.assert_called_once()
+
+    def test_set_app_profiles_enabled_stops_monitor(self, mock_main_window, mock_dependencies):
+        """Test disabling app profiles stops window monitor."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
+        ) as mock_wm_cls:
+            mock_wm = MagicMock()
+            mock_wm.is_available = True
+            mock_wm.isRunning.return_value = True
+            mock_wm_cls.return_value = mock_wm
+
+            with patch(
+                "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
+            ) as mock_apr_cls:
+                mock_apr = MagicMock()
+                mock_apr.enabled = True
+                mock_apr_cls.return_value = mock_apr
+
+                controller = ApplicationController(mock_main_window)
+                controller.set_app_profiles_enabled(False)
+
+                assert mock_apr.enabled is False
+                mock_wm.stop.assert_called_once()
+
+    def test_set_app_profiles_enabled_monitor_not_available(
+        self, mock_main_window, mock_dependencies
+    ):
+        """Test enabling when window monitor is not available."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
+        ) as mock_wm_cls:
+            mock_wm = MagicMock()
+            mock_wm.is_available = False
+            mock_wm.isRunning.return_value = False
+            mock_wm_cls.return_value = mock_wm
+
+            with patch(
+                "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
+            ) as mock_apr_cls:
+                mock_apr = MagicMock()
+                mock_apr_cls.return_value = mock_apr
+
+                controller = ApplicationController(mock_main_window)
+                mock_wm.start.reset_mock()
+
+                controller.set_app_profiles_enabled(True)
+
+                # Should not start monitor when not available
+                mock_wm.start.assert_not_called()
+
+    def test_shutdown_stops_window_monitor(self, mock_main_window, mock_dependencies):
+        """Test shutdown stops window monitor if running."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
+        ) as mock_wm_cls:
+            mock_wm = MagicMock()
+            mock_wm.isRunning.return_value = True
+            mock_wm_cls.return_value = mock_wm
+
+            controller = ApplicationController(mock_main_window)
+            controller.shutdown()
+
+            mock_wm.stop.assert_called_once()
+
+    def test_shutdown_window_monitor_not_running(self, mock_main_window, mock_dependencies):
+        """Test shutdown doesn't stop monitor if not running."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
+        ) as mock_wm_cls:
+            mock_wm = MagicMock()
+            mock_wm.isRunning.return_value = False
+            mock_wm_cls.return_value = mock_wm
+
+            controller = ApplicationController(mock_main_window)
+            mock_wm.stop.reset_mock()
+
+            controller.shutdown()
+
+            mock_wm.stop.assert_not_called()
+
+
+class TestJoystickMethods:
+    """Tests for joystick-related methods."""
+
+    def test_on_joystick_config_changed_analog(self, mock_main_window, mock_dependencies):
+        """Test joystick config change to analog mode."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.JoystickHandler"
+        ) as mock_jh_cls, patch(
+            "g13_linux.gui.controllers.app_controller.JoystickConfig"
+        ) as mock_jc_cls:
+            mock_jh = MagicMock()
+            mock_jh_cls.return_value = mock_jh
+
+            mock_config = MagicMock()
+            mock_config.mode.value = "analog"
+            mock_jc_cls.from_dict.return_value = mock_config
+
+            controller = ApplicationController(mock_main_window)
+
+            config_dict = {"mode": "analog", "deadzone": 0.15}
+            controller._on_joystick_config_changed(config_dict)
+
+            mock_jc_cls.from_dict.assert_called_with(config_dict)
+            mock_jh.set_config.assert_called_with(mock_config)
+            mock_jh.stop.assert_called()
+            mock_jh.start.assert_called()
+            mock_main_window.set_status.assert_called_with("Joystick mode: Analog")
+
+    def test_on_joystick_config_changed_disabled(self, mock_main_window, mock_dependencies):
+        """Test joystick config change to disabled mode."""
+        with patch(
+            "g13_linux.gui.controllers.app_controller.JoystickHandler"
+        ) as mock_jh_cls, patch(
+            "g13_linux.gui.controllers.app_controller.JoystickConfig"
+        ) as mock_jc_cls:
+            mock_jh = MagicMock()
+            mock_jh_cls.return_value = mock_jh
+
+            mock_config = MagicMock()
+            mock_config.mode.value = "disabled"
+            mock_jc_cls.from_dict.return_value = mock_config
+
+            controller = ApplicationController(mock_main_window)
+            mock_jh.start.reset_mock()
+
+            config_dict = {"mode": "disabled"}
+            controller._on_joystick_config_changed(config_dict)
+
+            mock_jh.stop.assert_called()
+            mock_jh.start.assert_not_called()
+            mock_main_window.set_status.assert_called_with("Joystick mode: Disabled")
+
+    def test_on_joystick_direction_change(self, mock_main_window, mock_dependencies):
+        """Test joystick direction change updates UI."""
+        controller = ApplicationController(mock_main_window)
+        controller._on_joystick_direction_change("up")
+
+        mock_main_window.joystick_widget.update_direction.assert_called_with("up")
+
+    def test_load_profile_with_joystick_config(self, mock_main_window, mock_dependencies):
+        """Test loading profile applies joystick configuration."""
+        mock_profile = MagicMock()
+        mock_profile.mappings = {"G1": "a"}
+        mock_profile.joystick = {"mode": "digital", "deadzone": 0.2}
+        mock_dependencies["profile_mgr"].load_profile.return_value = mock_profile
+
+        with patch(
+            "g13_linux.gui.controllers.app_controller.JoystickHandler"
+        ) as mock_jh_cls, patch(
+            "g13_linux.gui.controllers.app_controller.JoystickConfig"
+        ) as mock_jc_cls:
+            mock_jh = MagicMock()
+            mock_jh_cls.return_value = mock_jh
+
+            mock_config = MagicMock()
+            mock_config.mode.value = "digital"
+            mock_jc_cls.from_dict.return_value = mock_config
+
+            controller = ApplicationController(mock_main_window)
+            mock_jh.start.reset_mock()
+
+            controller._load_profile("test_profile")
+
+            mock_jc_cls.from_dict.assert_called()
+            mock_jh.set_config.assert_called_with(mock_config)
+            mock_jh.start.assert_called()
+            mock_main_window.joystick_widget.set_config.assert_called()
+
+
+class TestStickButtonHandling:
+    """Tests for STICK (joystick click) button handling."""
+
+    def test_stick_button_pressed(self, mock_main_window, mock_dependencies):
+        """Test STICK button press is forwarded to joystick handler."""
+        mock_state = MagicMock()
+        mock_state.joystick_x = 128
+        mock_state.joystick_y = 128
+        mock_dependencies["decoder"].decode_report.return_value = mock_state
+        mock_dependencies["decoder"].get_button_changes.return_value = ({"STICK"}, set())
+
+        with patch(
+            "g13_linux.gui.controllers.app_controller.JoystickHandler"
+        ) as mock_jh_cls:
+            mock_jh = MagicMock()
+            mock_jh_cls.return_value = mock_jh
+
+            controller = ApplicationController(mock_main_window)
+            controller._on_raw_event(b"\x00" * 8)
+
+            mock_jh.handle_stick_click.assert_called_with(True)
+
+    def test_stick_button_released(self, mock_main_window, mock_dependencies):
+        """Test STICK button release is forwarded to joystick handler."""
+        mock_state = MagicMock()
+        mock_state.joystick_x = 128
+        mock_state.joystick_y = 128
+        mock_dependencies["decoder"].decode_report.return_value = mock_state
+        mock_dependencies["decoder"].get_button_changes.return_value = (set(), {"STICK"})
+
+        with patch(
+            "g13_linux.gui.controllers.app_controller.JoystickHandler"
+        ) as mock_jh_cls:
+            mock_jh = MagicMock()
+            mock_jh_cls.return_value = mock_jh
+
+            controller = ApplicationController(mock_main_window)
+            controller._on_raw_event(b"\x00" * 8)
+
+            mock_jh.handle_stick_click.assert_called_with(False)
+
+
+class TestAppProfilesWidgetIntegration:
+    """Tests for app profiles widget integration."""
+
+    def test_start_connects_app_profiles_widget(self, mock_main_window, mock_dependencies):
+        """Test start() connects app_profiles_widget.enabled_changed signal."""
+        mock_main_window.app_profiles_widget = MagicMock()
+        mock_dependencies["profile_mgr"].list_profiles.return_value = ["example"]
+
+        with patch(
+            "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
+        ) as mock_apr_cls:
+            mock_apr = MagicMock()
+            mock_apr.enabled = False
+            mock_apr_cls.return_value = mock_apr
+
+            controller = ApplicationController(mock_main_window)
+            mock_dependencies["device"].connect.return_value = False
+
+            controller.start()
+
+            # Verify setup_app_profiles was called
+            mock_main_window.setup_app_profiles.assert_called_once()
+
+            # Verify enabled_changed was connected
+            mock_main_window.app_profiles_widget.enabled_changed.connect.assert_called_once()
+
+    def test_start_window_monitor_when_enabled(self, mock_main_window, mock_dependencies):
+        """Test start() starts window monitor when app profiles enabled."""
+        mock_main_window.app_profiles_widget = MagicMock()
+        mock_dependencies["profile_mgr"].list_profiles.return_value = []
+        mock_dependencies["device"].connect.return_value = False
+
+        with patch(
+            "g13_linux.gui.controllers.app_controller.WindowMonitorThread"
+        ) as mock_wm_cls, patch(
+            "g13_linux.gui.controllers.app_controller.AppProfileRulesManager"
+        ) as mock_apr_cls:
+            mock_wm = MagicMock()
+            mock_wm.is_available = True
+            mock_wm_cls.return_value = mock_wm
+
+            mock_apr = MagicMock()
+            mock_apr.enabled = True
+            mock_apr_cls.return_value = mock_apr
+
+            controller = ApplicationController(mock_main_window)
+            controller.start()
+
+            mock_wm.start.assert_called_once()
