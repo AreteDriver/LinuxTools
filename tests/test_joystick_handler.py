@@ -262,17 +262,32 @@ class TestJoystickHandlerUpdate:
         assert "KEY_UP" in handler._keys_pressed
 
     @patch("g13_linux.gui.models.joystick_handler.UInput")
-    def test_update_digital_mode_no_diagonal(self, mock_uinput):
+    def test_update_digital_mode_no_diagonal_vertical_dominates(self, mock_uinput):
         handler = JoystickHandler(
             JoystickConfig(mode=JoystickMode.DIGITAL, deadzone=20, allow_diagonals=False)
         )
         handler.start()
 
-        # Right is stronger than up (200-128=72 vs 128-50=78)
+        # Vertical dominates: y=50 → |128-50|=78, x=200 → |200-128|=72
         handler.update(200, 50)
 
-        # Should only have one key pressed (the dominant one)
+        # Should only have vertical key pressed (up, since y < 128)
         assert len(handler._keys_pressed) == 1
+        assert "KEY_UP" in handler._keys_pressed
+
+    @patch("g13_linux.gui.models.joystick_handler.UInput")
+    def test_update_digital_mode_no_diagonal_horizontal_dominates(self, mock_uinput):
+        handler = JoystickHandler(
+            JoystickConfig(mode=JoystickMode.DIGITAL, deadzone=20, allow_diagonals=False)
+        )
+        handler.start()
+
+        # Horizontal dominates: x=220 → |220-128|=92, y=100 → |128-100|=28
+        handler.update(220, 100)
+
+        # Should only have horizontal key pressed (right, since x > 128)
+        assert len(handler._keys_pressed) == 1
+        assert "KEY_RIGHT" in handler._keys_pressed
 
     @patch("g13_linux.gui.models.joystick_handler.UInput")
     def test_update_digital_mode_center(self, mock_uinput):
@@ -324,6 +339,21 @@ class TestJoystickHandlerStickClick:
     def test_stick_click_no_device(self):
         handler = JoystickHandler(JoystickConfig(mode=JoystickMode.DISABLED))
         handler.handle_stick_click(True)  # Should not raise
+
+
+class TestJoystickHandlerEmitKeyNoDevice:
+    """Tests for _emit_key when _key_device is None"""
+
+    def test_emit_key_no_device_digital_mode(self):
+        """Test that digital mode update doesn't crash without device"""
+        handler = JoystickHandler(JoystickConfig(mode=JoystickMode.DIGITAL, deadzone=20))
+        # Don't call start() - _key_device stays None
+
+        # This should call _emit_key internally but return early because no device
+        handler.update(200, 128)  # Should not raise
+
+        # Keys should be tracked even without device for emission
+        assert "KEY_RIGHT" in handler._keys_pressed
 
 
 class TestJoystickHandlerDirectionCallback:
