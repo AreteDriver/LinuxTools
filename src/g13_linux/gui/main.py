@@ -14,7 +14,10 @@ import os
 import sys
 from pathlib import Path
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QApplication, QMessageBox
+
+from .resources.styles import DARK_THEME
 
 # Lock file path - use /tmp for root, ~/.cache for user
 LOCK_FILE = Path("/tmp/g13-linux-gui.lock")
@@ -91,7 +94,18 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("G13LogitechOPS")
     app.setOrganizationName("AreteDriver")
-    app.setApplicationVersion("0.2.0")
+    app.setApplicationVersion("1.5.3")
+
+    # Set default font (try platform-specific fonts)
+    font = QFont("Segoe UI", 10)
+    if not font.exactMatch():
+        font = QFont("Ubuntu", 10)
+    if not font.exactMatch():
+        font = QFont("Noto Sans", 10)
+    app.setFont(font)
+
+    # Apply dark theme stylesheet
+    app.setStyleSheet(DARK_THEME)
 
     # Import after QApplication is created
     try:

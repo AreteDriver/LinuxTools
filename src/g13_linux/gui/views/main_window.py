@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("G13LogitechOPS - Configuration Tool v0.2.0")
+        self.setWindowTitle("G13LogitechOPS - Configuration Tool")
         self.setMinimumSize(1200, 700)
 
         # Create widgets
