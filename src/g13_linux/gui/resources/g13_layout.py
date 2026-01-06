@@ -2,68 +2,75 @@
 G13 Button Layout Geometry
 
 Defines the visual positions and sizes of all G13 buttons for the GUI.
-Coordinates match the device background image (962x1280 pixels).
+Coordinates match the device background image (800x680 pixels - landscape).
 
-Button positions are carefully aligned to the actual G13 device image
-so that the semi-transparent button overlays sit precisely over the
-physical button locations.
+The G13 is wider than tall. This layout matches the actual device proportions
+with the LCD at top, key grid in center, and thumbstick area at bottom-right.
 """
+
+# Overall dimensions - landscape orientation matching real G13
+KEYBOARD_WIDTH = 800
+KEYBOARD_HEIGHT = 680
+
+# Key sizing
+KEY_W = 48  # Standard G-key width
+KEY_H = 40  # Standard G-key height
+M_KEY_W = 44  # M-key width
+M_KEY_H = 22  # M-key height
+KEY_GAP = 4  # Gap between keys
+
+# Layout starting positions
+KEYS_LEFT = 95  # Left edge of G-key area
+KEYS_TOP = 195  # Top of first G-key row
 
 G13_BUTTON_POSITIONS = {
     # M-keys row (below LCD, horizontal row of mode buttons)
-    # These are the smaller rectangular buttons: M1, M2, M3, MR
-    "M1": {"x": 225, "y": 268, "width": 58, "height": 28},
-    "M2": {"x": 295, "y": 268, "width": 58, "height": 28},
-    "M3": {"x": 365, "y": 268, "width": 58, "height": 28},
-    "MR": {"x": 435, "y": 268, "width": 58, "height": 28},
+    "M1": {"x": 245, "y": 160, "width": M_KEY_W, "height": M_KEY_H},
+    "M2": {"x": 295, "y": 160, "width": M_KEY_W, "height": M_KEY_H},
+    "M3": {"x": 345, "y": 160, "width": M_KEY_W, "height": M_KEY_H},
+    "MR": {"x": 395, "y": 160, "width": M_KEY_W, "height": M_KEY_H},
 
-    # G-keys Row 1 (G1-G7) - top row of main keys, curved layout
-    # Keys curve down at edges (G1 and G7 are lower than center keys)
-    "G1": {"x": 192, "y": 300, "width": 58, "height": 48},
-    "G2": {"x": 258, "y": 300, "width": 58, "height": 48},
-    "G3": {"x": 324, "y": 300, "width": 58, "height": 48},
-    "G4": {"x": 390, "y": 300, "width": 58, "height": 48},
-    "G5": {"x": 456, "y": 300, "width": 58, "height": 48},
-    "G6": {"x": 522, "y": 300, "width": 58, "height": 48},
-    "G7": {"x": 588, "y": 300, "width": 58, "height": 48},
+    # G-keys Row 1 (G1-G7) - top row, curved (edges slightly lower)
+    "G1": {"x": KEYS_LEFT, "y": KEYS_TOP + 8, "width": KEY_W, "height": KEY_H},
+    "G2": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 1, "y": KEYS_TOP + 4, "width": KEY_W, "height": KEY_H},
+    "G3": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 2, "y": KEYS_TOP, "width": KEY_W, "height": KEY_H},
+    "G4": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 3, "y": KEYS_TOP, "width": KEY_W, "height": KEY_H},
+    "G5": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 4, "y": KEYS_TOP, "width": KEY_W, "height": KEY_H},
+    "G6": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 5, "y": KEYS_TOP + 4, "width": KEY_W, "height": KEY_H},
+    "G7": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 6, "y": KEYS_TOP + 8, "width": KEY_W, "height": KEY_H},
 
-    # G-keys Row 2 (G8-G14) - second row, also curved
-    "G8": {"x": 192, "y": 356, "width": 58, "height": 48},
-    "G9": {"x": 258, "y": 356, "width": 58, "height": 48},
-    "G10": {"x": 324, "y": 356, "width": 58, "height": 48},
-    "G11": {"x": 390, "y": 356, "width": 58, "height": 48},
-    "G12": {"x": 456, "y": 356, "width": 58, "height": 48},
-    "G13": {"x": 522, "y": 356, "width": 58, "height": 48},
-    "G14": {"x": 588, "y": 356, "width": 58, "height": 48},
+    # G-keys Row 2 (G8-G14)
+    "G8": {"x": KEYS_LEFT, "y": KEYS_TOP + KEY_H + KEY_GAP + 8, "width": KEY_W, "height": KEY_H},
+    "G9": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 1, "y": KEYS_TOP + KEY_H + KEY_GAP + 4, "width": KEY_W, "height": KEY_H},
+    "G10": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 2, "y": KEYS_TOP + KEY_H + KEY_GAP, "width": KEY_W, "height": KEY_H},
+    "G11": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 3, "y": KEYS_TOP + KEY_H + KEY_GAP, "width": KEY_W, "height": KEY_H},
+    "G12": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 4, "y": KEYS_TOP + KEY_H + KEY_GAP, "width": KEY_W, "height": KEY_H},
+    "G13": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 5, "y": KEYS_TOP + KEY_H + KEY_GAP + 4, "width": KEY_W, "height": KEY_H},
+    "G14": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 6, "y": KEYS_TOP + KEY_H + KEY_GAP + 8, "width": KEY_W, "height": KEY_H},
 
-    # G-keys Row 3 (G15-G19) - third row, 5 keys only
-    "G15": {"x": 238, "y": 412, "width": 62, "height": 48},
-    "G16": {"x": 308, "y": 412, "width": 62, "height": 48},
-    "G17": {"x": 378, "y": 412, "width": 62, "height": 48},
-    "G18": {"x": 448, "y": 412, "width": 62, "height": 48},
-    "G19": {"x": 518, "y": 412, "width": 62, "height": 48},
+    # G-keys Row 3 (G15-G19) - 5 keys, offset right
+    "G15": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 1, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 2 + 4, "width": KEY_W, "height": KEY_H},
+    "G16": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 2, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 2, "width": KEY_W, "height": KEY_H},
+    "G17": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 3, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 2, "width": KEY_W, "height": KEY_H},
+    "G18": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 4, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 2, "width": KEY_W, "height": KEY_H},
+    "G19": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 5, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 2 + 4, "width": KEY_W, "height": KEY_H},
 
-    # G-keys Row 4 (G20-G22) - bottom row, 3 wider keys
-    "G20": {"x": 288, "y": 465, "width": 72, "height": 52},
-    "G21": {"x": 372, "y": 465, "width": 72, "height": 52},
-    "G22": {"x": 456, "y": 465, "width": 72, "height": 52},
+    # G-keys Row 4 (G20-G22) - 3 wider keys (spacebar-like row)
+    "G20": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 2, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 3, "width": KEY_W + 8, "height": KEY_H + 4},
+    "G21": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 3 + 4, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 3, "width": KEY_W + 8, "height": KEY_H + 4},
+    "G22": {"x": KEYS_LEFT + (KEY_W + KEY_GAP) * 4 + 8, "y": KEYS_TOP + (KEY_H + KEY_GAP) * 3, "width": KEY_W + 8, "height": KEY_H + 4},
 
-    # Thumb buttons (beside joystick on bottom-right palm rest)
-    "LEFT": {"x": 500, "y": 545, "width": 52, "height": 42},
-    "DOWN": {"x": 500, "y": 595, "width": 52, "height": 42},
+    # Thumb buttons (left of joystick on palm rest)
+    "LEFT": {"x": 540, "y": 450, "width": 44, "height": 36},
+    "DOWN": {"x": 540, "y": 495, "width": 44, "height": 36},
 
     # Joystick click (STICK) - center of joystick area
-    "STICK": {"x": 565, "y": 555, "width": 60, "height": 60},
+    "STICK": {"x": 615, "y": 460, "width": 55, "height": 55},
 }
 
 # Joystick area (for visual indicator drawing)
-# The thumbstick is at the bottom-right palm rest area
-JOYSTICK_AREA = {"x": 555, "y": 545, "width": 85, "height": 85}
+JOYSTICK_AREA = {"x": 600, "y": 445, "width": 85, "height": 85}
 
 # LCD display area (green screen at top of device)
-# 160x43 pixel monochrome display
-LCD_AREA = {"x": 205, "y": 110, "width": 360, "height": 130}
-
-# Overall dimensions matching the device image
-KEYBOARD_WIDTH = 962
-KEYBOARD_HEIGHT = 1280
+# 160x43 pixel monochrome display, scaled up for visibility
+LCD_AREA = {"x": 220, "y": 50, "width": 280, "height": 95}
