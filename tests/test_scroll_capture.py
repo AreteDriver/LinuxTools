@@ -268,13 +268,16 @@ class TestStartCapture:
 
     def test_start_capture_stores_region(self):
         """Test that start_capture stores region."""
+        from unittest.mock import patch
         from src.scroll_capture import ScrollCaptureManager
 
         manager = ScrollCaptureManager()
         manager.xdotool_available = True
         manager.opencv_available = True
 
-        manager.start_capture(10, 20, 100, 200)
+        # Mock is_available to return True (avoids opencv/xdotool checks)
+        with patch.object(manager, "is_available", return_value=(True, None)):
+            manager.start_capture(10, 20, 100, 200)
         assert manager.region == (10, 20, 100, 200)
 
 
