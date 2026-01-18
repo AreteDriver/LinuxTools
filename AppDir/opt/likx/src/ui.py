@@ -2598,7 +2598,7 @@ class MainWindow:
             raise RuntimeError("GTK is not available")
 
         self.window = Gtk.Window(title="LikX")
-        self.window.set_default_size(340, 280)
+        self.window.set_default_size(255, 210)
         self.window.connect("destroy", self._on_destroy)
         self.window.connect("delete-event", self._on_delete_event)
 
@@ -2631,10 +2631,10 @@ class MainWindow:
 
         # Content area
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        content.set_margin_start(12)
-        content.set_margin_end(12)
-        content.set_margin_top(12)
-        content.set_margin_bottom(12)
+        content.set_margin_start(9)
+        content.set_margin_end(9)
+        content.set_margin_top(9)
+        content.set_margin_bottom(9)
 
         # Capture button grid (3x2)
         grid = Gtk.Grid(column_spacing=8, row_spacing=8)
@@ -2651,7 +2651,7 @@ class MainWindow:
         ]
         for i, (icon, label, cb) in enumerate(buttons):
             btn = Gtk.Button()
-            btn.set_size_request(100, 70)
+            btn.set_size_request(75, 53)
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
             img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DIALOG)
             box.pack_start(img, False, False, 0)
@@ -2680,6 +2680,11 @@ class MainWindow:
 
         content.pack_start(queue_box, False, False, 0)
         self.window.add(content)
+
+        # Apply window opacity
+        opacity = cfg.get("window_opacity", 1.0)
+        if opacity < 1.0:
+            self.window.set_opacity(opacity)
 
         self.window.show_all()
 
@@ -3621,6 +3626,22 @@ class SettingsDialog:
         self.editor_check.set_active(self.cfg.get("editor_enabled", True))
         box.pack_start(self.editor_check, False, False, 0)
 
+        box.pack_start(Gtk.Separator(), False, False, 5)
+
+        # Window transparency slider
+        opacity_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        opacity_label = Gtk.Label(label=_("Window opacity:"), xalign=0)
+        opacity_label.set_size_request(150, -1)
+        self.opacity_scale = Gtk.Scale.new_with_range(
+            Gtk.Orientation.HORIZONTAL, 0.3, 1.0, 0.05
+        )
+        self.opacity_scale.set_value(self.cfg.get("window_opacity", 1.0))
+        self.opacity_scale.set_size_request(200, -1)
+        self.opacity_scale.set_value_pos(Gtk.PositionType.RIGHT)
+        opacity_box.pack_start(opacity_label, False, False, 0)
+        opacity_box.pack_start(self.opacity_scale, True, True, 0)
+        box.pack_start(opacity_box, False, False, 0)
+
         return box
 
     def _create_capture_settings(self) -> Gtk.Box:
@@ -4180,6 +4201,7 @@ class SettingsDialog:
         self.cfg["copy_to_clipboard"] = self.clipboard_check.get_active()
         self.cfg["show_notification"] = self.notification_check.get_active()
         self.cfg["editor_enabled"] = self.editor_check.get_active()
+        self.cfg["window_opacity"] = self.opacity_scale.get_value()
         self.cfg["delay_seconds"] = int(self.delay_spin.get_value())
         self.cfg["include_cursor"] = self.cursor_check.get_active()
         self.cfg["upload_service"] = self.service_combo.get_active_text() or "imgur"
