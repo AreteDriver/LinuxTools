@@ -2597,62 +2597,27 @@ class MainWindow:
         if not GTK_AVAILABLE:
             raise RuntimeError("GTK is not available")
 
-        # Load compact panel CSS
-        self._load_compact_css()
-
         self.window = Gtk.Window(title="LikX")
-        self.window.set_default_size(-1, -1)  # Auto-size
-        self.window.set_border_width(8)
-        self.window.set_resizable(False)
-        self.window.set_keep_above(True)  # Stay on top
+        self.window.set_default_size(340, 280)
         self.window.connect("destroy", self._on_destroy)
         self.window.connect("delete-event", self._on_delete_event)
 
-        # Position at top-right of screen
-        screen = Gdk.Screen.get_default()
-        self.window.move(screen.get_width() - 400, 50)
+        # HeaderBar (CSD)
+        header = Gtk.HeaderBar()
+        header.set_show_close_button(True)
+        header.set_title("LikX")
+        header.set_subtitle("Screenshot Tool")
+        self.window.set_titlebar(header)
+
+        # Hamburger menu (right side)
+        menu_btn = Gtk.MenuButton()
+        menu_btn.set_image(
+            Gtk.Image.new_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON)
+        )
+        menu_btn.set_popover(self._create_menu_popover())
+        header.pack_end(menu_btn)
 
         self.hotkey_manager = HotkeyManager()
-
-        # Compact horizontal layout
-        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        main_box.get_style_context().add_class("compact-panel")
-        self.window.add(main_box)
-
-        # Logo/title (small)
-        title = Gtk.Label()
-        title.set_markup("<b>LikX</b>")
-        title.get_style_context().add_class("compact-title")
-        title.set_margin_end(8)
-        main_box.pack_start(title, False, False, 0)
-
-        # Separator
-        sep1 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep1, False, False, 4)
-
-        # Capture buttons (icon-only)
-        capture_buttons = [
-            ("📷", "Fullscreen (Ctrl+Shift+F)", self._on_fullscreen),
-            ("⬚", "Region (Ctrl+Shift+R)", self._on_region),
-            ("🪟", "Window (Ctrl+Shift+W)", self._on_window),
-            ("🎬", "Record GIF (Ctrl+Alt+G)", self._on_record_gif),
-            ("📜", "Scroll Capture (Ctrl+Alt+S)", self._on_scroll_capture),
-            ("🖼️", "Open Image", self._on_open_image),
-        ]
-        for icon, tip, callback in capture_buttons:
-            btn = Gtk.Button(label=icon)
-            btn.set_tooltip_text(tip)
-            btn.get_style_context().add_class("compact-btn")
-            btn.connect("clicked", callback)
-            main_box.pack_start(btn, False, False, 0)
-
-        # Separator
-        sep2 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep2, False, False, 4)
-
-        # Queue controls
-        sep_queue = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep_queue, False, False, 4)
 
         # Initialize capture queue
         cfg = config.load_config()
@@ -2664,37 +2629,57 @@ class MainWindow:
         # Track active editor window for tabbed captures
         self.active_editor: Optional["EditorWindow"] = None
 
-        # Queue toggle button
-        self.queue_toggle = Gtk.ToggleButton(label="📋")
+        # Content area
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        content.set_margin_start(12)
+        content.set_margin_end(12)
+        content.set_margin_top(12)
+        content.set_margin_bottom(12)
+
+        # Capture button grid (3x2)
+        grid = Gtk.Grid(column_spacing=8, row_spacing=8)
+        grid.set_halign(Gtk.Align.CENTER)
+        grid.set_valign(Gtk.Align.CENTER)
+
+        buttons = [
+            ("camera-photo-symbolic", "Fullscreen", self._on_fullscreen),
+            ("selection-mode-symbolic", "Region", self._on_region),
+            ("window-symbolic", "Window", self._on_window),
+            ("media-record-symbolic", "Record GIF", self._on_record_gif),
+            ("view-paged-symbolic", "Scroll", self._on_scroll_capture),
+            ("folder-pictures-symbolic", "Open", self._on_open_image),
+        ]
+        for i, (icon, label, cb) in enumerate(buttons):
+            btn = Gtk.Button()
+            btn.set_size_request(100, 70)
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DIALOG)
+            box.pack_start(img, False, False, 0)
+            box.pack_start(Gtk.Label(label=label), False, False, 0)
+            btn.add(box)
+            btn.connect("clicked", cb)
+            grid.attach(btn, i % 3, i // 3, 1, 1)
+
+        content.pack_start(grid, True, True, 0)
+
+        # Queue controls row
+        queue_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        queue_box.set_halign(Gtk.Align.CENTER)
+
+        self.queue_toggle = Gtk.ToggleButton(label="Queue Mode")
         self.queue_toggle.set_tooltip_text(_("Queue Mode (capture without editing)"))
-        self.queue_toggle.get_style_context().add_class("compact-btn")
         self.queue_toggle.set_active(cfg.get("queue_mode_enabled", False))
         self.queue_toggle.connect("toggled", self._on_queue_toggle)
-        main_box.pack_start(self.queue_toggle, False, False, 0)
+        queue_box.pack_start(self.queue_toggle, False, False, 0)
 
-        # Edit queue button with count
-        self.queue_edit_btn = Gtk.Button(label=f"📋 {self.capture_queue.count}")
+        self.queue_edit_btn = Gtk.Button(label=f"Edit Queue ({self.capture_queue.count})")
         self.queue_edit_btn.set_tooltip_text(_("Edit queued captures"))
-        self.queue_edit_btn.get_style_context().add_class("compact-btn-queue")
         self.queue_edit_btn.set_sensitive(not self.capture_queue.is_empty)
         self.queue_edit_btn.connect("clicked", self._on_edit_queue)
-        main_box.pack_start(self.queue_edit_btn, False, False, 0)
+        queue_box.pack_start(self.queue_edit_btn, False, False, 0)
 
-        # Separator
-        sep3 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep3, False, False, 4)
-
-        # Utility buttons
-        util_buttons = [
-            ("📂", "History", self._on_history),
-            ("⚙️", "Settings", self._on_settings),
-        ]
-        for icon, tip, callback in util_buttons:
-            btn = Gtk.Button(label=icon)
-            btn.set_tooltip_text(tip)
-            btn.get_style_context().add_class("compact-btn-secondary")
-            btn.connect("clicked", callback)
-            main_box.pack_start(btn, False, False, 0)
+        content.pack_start(queue_box, False, False, 0)
+        self.window.add(content)
 
         self.window.show_all()
 
@@ -2703,7 +2688,6 @@ class MainWindow:
 
         # Initialize system tray
         self.tray = None
-        cfg = config.load_config()
         if cfg.get("tray_enabled", True) and SystemTray.is_available():
             self._init_tray()
 
@@ -2711,6 +2695,37 @@ class MainWindow:
         if cfg.get("start_minimized", False) and self.tray:
             self.window.hide()
             self.tray.update_visibility(False)
+
+    def _create_menu_popover(self) -> Gtk.Popover:
+        """Create hamburger menu popover."""
+        popover = Gtk.Popover()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.set_margin_start(8)
+        box.set_margin_end(8)
+        box.set_margin_top(8)
+        box.set_margin_bottom(8)
+
+        history_btn = Gtk.ModelButton(text="History")
+        history_btn.connect(
+            "clicked", lambda b: (self._on_history(b), popover.popdown())
+        )
+        box.pack_start(history_btn, False, False, 0)
+
+        settings_btn = Gtk.ModelButton(text="Preferences")
+        settings_btn.connect(
+            "clicked", lambda b: (self._on_settings(b), popover.popdown())
+        )
+        box.pack_start(settings_btn, False, False, 0)
+
+        box.pack_start(Gtk.Separator(), False, False, 4)
+
+        about_btn = Gtk.ModelButton(text="About LikX")
+        about_btn.connect("clicked", lambda b: self._show_about())
+        box.pack_start(about_btn, False, False, 0)
+
+        popover.add(box)
+        box.show_all()
+        return popover
 
     def _init_tray(self) -> None:
         """Initialize system tray icon."""
@@ -2759,74 +2774,6 @@ class MainWindow:
         """Actually quit the application."""
         self.hotkey_manager.unregister_all()
         Gtk.main_quit()
-
-    def _load_compact_css(self) -> None:
-        """Load compact panel CSS styling."""
-        css = b"""
-        .compact-panel {
-            background: linear-gradient(180deg, #2a2a3e 0%, #1e1e2e 100%);
-            border-radius: 8px;
-            padding: 4px;
-        }
-        .compact-title {
-            color: #a0a0c0;
-            font-size: 12px;
-            padding: 0 4px;
-        }
-        .compact-btn {
-            min-width: 36px;
-            min-height: 36px;
-            padding: 4px;
-            border: none;
-            border-radius: 6px;
-            background: rgba(100, 100, 180, 0.15);
-            color: #d0d0e0;
-            font-size: 16px;
-        }
-        .compact-btn:hover {
-            background: rgba(100, 130, 220, 0.35);
-            color: #ffffff;
-        }
-        .compact-btn-secondary {
-            min-width: 32px;
-            min-height: 32px;
-            padding: 4px;
-            border: none;
-            border-radius: 6px;
-            background: transparent;
-            color: #909090;
-            font-size: 14px;
-        }
-        .compact-btn-secondary:hover {
-            background: rgba(100, 100, 140, 0.2);
-            color: #c0c0c0;
-        }
-        .compact-btn-queue {
-            min-width: 48px;
-            min-height: 32px;
-            padding: 4px 8px;
-            border: none;
-            border-radius: 6px;
-            background: rgba(80, 160, 80, 0.2);
-            color: #90c090;
-            font-size: 12px;
-        }
-        .compact-btn-queue:hover {
-            background: rgba(80, 180, 80, 0.35);
-            color: #b0e0b0;
-        }
-        .compact-btn-queue:disabled {
-            background: rgba(80, 80, 80, 0.1);
-            color: #606060;
-        }
-        """
-        provider = Gtk.CssProvider()
-        provider.load_from_data(css)
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
 
     def _load_css(self) -> None:
         """Load custom CSS styling."""
@@ -3370,6 +3317,58 @@ class MainWindow:
 
         dialog.run()
         dialog.destroy()
+
+    def _show_about(self) -> None:
+        """Show about dialog (wrapper for menu)."""
+        self._on_about(None)
+
+    def _on_open_image(self, button: Gtk.Button) -> None:
+        """Open file chooser to select and edit an existing image."""
+        dialog = Gtk.FileChooserDialog(
+            title="Open Image",
+            parent=self.window,
+            action=Gtk.FileChooserAction.OPEN,
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OPEN, Gtk.ResponseType.OK,
+        )
+
+        # Add image file filter
+        img_filter = Gtk.FileFilter()
+        img_filter.set_name("Image files")
+        img_filter.add_mime_type("image/png")
+        img_filter.add_mime_type("image/jpeg")
+        img_filter.add_mime_type("image/gif")
+        img_filter.add_mime_type("image/bmp")
+        img_filter.add_mime_type("image/webp")
+        dialog.add_filter(img_filter)
+
+        response = dialog.run()
+        filepath = dialog.get_filename()
+        dialog.destroy()
+
+        if response == Gtk.ResponseType.OK and filepath:
+            try:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(filepath)
+                from .capture import CaptureResult
+                result = CaptureResult(
+                    success=True,
+                    pixbuf=pixbuf,
+                    width=pixbuf.get_width(),
+                    height=pixbuf.get_height(),
+                )
+                EditorWindow(result)
+            except Exception as e:
+                error_dialog = Gtk.MessageDialog(
+                    transient_for=self.window,
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.OK,
+                    text="Error Opening Image",
+                    secondary_text=str(e),
+                )
+                error_dialog.run()
+                error_dialog.destroy()
 
     def _on_quit(self, widget: Gtk.Widget) -> None:
         """Handle application quit from menu."""
