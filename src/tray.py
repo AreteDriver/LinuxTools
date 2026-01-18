@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import Callable, Optional
 
+from .i18n import _
+
 try:
     import gi
 
@@ -32,8 +34,6 @@ if GTK_AVAILABLE:
             APPINDICATOR_AVAILABLE = True
         except (ValueError, ImportError):
             pass
-
-from .i18n import _
 
 
 class SystemTray:
