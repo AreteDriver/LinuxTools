@@ -1,0 +1,256 @@
+.macro-panel {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.macro-panel h4 {
+  margin: 0 0 12px 0;
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.macro-panel h5 {
+  margin: 12px 0 8px 0;
+  color: #ff6b00;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Recording section */
+.macro-record-section {
+  margin-bottom: 12px;
+}
+
+.record-btn,
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+
+.record-btn {
+  background: #333;
+  color: #eee;
+  border: 1px solid #444;
+}
+
+.record-btn:hover {
+  background: #3a3a3a;
+  border-color: #ff4444;
+}
+
+.record-icon {
+  color: #ff4444;
+  font-size: 10px;
+}
+
+.record-icon.recording {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.recording-active {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 6px;
+  color: #ff6666;
+  font-size: 13px;
+}
+
+.stop-btn {
+  background: #ff4444;
+  color: #fff;
+}
+
+.stop-btn:hover {
+  background: #ff3333;
+}
+
+/* Recording preview */
+.recording-preview {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #252525;
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* Steps list */
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: #2a2a2a;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+}
+
+.step-item.more {
+  color: #666;
+  font-style: italic;
+  justify-content: center;
+}
+
+.step-type {
+  width: 16px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.step-type.key_press {
+  color: #66ff66;
+}
+
+.step-type.key_release {
+  color: #ff6666;
+}
+
+.step-type.delay {
+  color: #6666ff;
+}
+
+.step-value {
+  flex: 1;
+  color: #ddd;
+}
+
+.step-time {
+  color: #666;
+  font-size: 10px;
+}
+
+/* Macro list */
+.macro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.macro-list .empty {
+  color: #555;
+  font-style: italic;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.macro-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.macro-item:hover {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.macro-item.selected {
+  border-color: #ff6b00;
+  background: rgba(255, 107, 0, 0.1);
+}
+
+.macro-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.macro-name {
+  color: #eee;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.macro-steps {
+  color: #666;
+  font-size: 11px;
+}
+
+.macro-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.assign-btn,
+.delete-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.assign-btn {
+  background: #333;
+  color: #888;
+}
+
+.assign-btn:hover {
+  background: #ff6b00;
+  color: #fff;
+}
+
+.delete-btn {
+  background: #333;
+  color: #666;
+}
+
+.delete-btn:hover {
+  background: #ff4444;
+  color: #fff;
+}
+
+/* Macro detail */
+.macro-detail {
+  padding-top: 8px;
+  border-top: 1px solid #333;
+  max-height: 150px;
+  overflow-y: auto;
+}
