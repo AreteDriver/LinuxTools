@@ -14,6 +14,7 @@ import time
 from datetime import datetime
 
 from .device import open_g13
+from .gui.models.macro_manager import MacroManager
 from .gui.models.profile_manager import ProfileManager
 from .hardware.backlight import G13Backlight
 from .hardware.lcd import G13LCD
@@ -80,6 +81,9 @@ class G13Daemon:
 
         # Profile manager
         self.profile_manager = ProfileManager()
+
+        # Macro manager
+        self.macro_manager = MacroManager()
 
         # Settings manager
         self.settings_manager = SettingsManager()

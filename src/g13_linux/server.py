@@ -86,6 +86,7 @@ class G13Server:
         app.router.add_get("/api/macros", self._api_list_macros)
         app.router.add_get("/api/macros/{id}", self._api_get_macro)
         app.router.add_post("/api/macros", self._api_create_macro)
+        app.router.add_put("/api/macros/{id}", self._api_update_macro)
         app.router.add_delete("/api/macros/{id}", self._api_delete_macro)
 
         # CORS headers for development
@@ -94,7 +95,7 @@ class G13Server:
     def _add_cors_headers(self, response: web.Response) -> web.Response:
         """Add CORS headers to response."""
         response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
         return response
 
@@ -169,6 +170,16 @@ class G13Server:
                     }
                 )
 
+            elif msg_type == "play_macro":
+                macro_id = message.get("macro_id")
+                await self._ws_play_macro(ws, macro_id)
+
+            elif msg_type == "stop_macro":
+                await self._ws_stop_macro(ws)
+
+            elif msg_type == "get_macros":
+                await self._ws_send_macros(ws)
+
             else:
                 logger.warning(f"Unknown WebSocket message type: {msg_type}")
 
@@ -181,6 +192,55 @@ class G13Server:
         """Send current state to a WebSocket client."""
         state = self._get_state()
         await ws.send_json({"type": "state", "data": state})
+
+    async def _ws_send_macros(self, ws: web.WebSocketResponse):
+        """Send macro list to a WebSocket client."""
+        mm = self.daemon.macro_manager
+        macros = mm.list_macro_summaries()
+        await ws.send_json({"type": "macros", "data": macros})
+
+    async def _ws_play_macro(self, ws: web.WebSocketResponse, macro_id: str):
+        """Play a macro by ID."""
+        if not macro_id:
+            await ws.send_json({"type": "error", "message": "No macro_id provided"})
+            return
+
+        mm = self.daemon.macro_manager
+
+        try:
+            macro = mm.load_macro(macro_id)
+            # Notify clients that playback is starting
+            await self._broadcast(
+                {"type": "macro_playback_started", "macro_id": macro_id, "name": macro.name}
+            )
+
+            # Execute macro steps (simplified - no UInput for daemon mode)
+            # Full playback with key injection would require the GUI player
+            logger.info(f"Playing macro: {macro.name} ({len(macro.steps)} steps)")
+
+            for i, step in enumerate(macro.steps):
+                # Broadcast each step for visualization
+                await self._broadcast(
+                    {
+                        "type": "macro_step",
+                        "step_index": i,
+                        "total_steps": len(macro.steps),
+                        "step": step.to_dict(),
+                    }
+                )
+
+            await self._broadcast({"type": "macro_playback_complete", "macro_id": macro_id})
+
+        except FileNotFoundError:
+            await ws.send_json({"type": "error", "message": f"Macro '{macro_id}' not found"})
+        except Exception as e:
+            await ws.send_json({"type": "error", "message": str(e)})
+
+    async def _ws_stop_macro(self, ws: web.WebSocketResponse):
+        """Stop current macro playback."""
+        # For now, just broadcast stop - full implementation would track playback state
+        await self._broadcast({"type": "macro_playback_stopped"})
+        logger.info("Macro playback stop requested")
 
     async def _broadcast(self, message: dict):
         """Broadcast message to all connected WebSocket clients."""
@@ -372,24 +432,123 @@ class G13Server:
 
     async def _api_list_macros(self, request: web.Request) -> web.Response:
         """GET /api/macros - List available macros."""
-        # TODO: Implement macro listing
-        response = web.json_response({"macros": []})
+        mm = self.daemon.macro_manager
+        macros = mm.list_macro_summaries()
+        response = web.json_response({"macros": macros})
         return self._add_cors_headers(response)
 
     async def _api_get_macro(self, request: web.Request) -> web.Response:
         """GET /api/macros/{id} - Get macro details."""
-        # TODO: Implement macro retrieval
-        response = web.json_response({"error": "Not implemented"}, status=501)
+        macro_id = request.match_info["id"]
+        mm = self.daemon.macro_manager
+
+        try:
+            macro = mm.load_macro(macro_id)
+            response = web.json_response(macro.to_dict())
+        except FileNotFoundError:
+            response = web.json_response({"error": "Macro not found"}, status=404)
+
         return self._add_cors_headers(response)
 
     async def _api_create_macro(self, request: web.Request) -> web.Response:
         """POST /api/macros - Create new macro."""
-        # TODO: Implement macro creation
-        response = web.json_response({"error": "Not implemented"}, status=501)
+        mm = self.daemon.macro_manager
+
+        try:
+            data = await request.json()
+            name = data.get("name", "New Macro")
+
+            # Create macro
+            macro = mm.create_macro(name)
+
+            # Update with any provided data
+            if "description" in data:
+                macro.description = data["description"]
+            if "steps" in data:
+                from .gui.models.macro_types import MacroStep
+
+                macro.steps = [MacroStep.from_dict(s) for s in data["steps"]]
+            if "speed_multiplier" in data:
+                macro.speed_multiplier = data["speed_multiplier"]
+            if "repeat_count" in data:
+                macro.repeat_count = data["repeat_count"]
+            if "repeat_delay_ms" in data:
+                macro.repeat_delay_ms = data["repeat_delay_ms"]
+            if "playback_mode" in data:
+                from .gui.models.macro_types import PlaybackMode
+
+                macro.playback_mode = PlaybackMode(data["playback_mode"])
+            if "fixed_delay_ms" in data:
+                macro.fixed_delay_ms = data["fixed_delay_ms"]
+            if "assigned_button" in data:
+                macro.assigned_button = data["assigned_button"]
+            if "global_hotkey" in data:
+                macro.global_hotkey = data["global_hotkey"]
+
+            mm.save_macro(macro)
+            response = web.json_response({"status": "created", "id": macro.id})
+
+        except Exception as e:
+            response = web.json_response({"error": str(e)}, status=400)
+
+        return self._add_cors_headers(response)
+
+    async def _api_update_macro(self, request: web.Request) -> web.Response:
+        """PUT /api/macros/{id} - Update existing macro."""
+        macro_id = request.match_info["id"]
+        mm = self.daemon.macro_manager
+
+        try:
+            data = await request.json()
+
+            # Load existing macro
+            macro = mm.load_macro(macro_id)
+
+            # Update fields
+            if "name" in data:
+                macro.name = data["name"]
+            if "description" in data:
+                macro.description = data["description"]
+            if "steps" in data:
+                from .gui.models.macro_types import MacroStep
+
+                macro.steps = [MacroStep.from_dict(s) for s in data["steps"]]
+            if "speed_multiplier" in data:
+                macro.speed_multiplier = data["speed_multiplier"]
+            if "repeat_count" in data:
+                macro.repeat_count = data["repeat_count"]
+            if "repeat_delay_ms" in data:
+                macro.repeat_delay_ms = data["repeat_delay_ms"]
+            if "playback_mode" in data:
+                from .gui.models.macro_types import PlaybackMode
+
+                macro.playback_mode = PlaybackMode(data["playback_mode"])
+            if "fixed_delay_ms" in data:
+                macro.fixed_delay_ms = data["fixed_delay_ms"]
+            if "assigned_button" in data:
+                macro.assigned_button = data["assigned_button"]
+            if "global_hotkey" in data:
+                macro.global_hotkey = data["global_hotkey"]
+
+            mm.save_macro(macro)
+            response = web.json_response({"status": "updated"})
+
+        except FileNotFoundError:
+            response = web.json_response({"error": "Macro not found"}, status=404)
+        except Exception as e:
+            response = web.json_response({"error": str(e)}, status=400)
+
         return self._add_cors_headers(response)
 
     async def _api_delete_macro(self, request: web.Request) -> web.Response:
         """DELETE /api/macros/{id} - Delete macro."""
-        # TODO: Implement macro deletion
-        response = web.json_response({"error": "Not implemented"}, status=501)
+        macro_id = request.match_info["id"]
+        mm = self.daemon.macro_manager
+
+        try:
+            mm.delete_macro(macro_id)
+            response = web.json_response({"status": "deleted"})
+        except FileNotFoundError:
+            response = web.json_response({"error": "Macro not found"}, status=404)
+
         return self._add_cors_headers(response)
