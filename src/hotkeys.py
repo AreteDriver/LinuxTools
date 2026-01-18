@@ -88,21 +88,22 @@ class HotkeyManager:
                         # Parse existing and add
                         new_value = current.rstrip("]") + f", '{custom_path}']"
 
-                    subprocess.run([
-                        "gsettings", "set", self.GNOME_SCHEMA,
-                        "custom-keybindings", new_value
-                    ])
+                    subprocess.run(
+                        [
+                            "gsettings",
+                            "set",
+                            self.GNOME_SCHEMA,
+                            "custom-keybindings",
+                            new_value,
+                        ]
+                    )
 
                 # Set the binding properties
                 binding_schema = f"{self.GNOME_SCHEMA}.custom-keybinding:{custom_path}"
                 name = f"LikX {hotkey_id.replace('-', ' ').title()}"
 
-                subprocess.run(
-                    ["gsettings", "set", binding_schema, "name", name]
-                )
-                subprocess.run(
-                    ["gsettings", "set", binding_schema, "command", command]
-                )
+                subprocess.run(["gsettings", "set", binding_schema, "name", name])
+                subprocess.run(["gsettings", "set", binding_schema, "command", command])
                 subprocess.run(
                     ["gsettings", "set", binding_schema, "binding", key_combo]
                 )
@@ -173,10 +174,15 @@ class HotkeyManager:
                     if current in ("[]", "[@as ]", ""):
                         current = "@as []"
 
-                    subprocess.run([
-                        "gsettings", "set", self.GNOME_SCHEMA,
-                        "custom-keybindings", current
-                    ])
+                    subprocess.run(
+                        [
+                            "gsettings",
+                            "set",
+                            self.GNOME_SCHEMA,
+                            "custom-keybindings",
+                            current,
+                        ]
+                    )
 
                 self._registered_paths.clear()
                 self.hotkeys.clear()
