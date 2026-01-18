@@ -125,6 +125,106 @@ def cmd_color(args):
     device.close()
 
 
+def cmd_effect(args):
+    """Control LED effects."""
+    from .device import open_g13
+    from .hardware.backlight import G13Backlight
+    from .led import LEDController, EffectType, RGB
+
+    try:
+        device = open_g13()
+    except Exception as e:
+        print(f"Error: Could not open G13: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    backlight = G13Backlight(device)
+    led = LEDController(backlight=backlight)
+
+    effect_name = args.effect.lower()
+
+    if effect_name == "off" or effect_name == "stop":
+        led.stop_effect()
+        led.off()
+        print("LED off")
+    elif effect_name == "solid":
+        led.stop_effect()
+        color = _parse_effect_color(args.color)
+        led.set_rgb(color)
+        print(f"Solid: {color.to_hex()}")
+    elif effect_name == "pulse":
+        color = _parse_effect_color(args.color)
+        speed = args.speed or 1.0
+        led.start_effect(EffectType.PULSE, color=color, speed=speed)
+        print(f"Pulse: {color.to_hex()} @ {speed}x")
+        _wait_for_effect(led)
+    elif effect_name == "rainbow":
+        speed = args.speed or 0.5
+        led.start_effect(EffectType.RAINBOW, speed=speed)
+        print(f"Rainbow @ {speed}x")
+        _wait_for_effect(led)
+    elif effect_name == "fade":
+        color1 = _parse_effect_color(args.color)
+        color2 = _parse_effect_color(args.color2) if args.color2 else RGB(0, 0, 255)
+        speed = args.speed or 0.5
+        led.start_effect(EffectType.FADE, color1=color1, color2=color2, speed=speed)
+        print(f"Fade: {color1.to_hex()} <-> {color2.to_hex()} @ {speed}x")
+        _wait_for_effect(led)
+    elif effect_name == "alert":
+        color = _parse_effect_color(args.color) if args.color else RGB(255, 0, 0)
+        count = args.count or 3
+        led.run_alert(color=color, count=count, blocking=True)
+        print(f"Alert: {color.to_hex()} x{count}")
+    elif effect_name == "list":
+        print("Available effects:")
+        print("  solid   - Static color")
+        print("  pulse   - Breathing effect")
+        print("  rainbow - Color cycle")
+        print("  fade    - Two-color transition")
+        print("  alert   - Flash notification")
+        print("  off     - Turn off LED")
+    else:
+        print(f"Unknown effect: {effect_name}", file=sys.stderr)
+        print("Use 'g13-linux effect list' to see available effects", file=sys.stderr)
+        sys.exit(1)
+
+    device.close()
+
+
+def _parse_effect_color(color_str: str | None) -> "RGB":
+    """Parse color string for effects."""
+    from .led import RGB, NAMED_COLORS
+
+    if not color_str:
+        return RGB(255, 0, 0)  # Default red
+
+    color_str = color_str.lower()
+    if color_str in NAMED_COLORS:
+        return NAMED_COLORS[color_str]
+    elif color_str.startswith("#"):
+        return RGB.from_hex(color_str)
+    elif len(color_str) == 6:
+        return RGB.from_hex(color_str)
+    else:
+        try:
+            parts = color_str.split(",")
+            return RGB(int(parts[0]), int(parts[1]), int(parts[2]))
+        except (ValueError, IndexError):
+            print(f"Warning: Invalid color '{color_str}', using red", file=sys.stderr)
+            return RGB(255, 0, 0)
+
+
+def _wait_for_effect(led):
+    """Wait for user interrupt while effect runs."""
+    import time
+    print("Press Ctrl+C to stop...")
+    try:
+        while True:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        led.stop_effect()
+        print("\nStopped")
+
+
 def cmd_profile(args):
     """Manage profiles."""
     from .gui.models.profile_manager import ProfileManager
@@ -230,6 +330,32 @@ def main():
         help=f"Color: preset ({', '.join(COLOR_PRESETS.keys())}), hex (#FF0000), or RGB (255,0,0)",
     )
     color_parser.set_defaults(func=cmd_color)
+
+    # effect command
+    effect_parser = subparsers.add_parser("effect", help="Control LED effects")
+    effect_parser.add_argument(
+        "effect",
+        help="Effect: solid, pulse, rainbow, fade, alert, off, or list",
+    )
+    effect_parser.add_argument(
+        "--color", "-c",
+        help="Primary color (name, hex, or R,G,B)",
+    )
+    effect_parser.add_argument(
+        "--color2",
+        help="Secondary color for fade effect",
+    )
+    effect_parser.add_argument(
+        "--speed", "-s",
+        type=float,
+        help="Effect speed multiplier (default: 1.0)",
+    )
+    effect_parser.add_argument(
+        "--count", "-n",
+        type=int,
+        help="Flash count for alert effect (default: 3)",
+    )
+    effect_parser.set_defaults(func=cmd_effect)
 
     # profile command
     profile_parser = subparsers.add_parser("profile", help="Manage profiles")
