@@ -14,6 +14,7 @@ import time
 from datetime import datetime
 
 from .device import open_g13
+from .gui.models.event_decoder import EventDecoder
 from .gui.models.macro_manager import MacroManager
 from .gui.models.profile_manager import ProfileManager
 from .hardware.backlight import G13Backlight
@@ -76,6 +77,10 @@ class G13Daemon:
         self._server_thread: threading.Thread | None = None
         self._start_time: datetime | None = None
         self._key_count = 0
+
+        # Event decoder for button state tracking (WebSocket broadcasts)
+        self._event_decoder = EventDecoder()
+        self._last_joystick = (128, 128)  # Track joystick for change detection
 
         # Server settings
         self._enable_server = enable_server
@@ -420,9 +425,10 @@ class G13Daemon:
 
     def _handle_raw_report(self, data: bytes):
         """
-        Handle raw HID report for key mapping.
+        Handle raw HID report for key mapping and WebSocket broadcasting.
 
-        Passes report to mapper for key translation.
+        Passes report to mapper for key translation and broadcasts
+        button events to connected WebSocket clients.
 
         Args:
             data: Raw HID report bytes
@@ -431,6 +437,41 @@ class G13Daemon:
             # Track key presses (rough count based on mapper activity)
             self._mapper.handle_raw_report(data)
             self._key_count += 1
+
+        # Decode state and broadcast button changes
+        if self._enable_server and self._server:
+            try:
+                state = self._event_decoder.decode_report(data)
+                pressed, released = self._event_decoder.get_button_changes(state)
+
+                # Broadcast button events
+                for button in pressed:
+                    self.broadcast_button_event(button, pressed=True)
+                for button in released:
+                    self.broadcast_button_event(button, pressed=False)
+
+                # Broadcast joystick position if changed significantly
+                joystick = (state.joystick_x, state.joystick_y)
+                if self._joystick_changed(joystick):
+                    self._last_joystick = joystick
+                    self._broadcast_joystick(joystick)
+
+            except Exception as e:
+                logger.debug(f"Event decode error: {e}")
+
+    def _joystick_changed(self, new_pos: tuple[int, int], threshold: int = 5) -> bool:
+        """Check if joystick position changed enough to broadcast."""
+        dx = abs(new_pos[0] - self._last_joystick[0])
+        dy = abs(new_pos[1] - self._last_joystick[1])
+        return dx > threshold or dy > threshold
+
+    def _broadcast_joystick(self, position: tuple[int, int]):
+        """Broadcast joystick position to WebSocket clients."""
+        if self._server and self._server_loop and self._server_loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                self._server._broadcast({"type": "joystick", "x": position[0], "y": position[1]}),
+                self._server_loop,
+            )
 
     def _render_loop(self):
         """Background thread for LCD rendering."""

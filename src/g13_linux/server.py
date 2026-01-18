@@ -343,12 +343,20 @@ class G13Server:
             backlight_color = color.to_hex()
             backlight_brightness = self.daemon._led_controller.brightness
 
+        # Get pressed keys from event decoder
+        pressed_keys = []
+        if self.daemon._event_decoder and self.daemon._event_decoder.last_state:
+            pressed_keys = self.daemon._event_decoder.get_pressed_buttons()
+
+        # Get joystick position
+        joystick_x, joystick_y = self.daemon._last_joystick
+
         return {
             "connected": self.daemon._device is not None,
             "active_profile": profile_name,
             "active_mode": "M1",  # TODO: Track mode state
-            "pressed_keys": [],  # TODO: Track pressed keys
-            "joystick": {"x": 0, "y": 0},
+            "pressed_keys": pressed_keys,
+            "joystick": {"x": joystick_x, "y": joystick_y},
             "backlight": {
                 "color": backlight_color,
                 "brightness": backlight_brightness,
