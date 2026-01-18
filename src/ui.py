@@ -3505,7 +3505,9 @@ class HotkeyEntry(Gtk.Button):
 class SettingsDialog:
     """Settings dialog window with all options."""
 
-    def __init__(self, parent: Gtk.Window, on_hotkeys_changed: Optional[Callable] = None):
+    def __init__(
+        self, parent: Gtk.Window, on_hotkeys_changed: Optional[Callable] = None
+    ):
         self.on_hotkeys_changed = on_hotkeys_changed
         self.dialog = Gtk.Dialog(
             title=_("Settings"), parent=parent, flags=Gtk.DialogFlags.MODAL

@@ -78,7 +78,7 @@ jobs:
             libgtk-3-dev
 
       - name: Install test dependencies
-        run: pip install pytest pytest-cov pytest-timeout PyGObject pycairo
+        run: pip install pytest pytest-cov pytest-timeout "PyGObject<3.50" pycairo
 
       - name: Run tests with coverage
         run: pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=40

@@ -19,12 +19,14 @@ def _ensure_opencv():
         try:
             import cv2 as _cv2
             import numpy as _np
+
             np = _np
             cv2 = _cv2
             OPENCV_AVAILABLE = True
         except ImportError:
             OPENCV_AVAILABLE = False
     return OPENCV_AVAILABLE
+
 
 try:
     import gi
