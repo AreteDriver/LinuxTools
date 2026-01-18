@@ -5,6 +5,7 @@ Main orchestrator for G13 device management.
 Coordinates input handling, LCD menu, LED effects, and key mapping.
 """
 
+import asyncio
 import logging
 import signal
 import sys
@@ -23,6 +24,7 @@ from .mapper import G13Mapper
 from .menu.manager import ScreenManager
 from .menu.screen import InputEvent
 from .menu.screens.idle import IdleScreen
+from .server import G13Server
 from .settings import SettingsManager
 
 logger = logging.getLogger(__name__)
@@ -43,8 +45,17 @@ class G13Daemon:
     RENDER_FPS = 20
     RENDER_INTERVAL = 1.0 / RENDER_FPS
 
-    def __init__(self):
-        """Initialize daemon (does not connect to device yet)."""
+    def __init__(
+        self, enable_server: bool = True, server_host: str = "127.0.0.1", server_port: int = 8765
+    ):
+        """
+        Initialize daemon (does not connect to device yet).
+
+        Args:
+            enable_server: Whether to start WebSocket/HTTP server
+            server_host: Host to bind server to
+            server_port: Port for server
+        """
         self._device = None
         self._mapper: G13Mapper | None = None
         self._lcd: G13LCD | None = None
@@ -56,8 +67,16 @@ class G13Daemon:
 
         self._running = False
         self._render_thread: threading.Thread | None = None
+        self._server_thread: threading.Thread | None = None
         self._start_time: datetime | None = None
         self._key_count = 0
+
+        # Server settings
+        self._enable_server = enable_server
+        self._server_host = server_host
+        self._server_port = server_port
+        self._server: G13Server | None = None
+        self._server_loop: asyncio.AbstractEventLoop | None = None
 
         # Profile manager
         self.profile_manager = ProfileManager()
@@ -132,6 +151,11 @@ class G13Daemon:
 
         logger.info("G13 daemon initialized")
         return True
+
+    def _broadcast_device_connected(self):
+        """Broadcast device connection to WebSocket clients (called after server starts)."""
+        if self._server:
+            self._broadcast_async(self._server.broadcast_device_connected())
 
     def _setup_mkey_callbacks(self):
         """Setup M-key callbacks for quick profile access."""
@@ -211,6 +235,9 @@ class G13Daemon:
             if self._screen_manager and self._screen_manager.current:
                 self._screen_manager.current.mark_dirty()
 
+            # Broadcast to WebSocket clients
+            self.broadcast_profile_change(name)
+
             return True
 
         except FileNotFoundError:
@@ -244,11 +271,23 @@ class G13Daemon:
         self._render_thread = threading.Thread(target=self._render_loop, daemon=True, name="Render")
         self._render_thread.start()
 
+        # Start WebSocket/HTTP server if enabled
+        if self._enable_server:
+            self._start_server()
+            # Give server time to start, then broadcast connected
+            time.sleep(0.1)
+            self._broadcast_device_connected()
+
         # Force initial render
         self._screen_manager.force_render()
 
         logger.info("G13 daemon running. Press Ctrl+C to exit.")
-        print("G13 opened. Press stick for menu. Ctrl+C to exit.")
+        server_msg = (
+            f" Server at http://{self._server_host}:{self._server_port}"
+            if self._enable_server
+            else ""
+        )
+        print(f"G13 opened. Press stick for menu.{server_msg} Ctrl+C to exit.")
 
         # Main loop - handle key mapping
         try:
@@ -272,6 +311,10 @@ class G13Daemon:
 
         logger.info("Stopping G13 daemon...")
         self._running = False
+
+        # Stop server first (broadcasts device_disconnected)
+        if self._enable_server:
+            self._stop_server()
 
         # Stop input handler
         if self._input_handler:
@@ -305,6 +348,47 @@ class G13Daemon:
 
         logger.info("G13 daemon stopped")
         print("\nG13 daemon stopped.")
+
+    def _start_server(self):
+        """Start the WebSocket/HTTP server in a background thread."""
+        self._server = G13Server(self, self._server_host, self._server_port)
+        self._server_thread = threading.Thread(
+            target=self._run_server_loop, daemon=True, name="Server"
+        )
+        self._server_thread.start()
+        logger.info(f"Server thread started on {self._server_host}:{self._server_port}")
+
+    def _run_server_loop(self):
+        """Run the asyncio event loop for the server."""
+        self._server_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._server_loop)
+
+        try:
+            self._server_loop.run_until_complete(self._server.start())
+            self._server_loop.run_forever()
+        except Exception as e:
+            logger.error(f"Server error: {e}")
+        finally:
+            self._server_loop.close()
+
+    def _stop_server(self):
+        """Stop the WebSocket/HTTP server."""
+        if self._server and self._server_loop:
+            # Schedule server stop in the event loop
+            future = asyncio.run_coroutine_threadsafe(self._server.stop(), self._server_loop)
+            try:
+                future.result(timeout=2.0)
+            except Exception as e:
+                logger.warning(f"Error stopping server: {e}")
+
+            # Stop the event loop
+            self._server_loop.call_soon_threadsafe(self._server_loop.stop)
+
+            # Wait for server thread
+            if self._server_thread and self._server_thread.is_alive():
+                self._server_thread.join(timeout=2.0)
+
+            logger.info("Server stopped")
 
     def _handle_signal(self, signum, frame):
         """Handle shutdown signals."""
@@ -382,6 +466,26 @@ class G13Daemon:
         """
         if self._nav_controller:
             self._nav_controller.show_toast(message, duration)
+
+    # Server broadcast helpers
+
+    def _broadcast_async(self, coro):
+        """Schedule an async broadcast in the server's event loop."""
+        if self._server and self._server_loop and self._server_loop.is_running():
+            asyncio.run_coroutine_threadsafe(coro, self._server_loop)
+
+    def broadcast_button_event(self, button: str, pressed: bool):
+        """Broadcast button press/release to WebSocket clients."""
+        if self._server:
+            if pressed:
+                self._broadcast_async(self._server.broadcast_button_pressed(button))
+            else:
+                self._broadcast_async(self._server.broadcast_button_released(button))
+
+    def broadcast_profile_change(self, name: str):
+        """Broadcast profile activation to WebSocket clients."""
+        if self._server:
+            self._broadcast_async(self._server.broadcast_profile_activated(name))
 
 
 def main():

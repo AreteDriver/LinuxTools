@@ -50,6 +50,7 @@ dependencies = [
     "PyQt6>=6.4.0",
     "pynput>=1.7.0",
     "Pillow>=9.0.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]

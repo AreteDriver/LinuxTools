@@ -58,8 +58,16 @@ def cmd_run(args):
         # Full daemon with LCD menu
         from .daemon import G13Daemon
 
+        enable_server = not getattr(args, "no_server", False)
+        server_host = getattr(args, "server_host", "127.0.0.1")
+        server_port = getattr(args, "server_port", 8765)
+
         print("Starting G13 daemon...")
-        daemon = G13Daemon()
+        daemon = G13Daemon(
+            enable_server=enable_server,
+            server_host=server_host,
+            server_port=server_port,
+        )
         daemon.run()
 
 
@@ -332,6 +340,22 @@ def main():
         "-s",
         action="store_true",
         help="Simple mode: key mapping only, no LCD menu",
+    )
+    run_parser.add_argument(
+        "--no-server",
+        action="store_true",
+        help="Disable WebSocket/HTTP server for GUI",
+    )
+    run_parser.add_argument(
+        "--server-host",
+        default="127.0.0.1",
+        help="Server bind address (default: 127.0.0.1)",
+    )
+    run_parser.add_argument(
+        "--server-port",
+        type=int,
+        default=8765,
+        help="Server port (default: 8765)",
     )
     run_parser.set_defaults(func=cmd_run)
 

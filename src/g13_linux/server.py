@@ -1,0 +1,395 @@
+"""
+G13 WebSocket/HTTP Server
+
+Provides remote control API for the G13 daemon.
+Supports WebSocket for real-time updates and REST API for CRUD operations.
+"""
+
+import json
+import logging
+from dataclasses import asdict
+from typing import TYPE_CHECKING
+
+from aiohttp import web
+
+if TYPE_CHECKING:
+    from .daemon import G13Daemon
+
+logger = logging.getLogger(__name__)
+
+
+class G13Server:
+    """
+    WebSocket and HTTP API server for G13 daemon.
+
+    WebSocket: ws://host:port/ws
+    REST API: http://host:port/api/...
+    """
+
+    def __init__(self, daemon: "G13Daemon", host: str = "127.0.0.1", port: int = 8765):
+        """
+        Initialize server.
+
+        Args:
+            daemon: G13Daemon instance to control
+            host: Host to bind to
+            port: Port to listen on
+        """
+        self.daemon = daemon
+        self.host = host
+        self.port = port
+        self._app: web.Application | None = None
+        self._runner: web.AppRunner | None = None
+        self._site: web.TCPSite | None = None
+        self._clients: set[web.WebSocketResponse] = set()
+
+    async def start(self):
+        """Start the server."""
+        self._app = web.Application()
+        self._setup_routes()
+
+        self._runner = web.AppRunner(self._app)
+        await self._runner.setup()
+        self._site = web.TCPSite(self._runner, self.host, self.port)
+        await self._site.start()
+
+        logger.info(f"G13 server started at http://{self.host}:{self.port}")
+
+    async def stop(self):
+        """Stop the server."""
+        # Close all WebSocket connections
+        for ws in list(self._clients):
+            await ws.close()
+        self._clients.clear()
+
+        if self._site:
+            await self._site.stop()
+        if self._runner:
+            await self._runner.cleanup()
+
+        logger.info("G13 server stopped")
+
+    def _setup_routes(self):
+        """Setup HTTP and WebSocket routes."""
+        app = self._app
+
+        # WebSocket endpoint
+        app.router.add_get("/ws", self._handle_websocket)
+
+        # REST API endpoints
+        app.router.add_get("/api/status", self._api_get_status)
+        app.router.add_get("/api/profiles", self._api_list_profiles)
+        app.router.add_get("/api/profiles/{name}", self._api_get_profile)
+        app.router.add_post("/api/profiles/{name}", self._api_save_profile)
+        app.router.add_delete("/api/profiles/{name}", self._api_delete_profile)
+        app.router.add_post("/api/profiles/{name}/activate", self._api_activate_profile)
+        app.router.add_get("/api/macros", self._api_list_macros)
+        app.router.add_get("/api/macros/{id}", self._api_get_macro)
+        app.router.add_post("/api/macros", self._api_create_macro)
+        app.router.add_delete("/api/macros/{id}", self._api_delete_macro)
+
+        # CORS headers for development
+        app.router.add_route("OPTIONS", "/{path:.*}", self._handle_options)
+
+    def _add_cors_headers(self, response: web.Response) -> web.Response:
+        """Add CORS headers to response."""
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+
+    async def _handle_options(self, request: web.Request) -> web.Response:
+        """Handle CORS preflight requests."""
+        return self._add_cors_headers(web.Response())
+
+    # WebSocket handling
+
+    async def _handle_websocket(self, request: web.Request) -> web.WebSocketResponse:
+        """Handle WebSocket connections."""
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        self._clients.add(ws)
+        logger.info(f"WebSocket client connected ({len(self._clients)} total)")
+
+        try:
+            async for msg in ws:
+                if msg.type == web.WSMsgType.TEXT:
+                    await self._handle_ws_message(ws, msg.data)
+                elif msg.type == web.WSMsgType.ERROR:
+                    logger.error(f"WebSocket error: {ws.exception()}")
+        finally:
+            self._clients.discard(ws)
+            logger.info(f"WebSocket client disconnected ({len(self._clients)} total)")
+
+        return ws
+
+    async def _handle_ws_message(self, ws: web.WebSocketResponse, data: str):
+        """
+        Handle incoming WebSocket message.
+
+        Args:
+            ws: WebSocket connection
+            data: JSON message string
+        """
+        try:
+            message = json.loads(data)
+            msg_type = message.get("type")
+
+            if msg_type == "get_state":
+                await self._ws_send_state(ws)
+
+            elif msg_type == "set_mode":
+                mode = message.get("mode", "M1")
+                # TODO: Implement mode switching
+                await self._broadcast({"type": "mode_changed", "mode": mode})
+
+            elif msg_type == "set_mapping":
+                button = message.get("button")
+                key = message.get("key")
+                # TODO: Implement mapping change
+                logger.info(f"Set mapping: {button} -> {key}")
+
+            elif msg_type == "simulate_press":
+                button = message.get("button")
+                await self._broadcast({"type": "button_pressed", "button": button})
+
+            elif msg_type == "simulate_release":
+                button = message.get("button")
+                await self._broadcast({"type": "button_released", "button": button})
+
+            elif msg_type == "set_backlight":
+                color = message.get("color", "#ffffff")
+                brightness = message.get("brightness", 100)
+                self._set_backlight(color, brightness)
+                await self._broadcast(
+                    {
+                        "type": "backlight_changed",
+                        "backlight": {"color": color, "brightness": brightness},
+                    }
+                )
+
+            else:
+                logger.warning(f"Unknown WebSocket message type: {msg_type}")
+
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in WebSocket message: {data}")
+        except Exception as e:
+            logger.error(f"Error handling WebSocket message: {e}")
+
+    async def _ws_send_state(self, ws: web.WebSocketResponse):
+        """Send current state to a WebSocket client."""
+        state = self._get_state()
+        await ws.send_json({"type": "state", "data": state})
+
+    async def _broadcast(self, message: dict):
+        """Broadcast message to all connected WebSocket clients."""
+        if not self._clients:
+            return
+
+        data = json.dumps(message)
+        for ws in list(self._clients):
+            try:
+                await ws.send_str(data)
+            except Exception:
+                self._clients.discard(ws)
+
+    def _get_state(self) -> dict:
+        """Get current G13 state."""
+        profile_name = None
+        if self.daemon.profile_manager and self.daemon.profile_manager.current_name:
+            profile_name = self.daemon.profile_manager.current_name
+
+        backlight_color = "#ff6b00"
+        backlight_brightness = 100
+        if self.daemon._led_controller:
+            color = self.daemon._led_controller.current_color
+            backlight_color = color.to_hex()
+            backlight_brightness = self.daemon._led_controller.brightness
+
+        return {
+            "connected": self.daemon._device is not None,
+            "active_profile": profile_name,
+            "active_mode": "M1",  # TODO: Track mode state
+            "pressed_keys": [],  # TODO: Track pressed keys
+            "joystick": {"x": 0, "y": 0},
+            "backlight": {
+                "color": backlight_color,
+                "brightness": backlight_brightness,
+            },
+        }
+
+    def _set_backlight(self, color: str, brightness: int):
+        """Set backlight color and brightness."""
+        if not self.daemon._led_controller:
+            return
+
+        # Parse hex color
+        if color.startswith("#") and len(color) == 7:
+            r = int(color[1:3], 16)
+            g = int(color[3:5], 16)
+            b = int(color[5:7], 16)
+            self.daemon._led_controller.set_color(r, g, b)
+
+        if brightness is not None:
+            self.daemon._led_controller.set_brightness(brightness)
+
+    # Broadcast helpers for daemon events
+
+    async def broadcast_button_pressed(self, button: str):
+        """Broadcast button press event."""
+        await self._broadcast({"type": "button_pressed", "button": button})
+
+    async def broadcast_button_released(self, button: str):
+        """Broadcast button release event."""
+        await self._broadcast({"type": "button_released", "button": button})
+
+    async def broadcast_profile_activated(self, name: str):
+        """Broadcast profile activation event."""
+        await self._broadcast({"type": "profile_activated", "name": name})
+
+    async def broadcast_device_connected(self):
+        """Broadcast device connected event."""
+        await self._broadcast({"type": "device_connected"})
+
+    async def broadcast_device_disconnected(self):
+        """Broadcast device disconnected event."""
+        await self._broadcast({"type": "device_disconnected"})
+
+    # REST API handlers
+
+    async def _api_get_status(self, request: web.Request) -> web.Response:
+        """GET /api/status - Get device status."""
+        state = self._get_state()
+        response = web.json_response(
+            {
+                "connected": state["connected"],
+                "active_profile": state["active_profile"],
+                "active_mode": state["active_mode"],
+            }
+        )
+        return self._add_cors_headers(response)
+
+    async def _api_list_profiles(self, request: web.Request) -> web.Response:
+        """GET /api/profiles - List available profiles."""
+        pm = self.daemon.profile_manager
+        profiles = []
+
+        for name in pm.list_profiles():
+            try:
+                profile = pm.load_profile(name)
+                profiles.append(
+                    {
+                        "name": name,
+                        "filename": f"{name}.json",
+                        "description": profile.description or "",
+                    }
+                )
+            except Exception:
+                profiles.append(
+                    {
+                        "name": name,
+                        "filename": f"{name}.json",
+                        "description": "",
+                    }
+                )
+
+        response = web.json_response({"profiles": profiles})
+        return self._add_cors_headers(response)
+
+    async def _api_get_profile(self, request: web.Request) -> web.Response:
+        """GET /api/profiles/{name} - Get profile details."""
+        name = request.match_info["name"]
+        pm = self.daemon.profile_manager
+
+        try:
+            profile = pm.load_profile(name)
+            response = web.json_response(asdict(profile))
+        except FileNotFoundError:
+            response = web.json_response({"error": "Profile not found"}, status=404)
+
+        return self._add_cors_headers(response)
+
+    async def _api_save_profile(self, request: web.Request) -> web.Response:
+        """POST /api/profiles/{name} - Save profile."""
+        name = request.match_info["name"]
+        pm = self.daemon.profile_manager
+
+        try:
+            data = await request.json()
+
+            # Create or update profile
+            if pm.profile_exists(name):
+                profile = pm.load_profile(name)
+            else:
+                profile = pm.create_profile(name)
+
+            # Update fields
+            if "name" in data:
+                profile.name = data["name"]
+            if "description" in data:
+                profile.description = data["description"]
+            if "mappings" in data:
+                profile.mappings = data["mappings"]
+            if "backlight" in data:
+                profile.backlight = data["backlight"]
+
+            pm.save_profile(profile, name)
+            response = web.json_response({"status": "saved"})
+
+        except Exception as e:
+            response = web.json_response({"error": str(e)}, status=400)
+
+        return self._add_cors_headers(response)
+
+    async def _api_delete_profile(self, request: web.Request) -> web.Response:
+        """DELETE /api/profiles/{name} - Delete profile."""
+        name = request.match_info["name"]
+        pm = self.daemon.profile_manager
+
+        try:
+            pm.delete_profile(name)
+            response = web.json_response({"status": "deleted"})
+        except FileNotFoundError:
+            response = web.json_response({"error": "Profile not found"}, status=404)
+
+        return self._add_cors_headers(response)
+
+    async def _api_activate_profile(self, request: web.Request) -> web.Response:
+        """POST /api/profiles/{name}/activate - Activate profile."""
+        name = request.match_info["name"]
+
+        try:
+            if self.daemon.load_profile(name):
+                await self._broadcast({"type": "profile_activated", "name": name})
+                response = web.json_response({"status": "activated"})
+            else:
+                response = web.json_response({"error": "Failed to activate"}, status=400)
+        except Exception as e:
+            response = web.json_response({"error": str(e)}, status=400)
+
+        return self._add_cors_headers(response)
+
+    async def _api_list_macros(self, request: web.Request) -> web.Response:
+        """GET /api/macros - List available macros."""
+        # TODO: Implement macro listing
+        response = web.json_response({"macros": []})
+        return self._add_cors_headers(response)
+
+    async def _api_get_macro(self, request: web.Request) -> web.Response:
+        """GET /api/macros/{id} - Get macro details."""
+        # TODO: Implement macro retrieval
+        response = web.json_response({"error": "Not implemented"}, status=501)
+        return self._add_cors_headers(response)
+
+    async def _api_create_macro(self, request: web.Request) -> web.Response:
+        """POST /api/macros - Create new macro."""
+        # TODO: Implement macro creation
+        response = web.json_response({"error": "Not implemented"}, status=501)
+        return self._add_cors_headers(response)
+
+    async def _api_delete_macro(self, request: web.Request) -> web.Response:
+        """DELETE /api/macros/{id} - Delete macro."""
+        # TODO: Implement macro deletion
+        response = web.json_response({"error": "Not implemented"}, status=501)
+        return self._add_cors_headers(response)
