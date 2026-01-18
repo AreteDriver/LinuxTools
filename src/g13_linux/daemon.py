@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 
 from .device import open_g13
+from .gui.models.profile_manager import ProfileManager
 from .hardware.backlight import G13Backlight
 from .hardware.lcd import G13LCD
 from .input.handler import InputHandler
@@ -57,8 +58,8 @@ class G13Daemon:
         self._start_time: datetime | None = None
         self._key_count = 0
 
-        # Profile manager (optional, set externally)
-        self.profile_manager = None
+        # Profile manager
+        self.profile_manager = ProfileManager()
 
     @property
     def uptime(self) -> str:
@@ -114,11 +115,104 @@ class G13Daemon:
         # Initialize navigation controller
         self._nav_controller = NavigationController(self._screen_manager, idle_screen)
 
+        # Setup M-key profile callbacks
+        self._setup_mkey_callbacks()
+
         # Initialize input handler
         self._input_handler = InputHandler(self._device, self._on_input_event)
 
+        # Load default profile if available
+        self._load_default_profile()
+
         logger.info("G13 daemon initialized")
         return True
+
+    def _setup_mkey_callbacks(self):
+        """Setup M-key callbacks for quick profile access."""
+        # M1/M2/M3 show profile info toast (could be extended to switch profiles)
+        self._nav_controller.set_profile_callback(
+            InputEvent.BUTTON_M1,
+            lambda: self._on_mkey_pressed(1),
+        )
+        self._nav_controller.set_profile_callback(
+            InputEvent.BUTTON_M2,
+            lambda: self._on_mkey_pressed(2),
+        )
+        self._nav_controller.set_profile_callback(
+            InputEvent.BUTTON_M3,
+            lambda: self._on_mkey_pressed(3),
+        )
+
+    def _on_mkey_pressed(self, m_num: int):
+        """
+        Handle M-key press for profile mode indication.
+
+        Args:
+            m_num: M-key number (1, 2, or 3)
+        """
+        profile_name = "None"
+        if self.profile_manager.current_profile:
+            profile_name = self.profile_manager.current_profile.name
+
+        self.show_toast(f"M{m_num}: {profile_name}", duration=1.5)
+
+    def _load_default_profile(self):
+        """Load default/first profile if available."""
+        profiles = self.profile_manager.list_profiles()
+        if not profiles:
+            logger.info("No profiles found")
+            return
+
+        # Try to load 'default' or 'example' profile, otherwise first available
+        for name in ["default", "example", profiles[0]]:
+            if name in profiles:
+                try:
+                    self.load_profile(name)
+                    logger.info(f"Loaded profile: {name}")
+                    return
+                except Exception as e:
+                    logger.warning(f"Could not load profile '{name}': {e}")
+
+    def load_profile(self, name: str) -> bool:
+        """
+        Load a profile by name and apply its settings.
+
+        Args:
+            name: Profile name to load
+
+        Returns:
+            True if successful
+        """
+        try:
+            profile = self.profile_manager.load_profile(name)
+
+            # Apply backlight color
+            if self._led_controller and hasattr(profile, "backlight"):
+                color = profile.backlight.get("color", "#FFFFFF")
+                if color.startswith("#") and len(color) == 7:
+                    r = int(color[1:3], 16)
+                    g = int(color[3:5], 16)
+                    b = int(color[5:7], 16)
+                    self._led_controller.set_color(r, g, b)
+
+            # Update mapper with new mappings
+            if self._mapper:
+                from dataclasses import asdict
+
+                self._mapper.load_profile(asdict(profile))
+
+            # Force idle screen refresh
+            if self._screen_manager and self._screen_manager.current:
+                self._screen_manager.current.mark_dirty()
+
+            return True
+
+        except FileNotFoundError:
+            logger.error(f"Profile not found: {name}")
+            return False
+        except Exception as e:
+            logger.error(f"Error loading profile '{name}': {e}")
+            return False
 
     def run(self):
         """

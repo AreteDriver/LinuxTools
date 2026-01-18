@@ -58,6 +58,7 @@ class ProfileManager:
 
         self.profiles_dir = Path(profiles_dir)
         self.current_profile: Optional[ProfileData] = None
+        self.current_name: Optional[str] = None  # Filename (without .json)
 
         # Ensure profiles directory exists
         self.profiles_dir.mkdir(parents=True, exist_ok=True)
@@ -90,6 +91,7 @@ class ProfileManager:
                 data = json.load(f)
             profile = ProfileData(**data)
             self.current_profile = profile
+            self.current_name = name  # Track the filename
             return profile
         except (json.JSONDecodeError, TypeError) as e:
             raise ValueError(f"Invalid profile JSON in '{name}': {e}")
