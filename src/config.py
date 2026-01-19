@@ -275,15 +275,15 @@ def get_template(name: str) -> Optional[Dict[str, Any]]:
 
 COLOR_PALETTES: Dict[str, List[List[int]]] = {
     "Default": [
-        [255, 0, 0, 255],      # Red
-        [0, 255, 0, 255],      # Green
-        [0, 0, 255, 255],      # Blue
-        [255, 255, 0, 255],    # Yellow
-        [255, 165, 0, 255],    # Orange
-        [128, 0, 128, 255],    # Purple
-        [0, 255, 255, 255],    # Cyan
+        [255, 0, 0, 255],  # Red
+        [0, 255, 0, 255],  # Green
+        [0, 0, 255, 255],  # Blue
+        [255, 255, 0, 255],  # Yellow
+        [255, 165, 0, 255],  # Orange
+        [128, 0, 128, 255],  # Purple
+        [0, 255, 255, 255],  # Cyan
         [255, 192, 203, 255],  # Pink
-        [0, 0, 0, 255],        # Black
+        [0, 0, 0, 255],  # Black
         [255, 255, 255, 255],  # White
     ],
     "Pastel": [
@@ -299,19 +299,19 @@ COLOR_PALETTES: Dict[str, List[List[int]]] = {
         [100, 100, 100, 255],  # Dark gray
     ],
     "Neon": [
-        [255, 0, 102, 255],    # Neon pink
-        [255, 102, 0, 255],    # Neon orange
-        [204, 255, 0, 255],    # Neon yellow
-        [0, 255, 102, 255],    # Neon green
-        [0, 204, 255, 255],    # Neon cyan
-        [102, 0, 255, 255],    # Neon purple
-        [255, 0, 255, 255],    # Neon magenta
-        [0, 255, 255, 255],    # Neon aqua
+        [255, 0, 102, 255],  # Neon pink
+        [255, 102, 0, 255],  # Neon orange
+        [204, 255, 0, 255],  # Neon yellow
+        [0, 255, 102, 255],  # Neon green
+        [0, 204, 255, 255],  # Neon cyan
+        [102, 0, 255, 255],  # Neon purple
+        [255, 0, 255, 255],  # Neon magenta
+        [0, 255, 255, 255],  # Neon aqua
         [255, 255, 255, 255],  # White
-        [0, 0, 0, 255],        # Black
+        [0, 0, 0, 255],  # Black
     ],
     "Monochrome": [
-        [0, 0, 0, 255],        # Black
+        [0, 0, 0, 255],  # Black
         [32, 32, 32, 255],
         [64, 64, 64, 255],
         [96, 96, 96, 255],
@@ -323,16 +323,16 @@ COLOR_PALETTES: Dict[str, List[List[int]]] = {
         [255, 255, 255, 255],  # White
     ],
     "Earth": [
-        [139, 90, 43, 255],    # Saddle brown
-        [160, 82, 45, 255],    # Sienna
+        [139, 90, 43, 255],  # Saddle brown
+        [160, 82, 45, 255],  # Sienna
         [210, 180, 140, 255],  # Tan
-        [107, 142, 35, 255],   # Olive drab
-        [85, 107, 47, 255],    # Dark olive
-        [34, 139, 34, 255],    # Forest green
-        [46, 139, 87, 255],    # Sea green
-        [70, 130, 180, 255],   # Steel blue
+        [107, 142, 35, 255],  # Olive drab
+        [85, 107, 47, 255],  # Dark olive
+        [34, 139, 34, 255],  # Forest green
+        [46, 139, 87, 255],  # Sea green
+        [70, 130, 180, 255],  # Steel blue
         [112, 128, 144, 255],  # Slate gray
-        [47, 79, 79, 255],     # Dark slate
+        [47, 79, 79, 255],  # Dark slate
     ],
 }
 
