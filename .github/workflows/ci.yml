@@ -53,14 +53,13 @@ jobs:
           pip install -e ".[dev]"
           pip install ruff
 
-      - name: Run tests
-        run: xvfb-run pytest -v --tb=short
-        env:
-          QT_QPA_PLATFORM: offscreen
-
       - name: Run tests with coverage
-        if: matrix.python-version == '3.11'
-        run: xvfb-run pytest --cov=g13_linux --cov-report=xml --cov-report=term
+        run: |
+          xvfb-run pytest -v --tb=short \
+            --cov=g13_linux \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=0
         env:
           QT_QPA_PLATFORM: offscreen
 
