@@ -1074,13 +1074,28 @@ class EditorWindow:
         # Row 0: 4 colors, Row 1: 5 colors (offset), Row 2: 5 colors, Row 3: 5 colors (offset)
         self._hex_palette = [
             # Row 0 (4 hexes)
-            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
+            (0, 0, 0),
+            (0.4, 0.4, 0.4),
+            (0.75, 0.75, 0.75),
+            (1, 1, 1),
             # Row 1 (5 hexes, offset)
-            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0),
+            (0.5, 0, 0),
+            (1, 0, 0),
+            (1, 0.5, 0),
+            (1, 1, 0),
+            (0.5, 0.5, 0),
             # Row 2 (5 hexes)
-            (0, 0.4, 0), (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.4, 0.4), (0, 0, 0.5),
+            (0, 0.4, 0),
+            (0, 0.8, 0),
+            (0, 0.8, 0.8),
+            (0, 0.4, 0.4),
+            (0, 0, 0.5),
             # Row 3 (5 hexes, offset)
-            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
+            (0, 0, 1),
+            (0.3, 0, 0.5),
+            (0.6, 0.3, 1),
+            (1, 0.4, 0.7),
+            (0.5, 0, 0.3),
         ]
         self._hex_size = 14  # Radius of hexagon
         self._hex_positions = []  # Will store (cx, cy, color_index)
@@ -1088,6 +1103,7 @@ class EditorWindow:
 
         # Calculate canvas size
         import math
+
         hex_w = self._hex_size * math.sqrt(3)
         hex_h = self._hex_size * 1.5
         max_row_width = 4 * hex_w
@@ -1114,9 +1130,10 @@ class EditorWindow:
     def _build_hex_positions(self) -> None:
         """Calculate center positions for each hexagon in honeycomb layout."""
         import math
+
         size = self._hex_size
         hex_w = size * math.sqrt(3)  # Exact honeycomb horizontal spacing
-        hex_h = size * 1.5           # Exact honeycomb vertical spacing
+        hex_h = size * 1.5  # Exact honeycomb vertical spacing
 
         # Width needed for 5 hexes (widest row)
         max_row_width = 4 * hex_w
