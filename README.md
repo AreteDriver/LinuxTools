@@ -4,6 +4,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/g13-linux)](https://pypi.org/project/g13-linux/)
 [![Python](https://img.shields.io/pypi/pyversions/g13-linux)](https://pypi.org/project/g13-linux/)
 [![CI](https://github.com/AreteDriver/G13_Linux/actions/workflows/ci.yml/badge.svg)](https://github.com/AreteDriver/G13_Linux/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/AreteDriver/G13_Linux/actions/workflows/codeql.yml/badge.svg)](https://github.com/AreteDriver/G13_Linux/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Python userspace driver for the Logitech G13 Gaming Keyboard on Linux.
