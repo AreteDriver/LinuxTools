@@ -1053,11 +1053,26 @@ class EditorWindow:
         # Compact 2-row honeycomb color palette - 19 colors
         self._hex_palette = [
             # Row 0 (10 hexes): grays + warm colors
-            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
-            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            (0, 0, 0),
+            (0.4, 0.4, 0.4),
+            (0.75, 0.75, 0.75),
+            (1, 1, 1),
+            (0.5, 0, 0),
+            (1, 0, 0),
+            (1, 0.5, 0),
+            (1, 1, 0),
+            (0.5, 0.5, 0),
+            (0, 0.5, 0),
             # Row 1 (9 hexes, offset): greens, blues, purples
-            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.5, 0.5), (0, 0, 0.5),
-            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
+            (0, 0.8, 0),
+            (0, 0.8, 0.8),
+            (0, 0.5, 0.5),
+            (0, 0, 0.5),
+            (0, 0, 1),
+            (0.3, 0, 0.5),
+            (0.6, 0.3, 1),
+            (1, 0.4, 0.7),
+            (0.5, 0, 0.3),
         ]
         self._hex_size = 9  # Small for toolbar
         self._hex_positions = []
@@ -1110,7 +1125,7 @@ class EditorWindow:
             if idx >= len(self._hex_palette):
                 break
             r, g, b = self._hex_palette[idx]
-            is_selected = (idx == getattr(self, '_selected_hex_idx', -1))
+            is_selected = idx == getattr(self, "_selected_hex_idx", -1)
 
             cr.save()
             cr.translate(cx, cy)
