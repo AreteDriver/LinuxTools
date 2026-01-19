@@ -2591,110 +2591,136 @@ class EditorWindow:
 
 
 class MainWindow:
-    """Main application window with hotkey support."""
+    """Main application window with GNOME Screenshot-style UI."""
 
     def __init__(self):
         if not GTK_AVAILABLE:
             raise RuntimeError("GTK is not available")
 
-        # Load compact panel CSS
-        self._load_compact_css()
+        self._load_gnome_css()
 
-        self.window = Gtk.Window(title="LikX")
-        self.window.set_default_size(-1, -1)  # Auto-size
-        self.window.set_border_width(8)
+        self.window = Gtk.Window(title=_("Screenshot"))
+        self.window.set_default_size(400, -1)
         self.window.set_resizable(False)
-        self.window.set_keep_above(True)  # Stay on top
+        self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.connect("destroy", self._on_destroy)
         self.window.connect("delete-event", self._on_delete_event)
 
-        # Position at top-right of screen
-        screen = Gdk.Screen.get_default()
-        self.window.move(screen.get_width() - 400, 50)
+        # GNOME-style HeaderBar
+        header = Gtk.HeaderBar()
+        header.set_show_close_button(True)
+        header.set_title(_("Screenshot"))
+        self.window.set_titlebar(header)
+
+        # Settings button in header
+        settings_btn = Gtk.Button.new_from_icon_name(
+            "emblem-system-symbolic", Gtk.IconSize.BUTTON
+        )
+        settings_btn.set_tooltip_text(_("Settings"))
+        settings_btn.connect("clicked", self._on_settings)
+        header.pack_end(settings_btn)
+
+        # History button in header
+        history_btn = Gtk.Button.new_from_icon_name(
+            "folder-pictures-symbolic", Gtk.IconSize.BUTTON
+        )
+        history_btn.set_tooltip_text(_("History"))
+        history_btn.connect("clicked", self._on_history)
+        header.pack_end(history_btn)
 
         self.hotkey_manager = HotkeyManager()
 
-        # Compact horizontal layout
-        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        main_box.get_style_context().add_class("compact-panel")
+        # Main content box
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        main_box.set_margin_top(24)
+        main_box.set_margin_bottom(24)
+        main_box.set_margin_start(24)
+        main_box.set_margin_end(24)
         self.window.add(main_box)
 
-        # Logo/title (small)
-        title = Gtk.Label()
-        title.set_markup("<b>LikX</b>")
-        title.get_style_context().add_class("compact-title")
-        title.set_margin_end(8)
-        main_box.pack_start(title, False, False, 0)
+        # Capture mode section
+        mode_label = Gtk.Label()
+        mode_label.set_markup(_("<b>Capture Mode</b>"))
+        mode_label.set_xalign(0)
+        main_box.pack_start(mode_label, False, False, 0)
 
-        # Separator
-        sep1 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep1, False, False, 4)
+        # Radio buttons for capture mode
+        mode_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        mode_box.set_margin_start(12)
+        main_box.pack_start(mode_box, False, False, 0)
 
-        # Capture buttons (icon-only)
-        capture_buttons = [
-            ("📷", "Fullscreen (Ctrl+Shift+F)", self._on_fullscreen),
-            ("⬚", "Region (Ctrl+Shift+R)", self._on_region),
-            ("🪟", "Window (Ctrl+Shift+W)", self._on_window),
-            ("🎬", "Record GIF (Ctrl+Alt+G)", self._on_record_gif),
-            ("📜", "Scroll Capture (Ctrl+Alt+S)", self._on_scroll_capture),
-            ("🖼️", "Open Image", self._on_open_image),
-        ]
-        for icon, tip, callback in capture_buttons:
-            btn = Gtk.Button(label=icon)
-            btn.set_tooltip_text(tip)
-            btn.get_style_context().add_class("compact-btn")
-            btn.connect("clicked", callback)
-            main_box.pack_start(btn, False, False, 0)
+        self.radio_screen = Gtk.RadioButton.new_with_label(
+            None, _("Grab the whole screen")
+        )
+        mode_box.pack_start(self.radio_screen, False, False, 0)
 
-        # Separator
-        sep2 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep2, False, False, 4)
+        self.radio_window = Gtk.RadioButton.new_with_label_from_widget(
+            self.radio_screen, _("Grab the current window")
+        )
+        mode_box.pack_start(self.radio_window, False, False, 0)
 
-        # Queue controls
-        sep_queue = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep_queue, False, False, 4)
+        self.radio_selection = Gtk.RadioButton.new_with_label_from_widget(
+            self.radio_screen, _("Grab a selected area")
+        )
+        self.radio_selection.set_active(True)
+        mode_box.pack_start(self.radio_selection, False, False, 0)
 
-        # Initialize capture queue
+        # Delay section
+        delay_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        delay_box.set_margin_top(12)
+        main_box.pack_start(delay_box, False, False, 0)
+
+        delay_label = Gtk.Label(label=_("Delay in seconds:"))
+        delay_box.pack_start(delay_label, False, False, 0)
+
+        self.delay_spin = Gtk.SpinButton.new_with_range(0, 60, 1)
+        self.delay_spin.set_value(0)
+        delay_box.pack_start(self.delay_spin, False, False, 0)
+
+        # Extra options expander
+        expander = Gtk.Expander(label=_("More options"))
+        expander.set_margin_top(6)
+        main_box.pack_start(expander, False, False, 0)
+
+        extra_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        extra_box.set_margin_top(12)
+        extra_box.set_margin_start(12)
+        expander.add(extra_box)
+
+        # GIF recording option
+        self.gif_btn = Gtk.Button.new_with_label(_("Record GIF"))
+        self.gif_btn.connect("clicked", self._on_record_gif)
+        extra_box.pack_start(self.gif_btn, False, False, 0)
+
+        # Scroll capture option
+        self.scroll_btn = Gtk.Button.new_with_label(_("Scrolling Capture"))
+        self.scroll_btn.connect("clicked", self._on_scroll_capture)
+        extra_box.pack_start(self.scroll_btn, False, False, 0)
+
+        # Open image option
+        self.open_btn = Gtk.Button.new_with_label(_("Open Image..."))
+        self.open_btn.connect("clicked", self._on_open_image)
+        extra_box.pack_start(self.open_btn, False, False, 0)
+
+        # Take Screenshot button
+        self.capture_btn = Gtk.Button.new_with_label(_("Take Screenshot"))
+        self.capture_btn.get_style_context().add_class("suggested-action")
+        self.capture_btn.set_margin_top(12)
+        self.capture_btn.connect("clicked", self._on_capture)
+        main_box.pack_start(self.capture_btn, False, False, 0)
+
+        # Initialize capture queue (hidden from UI but still functional)
         cfg = config.load_config()
         persist_dir = None
         if cfg.get("queue_persist", False):
             persist_dir = config.get_config_dir() / "queue"
         self.capture_queue = CaptureQueue(persist_dir)
-
-        # Track active editor window for tabbed captures
         self.active_editor: Optional["EditorWindow"] = None
 
-        # Queue toggle button
-        self.queue_toggle = Gtk.ToggleButton(label="📋")
-        self.queue_toggle.set_tooltip_text(_("Queue Mode (capture without editing)"))
-        self.queue_toggle.get_style_context().add_class("compact-btn")
+        # Hidden queue UI elements (for API compatibility)
+        self.queue_toggle = Gtk.ToggleButton()
         self.queue_toggle.set_active(cfg.get("queue_mode_enabled", False))
-        self.queue_toggle.connect("toggled", self._on_queue_toggle)
-        main_box.pack_start(self.queue_toggle, False, False, 0)
-
-        # Edit queue button with count
-        self.queue_edit_btn = Gtk.Button(label=f"📋 {self.capture_queue.count}")
-        self.queue_edit_btn.set_tooltip_text(_("Edit queued captures"))
-        self.queue_edit_btn.get_style_context().add_class("compact-btn-queue")
-        self.queue_edit_btn.set_sensitive(not self.capture_queue.is_empty)
-        self.queue_edit_btn.connect("clicked", self._on_edit_queue)
-        main_box.pack_start(self.queue_edit_btn, False, False, 0)
-
-        # Separator
-        sep3 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        main_box.pack_start(sep3, False, False, 4)
-
-        # Utility buttons
-        util_buttons = [
-            ("📂", "History", self._on_history),
-            ("⚙️", "Settings", self._on_settings),
-        ]
-        for icon, tip, callback in util_buttons:
-            btn = Gtk.Button(label=icon)
-            btn.set_tooltip_text(tip)
-            btn.get_style_context().add_class("compact-btn-secondary")
-            btn.connect("clicked", callback)
-            main_box.pack_start(btn, False, False, 0)
+        self.queue_edit_btn = Gtk.Button()
 
         self.window.show_all()
 
@@ -2711,6 +2737,26 @@ class MainWindow:
         if cfg.get("start_minimized", False) and self.tray:
             self.window.hide()
             self.tray.update_visibility(False)
+
+    def _on_capture(self, button: Gtk.Button) -> None:
+        """Handle Take Screenshot button click."""
+        delay = int(self.delay_spin.get_value())
+
+        if delay > 0:
+            self.window.hide()
+            GLib.timeout_add_seconds(delay, self._do_capture)
+        else:
+            self._do_capture()
+
+    def _do_capture(self) -> bool:
+        """Perform the actual capture based on selected mode."""
+        if self.radio_screen.get_active():
+            self._on_fullscreen(None)
+        elif self.radio_window.get_active():
+            self._on_window(None)
+        else:
+            self._on_region(None)
+        return False  # Don't repeat timeout
 
     def _init_tray(self) -> None:
         """Initialize system tray icon."""
@@ -2760,65 +2806,10 @@ class MainWindow:
         self.hotkey_manager.unregister_all()
         Gtk.main_quit()
 
-    def _load_compact_css(self) -> None:
-        """Load compact panel CSS styling."""
+    def _load_gnome_css(self) -> None:
+        """Load GNOME-style CSS styling."""
         css = b"""
-        .compact-panel {
-            background: linear-gradient(180deg, #2a2a3e 0%, #1e1e2e 100%);
-            border-radius: 8px;
-            padding: 4px;
-        }
-        .compact-title {
-            color: #a0a0c0;
-            font-size: 12px;
-            padding: 0 4px;
-        }
-        .compact-btn {
-            min-width: 36px;
-            min-height: 36px;
-            padding: 4px;
-            border: none;
-            border-radius: 6px;
-            background: rgba(100, 100, 180, 0.15);
-            color: #d0d0e0;
-            font-size: 16px;
-        }
-        .compact-btn:hover {
-            background: rgba(100, 130, 220, 0.35);
-            color: #ffffff;
-        }
-        .compact-btn-secondary {
-            min-width: 32px;
-            min-height: 32px;
-            padding: 4px;
-            border: none;
-            border-radius: 6px;
-            background: transparent;
-            color: #909090;
-            font-size: 14px;
-        }
-        .compact-btn-secondary:hover {
-            background: rgba(100, 100, 140, 0.2);
-            color: #c0c0c0;
-        }
-        .compact-btn-queue {
-            min-width: 48px;
-            min-height: 32px;
-            padding: 4px 8px;
-            border: none;
-            border-radius: 6px;
-            background: rgba(80, 160, 80, 0.2);
-            color: #90c090;
-            font-size: 12px;
-        }
-        .compact-btn-queue:hover {
-            background: rgba(80, 180, 80, 0.35);
-            color: #b0e0b0;
-        }
-        .compact-btn-queue:disabled {
-            background: rgba(80, 80, 80, 0.1);
-            color: #606060;
-        }
+        /* Use system defaults - minimal overrides for native look */
         """
         provider = Gtk.CssProvider()
         provider.load_from_data(css)
