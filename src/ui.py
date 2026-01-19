@@ -18,7 +18,7 @@ except (ImportError, ValueError):
 
 from . import capture as capture_module
 from . import config
-from .capture import CaptureMode, CaptureResult, capture, save_capture
+from .capture import CaptureMode, CaptureResult, capture, copy_to_clipboard, save_capture
 from .editor import ArrowStyle, Color, EditorState, ToolType, render_elements
 from .effects import (
     add_background,
@@ -2641,7 +2641,7 @@ class QuickToolbar:
 
         # Action buttons
         actions = [
-            ("document-save-symbolic", _("Save"), self._do_save),
+            ("document-save-symbolic", _("Save"), self._do_save),  # noqa: F823
             ("edit-copy-symbolic", _("Copy"), self._do_copy),
             ("document-edit-symbolic", _("Edit"), self._do_edit),
             ("send-to-symbolic", _("Upload"), self._do_upload),

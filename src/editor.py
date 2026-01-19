@@ -234,8 +234,6 @@ class EditorState:
 
     def apply_template(self, template: dict) -> None:
         """Apply an annotation template to set tool and style."""
-        from . import config
-
         # Set tool
         tool_name = template.get("tool", "PEN")
         try:
