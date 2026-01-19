@@ -1050,39 +1050,26 @@ class EditorWindow:
         """Create inline hexagonal color picker for toolbar."""
         import math
 
-        # Compact 2-row honeycomb color palette - 19 colors
+        # Compact 2-row honeycomb color palette - 19 preset + 1 custom
         self._hex_palette = [
             # Row 0 (10 hexes): grays + warm colors
-            (0, 0, 0),
-            (0.4, 0.4, 0.4),
-            (0.75, 0.75, 0.75),
-            (1, 1, 1),
-            (0.5, 0, 0),
-            (1, 0, 0),
-            (1, 0.5, 0),
-            (1, 1, 0),
-            (0.5, 0.5, 0),
-            (0, 0.5, 0),
-            # Row 1 (9 hexes, offset): greens, blues, purples
-            (0, 0.8, 0),
-            (0, 0.8, 0.8),
-            (0, 0.5, 0.5),
-            (0, 0, 0.5),
-            (0, 0, 1),
-            (0.3, 0, 0.5),
-            (0.6, 0.3, 1),
-            (1, 0.4, 0.7),
-            (0.5, 0, 0.3),
+            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
+            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            # Row 1 (9 hexes, offset): greens, blues, purples + custom slot
+            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.5, 0.5), (0, 0, 0.5),
+            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
         ]
+        self._custom_color = (0.5, 0.5, 0.5)  # Default custom color
+        self._custom_hex_idx = 19  # Index for custom color picker hex
         self._hex_size = 9  # Small for toolbar
         self._hex_positions = []
         self._selected_hex_idx = 5  # Default to red
         self._build_hex_positions()
 
-        # Calculate canvas size
+        # Calculate canvas size (row 1 is offset, so needs extra width)
         hex_w = self._hex_size * math.sqrt(3)
         hex_h = self._hex_size * 1.5
-        canvas_w = int(hex_w * 10 + self._hex_size)
+        canvas_w = int(hex_w * 10.5 + self._hex_size)
         canvas_h = int(hex_h * 2 + self._hex_size)
 
         # Hexagon drawing area
@@ -1100,8 +1087,8 @@ class EditorWindow:
         hex_w = size * math.sqrt(3)  # Exact honeycomb horizontal spacing
         hex_h = size * 1.5  # Exact honeycomb vertical spacing
 
-        # 2-row layout: 10 hexes on top, 9 hexes below (offset)
-        row_counts = [10, 9]
+        # 2-row layout: 10 hexes on top, 10 hexes below (offset) - last is custom
+        row_counts = [10, 10]
         color_idx = 0
 
         for row, count in enumerate(row_counts):
@@ -1118,14 +1105,13 @@ class EditorWindow:
     def _draw_hex_palette(self, widget, cr) -> bool:
         """Draw hexagonal color palette with selection indicator."""
         import math
+        import cairo
 
         size = self._hex_size
 
         for cx, cy, idx in self._hex_positions:
-            if idx >= len(self._hex_palette):
-                break
-            r, g, b = self._hex_palette[idx]
-            is_selected = idx == getattr(self, "_selected_hex_idx", -1)
+            is_custom = (idx == self._custom_hex_idx)
+            is_selected = (idx == getattr(self, '_selected_hex_idx', -1))
 
             cr.save()
             cr.translate(cx, cy)
@@ -1137,8 +1123,25 @@ class EditorWindow:
                 cr.line_to(size * math.cos(angle), size * math.sin(angle))
             cr.close_path()
 
-            # Fill with color
-            cr.set_source_rgb(r, g, b)
+            if is_custom:
+                # Draw rainbow gradient for custom color picker
+                gradient = cairo.LinearGradient(-size, 0, size, 0)
+                gradient.add_color_stop_rgb(0.0, 1, 0, 0)      # Red
+                gradient.add_color_stop_rgb(0.17, 1, 0.5, 0)   # Orange
+                gradient.add_color_stop_rgb(0.33, 1, 1, 0)     # Yellow
+                gradient.add_color_stop_rgb(0.5, 0, 1, 0)      # Green
+                gradient.add_color_stop_rgb(0.67, 0, 0.5, 1)   # Blue
+                gradient.add_color_stop_rgb(0.83, 0.5, 0, 1)   # Indigo
+                gradient.add_color_stop_rgb(1.0, 1, 0, 0.5)    # Violet
+                cr.set_source(gradient)
+            else:
+                # Regular preset color
+                if idx < len(self._hex_palette):
+                    r, g, b = self._hex_palette[idx]
+                else:
+                    r, g, b = 0.5, 0.5, 0.5
+                cr.set_source_rgb(r, g, b)
+
             cr.fill_preserve()
 
             # Draw border - highlight selected
@@ -1163,17 +1166,39 @@ class EditorWindow:
 
         # Find which hexagon was clicked
         for cx, cy, idx in self._hex_positions:
-            if idx >= len(self._hex_palette):
-                break
             dist = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
             if dist < size * 0.9:
-                r, g, b = self._hex_palette[idx]
-                self._selected_hex_idx = idx
-                self._set_color_rgb(r, g, b)
-                self._hex_canvas.queue_draw()  # Redraw to show selection
+                if idx == self._custom_hex_idx:
+                    # Open color chooser dialog
+                    self._open_color_chooser()
+                elif idx < len(self._hex_palette):
+                    r, g, b = self._hex_palette[idx]
+                    self._selected_hex_idx = idx
+                    self._set_color_rgb(r, g, b)
+                    self._hex_canvas.queue_draw()
                 return True
 
         return False
+
+    def _open_color_chooser(self) -> None:
+        """Open GTK color chooser dialog for custom color."""
+        dialog = Gtk.ColorChooserDialog(title=_("Choose Color"))
+        dialog.set_use_alpha(False)
+
+        # Set current custom color as starting point
+        r, g, b = self._custom_color
+        rgba = Gdk.RGBA(red=r, green=g, blue=b, alpha=1.0)
+        dialog.set_rgba(rgba)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            rgba = dialog.get_rgba()
+            self._custom_color = (rgba.red, rgba.green, rgba.blue)
+            self._selected_hex_idx = self._custom_hex_idx
+            self._set_color_rgb(rgba.red, rgba.green, rgba.blue)
+            self._hex_canvas.queue_draw()
+
+        dialog.destroy()
 
     def _create_stamp_popover(self) -> None:
         """Create stamp selector popover."""
