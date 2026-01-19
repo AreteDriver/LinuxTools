@@ -13,10 +13,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+import uvicorn
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import uvicorn
 
 # Add G13_Linux to path
 G13_ROOT = Path(__file__).parent.parent.parent
@@ -311,7 +311,7 @@ device_task: Optional[asyncio.Task] = None
 async def device_event_loop():
     """Poll device for events and broadcast to clients."""
     try:
-        from g13_linux.device import find_device, LibUSBDevice
+        from g13_linux.device import find_device
         from g13_linux.gui.models.event_decoder import EventDecoder
 
         decoder = EventDecoder()

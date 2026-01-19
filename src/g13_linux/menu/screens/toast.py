@@ -4,10 +4,10 @@ Toast Screen
 Temporary notification overlay.
 """
 
-from ..screen import Screen, InputEvent
 from ...lcd.canvas import Canvas
-from ...lcd.fonts import FONT_5X7, FONT_4X6
+from ...lcd.fonts import FONT_4X6
 from ...lcd.icons import Icon
+from ..screen import InputEvent, Screen
 
 
 class ToastScreen(Screen):

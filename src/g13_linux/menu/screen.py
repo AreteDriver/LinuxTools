@@ -9,8 +9,8 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .manager import ScreenManager
     from ..lcd.canvas import Canvas
+    from .manager import ScreenManager
 
 
 class InputEvent(Enum):

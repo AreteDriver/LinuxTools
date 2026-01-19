@@ -170,7 +170,7 @@ class Canvas:
         Returns:
             Width of rendered text in pixels
         """
-        from .fonts import FONT_5X7, Font
+        from .fonts import FONT_5X7
 
         if font is None:
             font = FONT_5X7

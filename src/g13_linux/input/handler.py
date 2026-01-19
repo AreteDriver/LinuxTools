@@ -9,8 +9,8 @@ import threading
 import time
 from typing import Callable
 
-from ..menu.screen import InputEvent
 from ..gui.models.event_decoder import EventDecoder
+from ..menu.screen import InputEvent
 
 logger = logging.getLogger(__name__)
 

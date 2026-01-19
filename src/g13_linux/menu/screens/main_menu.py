@@ -4,8 +4,8 @@ Main Menu Screen
 Top-level menu providing access to all settings.
 """
 
+from ...lcd.icons import ICON_INFO, ICON_LED, ICON_MACRO, ICON_PROFILE, ICON_SETTINGS
 from ..items import MenuItem
-from ...lcd.icons import ICON_PROFILE, ICON_MACRO, ICON_LED, ICON_SETTINGS, ICON_INFO
 from .base_menu import MenuScreen
 
 

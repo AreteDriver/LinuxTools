@@ -5,11 +5,11 @@ Data structures for menu entries.
 """
 
 from dataclasses import dataclass, field
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from .screen import Screen
     from ..lcd.icons import Icon
+    from .screen import Screen
 
 
 @dataclass

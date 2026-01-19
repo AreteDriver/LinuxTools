@@ -6,11 +6,10 @@ Manages screen stack and rendering for G13 LCD menu system.
 
 import logging
 import threading
-import time
 from typing import TYPE_CHECKING
 
 from ..lcd.canvas import Canvas
-from .screen import Screen, InputEvent
+from .screen import InputEvent, Screen
 
 if TYPE_CHECKING:
     from ..hardware.lcd import G13LCD

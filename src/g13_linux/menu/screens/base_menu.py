@@ -4,10 +4,10 @@ Base Menu Screen
 Reusable menu screen with navigation support.
 """
 
-from ..screen import Screen, InputEvent
-from ..items import MenuItem
 from ...lcd.canvas import Canvas
-from ...lcd.fonts import FONT_5X7, FONT_4X6
+from ...lcd.fonts import FONT_4X6, FONT_5X7
+from ..items import MenuItem
+from ..screen import InputEvent, Screen
 
 
 class MenuScreen(Screen):

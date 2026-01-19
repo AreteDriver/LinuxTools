@@ -23,9 +23,9 @@ __version__ = "1.5.5"
 __author__ = "AreteDriver"
 __license__ = "MIT"
 
+from .daemon import G13Daemon
 from .device import G13_PRODUCT_ID, G13_VENDOR_ID, open_g13, read_event
 from .mapper import G13Mapper
-from .daemon import G13Daemon
 
 __all__ = [
     "open_g13",
