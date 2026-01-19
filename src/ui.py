@@ -2938,7 +2938,6 @@ class MainWindow:
             font-size: 10px;
             font-weight: 500;
             letter-spacing: 2px;
-            text-transform: uppercase;
         }
         .likx-icon-btn {
             background: transparent;
