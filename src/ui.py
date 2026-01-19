@@ -18,7 +18,13 @@ except (ImportError, ValueError):
 
 from . import capture as capture_module
 from . import config
-from .capture import CaptureMode, CaptureResult, capture, copy_to_clipboard, save_capture
+from .capture import (
+    CaptureMode,
+    CaptureResult,
+    capture,
+    copy_to_clipboard,
+    save_capture,
+)
 from .editor import ArrowStyle, Color, EditorState, ToolType, render_elements
 from .effects import (
     add_background,
@@ -2771,7 +2777,9 @@ class MainWindow:
 
         # Settings button
         settings_btn = Gtk.Button()
-        settings_icon = Gtk.Image.new_from_icon_name("emblem-system-symbolic", Gtk.IconSize.MENU)
+        settings_icon = Gtk.Image.new_from_icon_name(
+            "emblem-system-symbolic", Gtk.IconSize.MENU
+        )
         settings_btn.set_image(settings_icon)
         settings_btn.set_tooltip_text(_("Settings"))
         settings_btn.get_style_context().add_class("likx-icon-btn")
@@ -2780,7 +2788,9 @@ class MainWindow:
 
         # Close button
         close_btn = Gtk.Button()
-        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
+        close_icon = Gtk.Image.new_from_icon_name(
+            "window-close-symbolic", Gtk.IconSize.MENU
+        )
         close_btn.set_image(close_icon)
         close_btn.get_style_context().add_class("likx-close-btn")
         close_btn.connect("clicked", lambda w: self._on_delete_event(w, None))
@@ -2799,10 +2809,28 @@ class MainWindow:
 
         # Main capture buttons - 2x2 grid with symbolic icons
         primary_buttons = [
-            ("edit-select-all-symbolic", _("Selection (Ctrl+Shift+R)"), self._on_region, 0, 0),
-            ("view-fullscreen-symbolic", _("Fullscreen (Ctrl+Shift+F)"), self._on_fullscreen, 1, 0),
+            (
+                "edit-select-all-symbolic",
+                _("Selection (Ctrl+Shift+R)"),
+                self._on_region,
+                0,
+                0,
+            ),
+            (
+                "view-fullscreen-symbolic",
+                _("Fullscreen (Ctrl+Shift+F)"),
+                self._on_fullscreen,
+                1,
+                0,
+            ),
             ("window-new-symbolic", _("Window (Ctrl+Shift+W)"), self._on_window, 0, 1),
-            ("media-record-symbolic", _("Record GIF (Ctrl+Alt+G)"), self._on_record_gif, 1, 1),
+            (
+                "media-record-symbolic",
+                _("Record GIF (Ctrl+Alt+G)"),
+                self._on_record_gif,
+                1,
+                1,
+            ),
         ]
 
         for icon_name, tip, callback, col, row in primary_buttons:
@@ -2825,7 +2853,11 @@ class MainWindow:
             ("document-open-symbolic", _("Open Image")),
             ("folder-pictures-symbolic", _("History")),
         ]
-        secondary_callbacks = [self._on_scroll_capture, self._on_open_image, self._on_history]
+        secondary_callbacks = [
+            self._on_scroll_capture,
+            self._on_open_image,
+            self._on_history,
+        ]
 
         for (icon_name, tip), callback in zip(secondary_buttons, secondary_callbacks):
             btn = Gtk.Button()
@@ -3148,7 +3180,9 @@ class MainWindow:
         if copy_to_clipboard(result):
             show_notification(_("Copied"), _("Screenshot copied to clipboard"))
         else:
-            show_notification(_("Error"), _("Failed to copy to clipboard"), icon="dialog-error")
+            show_notification(
+                _("Error"), _("Failed to copy to clipboard"), icon="dialog-error"
+            )
 
     def _quick_edit(self, result: CaptureResult) -> None:
         """Open capture in editor."""
