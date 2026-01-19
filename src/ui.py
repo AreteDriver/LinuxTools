@@ -1049,7 +1049,7 @@ class EditorWindow:
     def _setup_inline_hex_picker(self) -> None:
         """Create inline hexagonal color picker for toolbar."""
         import math
-        from src.config import load_config, save_config
+        from src.config import load_config
 
         # Preset colors (14 colors) - these stay at top for consistency
         self._preset_colors = [
