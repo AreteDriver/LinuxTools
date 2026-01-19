@@ -1049,31 +1049,27 @@ class EditorWindow:
     def _setup_inline_hex_picker(self) -> None:
         """Create inline hexagonal color picker for toolbar."""
         import math
+        from src.config import load_config, save_config
 
-        # Compact 2-row honeycomb color palette - 19 preset + 1 custom
-        self._hex_palette = [
-            # Row 0 (10 hexes): grays + warm colors
-            (0, 0, 0),
-            (0.4, 0.4, 0.4),
-            (0.75, 0.75, 0.75),
-            (1, 1, 1),
-            (0.5, 0, 0),
-            (1, 0, 0),
-            (1, 0.5, 0),
-            (1, 1, 0),
-            (0.5, 0.5, 0),
-            (0, 0.5, 0),
-            # Row 1 (9 hexes, offset): greens, blues, purples + custom slot
-            (0, 0.8, 0),
-            (0, 0.8, 0.8),
-            (0, 0.5, 0.5),
-            (0, 0, 0.5),
-            (0, 0, 1),
-            (0.3, 0, 0.5),
-            (0.6, 0.3, 1),
-            (1, 0.4, 0.7),
-            (0.5, 0, 0.3),
+        # Load recent colors from config (default to common colors)
+        cfg = load_config()
+        default_recent = [
+            (0, 0, 0), (1, 1, 1), (1, 0, 0), (0, 0.5, 0), (0, 0, 1)
         ]
+        self._recent_colors = [tuple(c) for c in cfg.get("recent_colors", default_recent)]
+
+        # Preset colors (14 colors)
+        self._preset_colors = [
+            # Warm colors
+            (0.5, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            # Cool colors
+            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.5, 0.5), (0, 0, 0.5),
+            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
+        ]
+
+        # Combined palette: 5 recent + 14 preset = 19 colors + 1 custom
+        self._hex_palette = list(self._recent_colors) + self._preset_colors
+        self._recent_count = 5  # First 5 hexes are recent colors
         self._custom_color = (0.5, 0.5, 0.5)  # Default custom color
         self._custom_hex_idx = 19  # Index for custom color picker hex
         self._hex_size = 9  # Small for toolbar
@@ -1190,6 +1186,9 @@ class EditorWindow:
                     r, g, b = self._hex_palette[idx]
                     self._selected_hex_idx = idx
                     self._set_color_rgb(r, g, b)
+                    # Add to recent colors if it's a preset (not already recent)
+                    if idx >= self._recent_count:
+                        self._add_to_recent_colors(r, g, b)
                     self._hex_canvas.queue_draw()
                 return True
 
@@ -1211,9 +1210,38 @@ class EditorWindow:
             self._custom_color = (rgba.red, rgba.green, rgba.blue)
             self._selected_hex_idx = self._custom_hex_idx
             self._set_color_rgb(rgba.red, rgba.green, rgba.blue)
+            self._add_to_recent_colors(rgba.red, rgba.green, rgba.blue)
             self._hex_canvas.queue_draw()
 
         dialog.destroy()
+
+    def _add_to_recent_colors(self, r: float, g: float, b: float) -> None:
+        """Add a color to recent colors list and save to config."""
+        from src.config import load_config, save_config
+
+        color = (r, g, b)
+
+        # Don't add if already the most recent
+        if self._recent_colors and self._recent_colors[0] == color:
+            return
+
+        # Remove if already in list (to move to front)
+        if color in self._recent_colors:
+            self._recent_colors.remove(color)
+
+        # Add to front
+        self._recent_colors.insert(0, color)
+
+        # Keep only 5 recent colors
+        self._recent_colors = self._recent_colors[:5]
+
+        # Update palette
+        self._hex_palette = list(self._recent_colors) + self._preset_colors
+
+        # Save to config
+        cfg = load_config()
+        cfg["recent_colors"] = [list(c) for c in self._recent_colors]
+        save_config(cfg)
 
     def _create_stamp_popover(self) -> None:
         """Create stamp selector popover."""
