@@ -68,7 +68,7 @@ jobs:
       contents: write
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
 
@@ -93,7 +93,7 @@ jobs:
     continue-on-error: true  # Don't fail release if SNAP_STORE_TOKEN not set
     steps:
       - name: Download snap artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: snap
           path: .
