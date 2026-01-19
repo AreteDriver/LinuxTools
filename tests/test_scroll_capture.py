@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 
-
 class TestScrollCaptureModuleImport:
     """Test scroll capture module imports."""
 
@@ -23,7 +22,7 @@ class TestScrollCaptureModuleImport:
             success=True,
             filepath=Path("/tmp/test.png"),
             frame_count=5,
-            total_height=1000
+            total_height=1000,
         )
         assert result.success is True
         assert result.filepath == Path("/tmp/test.png")
@@ -415,6 +414,17 @@ class TestStopCapture:
         assert hasattr(manager, "stop_requested")
         assert manager.stop_requested is False
 
+    def test_stop_capture_sets_flag(self):
+        """Test that stop_capture sets stop_requested flag."""
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+        assert manager.stop_requested is False
+
+        manager.stop_capture()
+
+        assert manager.stop_requested is True
+
 
 class TestConfigIntegration:
     """Test integration with config module."""
@@ -454,3 +464,422 @@ class TestConfigIntegration:
         cfg = config.load_config()
         assert "scroll_ignore_top" in cfg
         assert "scroll_ignore_bottom" in cfg
+
+
+class TestScrollState:
+    """Test ScrollState enum."""
+
+    def test_scroll_state_values(self):
+        """Test ScrollState enum values."""
+        from src.scroll_capture import ScrollState
+
+        assert ScrollState.IDLE.value == "idle"
+        assert ScrollState.CAPTURING.value == "capturing"
+        assert ScrollState.STITCHING.value == "stitching"
+        assert ScrollState.COMPLETED.value == "completed"
+        assert ScrollState.ERROR.value == "error"
+
+
+class TestFinishCapture:
+    """Test finish_capture method."""
+
+    def test_finish_capture_no_frames(self):
+        """Test finish_capture with no frames."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        manager.frames = []
+
+        result = manager.finish_capture()
+
+        assert result.success is False
+        assert "No frames" in result.error
+        assert manager.state == ScrollState.ERROR
+
+    def test_finish_capture_one_frame(self):
+        """Test finish_capture with single frame."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        mock_pixbuf = MagicMock()
+        mock_pixbuf.get_height.return_value = 500
+        manager.frames = [mock_pixbuf]
+
+        result = manager.finish_capture()
+
+        assert result.success is True
+        assert result.frame_count == 1
+        assert result.total_height == 500
+        assert manager.state == ScrollState.COMPLETED
+
+    def test_finish_capture_multiple_frames(self):
+        """Test finish_capture with multiple frames."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        mock_pixbuf1 = MagicMock()
+        mock_pixbuf1.get_height.return_value = 500
+        mock_pixbuf1.get_width.return_value = 800
+        mock_pixbuf2 = MagicMock()
+        mock_pixbuf2.get_height.return_value = 500
+        mock_pixbuf2.get_width.return_value = 800
+        manager.frames = [mock_pixbuf1, mock_pixbuf2]
+        manager.overlaps = [100]
+
+        with patch.object(manager, "_stitch_frames") as mock_stitch:
+            mock_stitched = MagicMock()
+            mock_stitched.get_height.return_value = 900
+            mock_stitch.return_value = mock_stitched
+
+            result = manager.finish_capture()
+
+        assert result.success is True
+        assert result.frame_count == 2
+        assert manager.state == ScrollState.COMPLETED
+
+    def test_finish_capture_stitch_error(self):
+        """Test finish_capture when stitching fails."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        mock_pixbuf = MagicMock()
+        manager.frames = [mock_pixbuf, mock_pixbuf]
+        manager.overlaps = [50]
+
+        with patch.object(
+            manager, "_stitch_frames", side_effect=Exception("Stitch error")
+        ):
+            result = manager.finish_capture()
+
+        assert result.success is False
+        assert "Stitch" in result.error
+        assert manager.state == ScrollState.ERROR
+
+
+class TestReset:
+    """Test reset method."""
+
+    def test_reset_clears_state(self):
+        """Test that reset clears manager state."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        manager.state = ScrollState.CAPTURING
+        manager.frames = [MagicMock()]
+        manager.overlaps = [50]
+        manager.stop_requested = True
+
+        manager.reset()
+
+        assert manager.state == ScrollState.IDLE
+        assert manager.frames == []
+        assert manager.overlaps == []
+        assert manager.stop_requested is False
+
+
+class TestEstimateTotalHeight:
+    """Test _estimate_total_height method."""
+
+    def test_estimate_height_no_frames(self):
+        """Test height estimation with no frames."""
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+        manager.frames = []
+
+        result = manager._estimate_total_height()
+
+        assert result == 0
+
+    def test_estimate_height_one_frame(self):
+        """Test height estimation with one frame."""
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+        mock_pixbuf = MagicMock()
+        mock_pixbuf.get_height.return_value = 600
+        manager.frames = [mock_pixbuf]
+        manager.overlaps = []
+
+        result = manager._estimate_total_height()
+
+        assert result == 600
+
+    def test_estimate_height_multiple_frames(self):
+        """Test height estimation with multiple frames."""
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+        mock_pixbuf1 = MagicMock()
+        mock_pixbuf1.get_height.return_value = 600
+        mock_pixbuf2 = MagicMock()
+        mock_pixbuf2.get_height.return_value = 600
+        mock_pixbuf3 = MagicMock()
+        mock_pixbuf3.get_height.return_value = 600
+        manager.frames = [mock_pixbuf1, mock_pixbuf2, mock_pixbuf3]
+        manager.overlaps = [100, 100]
+
+        result = manager._estimate_total_height()
+
+        # 600 + (600-100) + (600-100) = 1600
+        assert result == 1600
+
+
+class TestCaptureFrameDetailed:
+    """Detailed tests for capture_frame method."""
+
+    def test_capture_frame_wrong_state(self):
+        """Test capture_frame when not in capturing state."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        manager.state = ScrollState.IDLE
+
+        should_continue, error = manager.capture_frame()
+
+        assert should_continue is False
+        assert "Not in capturing state" in error
+
+    def test_capture_frame_stop_requested(self):
+        """Test capture_frame when stop is requested."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        manager.state = ScrollState.CAPTURING
+        manager.stop_requested = True
+
+        should_continue, error = manager.capture_frame()
+
+        assert should_continue is False
+        assert error is None
+
+    def test_capture_frame_max_frames_reached(self):
+        """Test capture_frame when max frames reached."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        manager.state = ScrollState.CAPTURING
+        manager.frames = [MagicMock() for _ in range(50)]  # Default max
+
+        with patch(
+            "src.scroll_capture.config.load_config",
+            return_value={"scroll_max_frames": 50},
+        ):
+            should_continue, error = manager.capture_frame()
+
+        assert should_continue is False
+        assert error is None
+
+
+class TestStartCaptureDetailed:
+    """Detailed tests for start_capture method."""
+
+    def test_start_capture_already_capturing(self):
+        """Test start_capture when already capturing."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        manager.state = ScrollState.CAPTURING
+
+        success, error = manager.start_capture(0, 0, 100, 100)
+
+        assert success is False
+        assert "Already capturing" in error
+
+    def test_start_capture_region_too_small(self):
+        """Test start_capture with region too small."""
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+
+        with patch.object(manager, "is_available", return_value=(True, None)):
+            success, error = manager.start_capture(0, 0, 30, 30)
+
+        assert success is False
+        assert "too small" in error.lower()
+
+    def test_start_capture_success(self):
+        """Test start_capture success."""
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
+
+        manager = ScrollCaptureManager()
+        on_progress = MagicMock()
+        on_complete = MagicMock()
+
+        with patch.object(manager, "is_available", return_value=(True, None)):
+            success, error = manager.start_capture(
+                100, 100, 400, 300, on_progress=on_progress, on_complete=on_complete
+            )
+
+        assert success is True
+        assert error is None
+        assert manager.region == (100, 100, 400, 300)
+        assert manager.state == ScrollState.CAPTURING
+        assert manager._on_progress == on_progress
+        assert manager._on_complete == on_complete
+
+
+class TestScrollDownDetailed:
+    """Detailed tests for scroll_down method."""
+
+    def test_scroll_down_x11(self):
+        """Test scroll_down on X11."""
+        from src.scroll_capture import ScrollCaptureManager
+        from src.capture import DisplayServer
+
+        manager = ScrollCaptureManager()
+        manager.display_server = DisplayServer.X11
+
+        with patch.object(manager, "_scroll_x11", return_value=True) as mock_scroll:
+            result = manager.scroll_down()
+
+        assert result is True
+        mock_scroll.assert_called_once()
+
+    def test_scroll_down_wayland(self):
+        """Test scroll_down on Wayland."""
+        from src.scroll_capture import ScrollCaptureManager
+        from src.capture import DisplayServer
+
+        manager = ScrollCaptureManager()
+        manager.display_server = DisplayServer.WAYLAND
+
+        with patch.object(manager, "_scroll_wayland", return_value=True) as mock_scroll:
+            result = manager.scroll_down()
+
+        assert result is True
+        mock_scroll.assert_called_once()
+
+    def test_scroll_down_unknown_uses_x11(self):
+        """Test scroll_down with unknown display server uses X11."""
+        from src.scroll_capture import ScrollCaptureManager
+        from src.capture import DisplayServer
+
+        manager = ScrollCaptureManager()
+        manager.display_server = DisplayServer.UNKNOWN
+
+        with patch.object(manager, "_scroll_x11", return_value=True) as mock_scroll:
+            result = manager.scroll_down()
+
+        assert result is True
+        mock_scroll.assert_called_once()
+
+
+class TestScrollX11Detailed:
+    """Detailed tests for _scroll_x11 method."""
+
+    def test_scroll_x11_timeout(self):
+        """Test _scroll_x11 handles timeout."""
+        import subprocess
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 1)):
+            result = manager._scroll_x11()
+
+        assert result is False
+
+    def test_scroll_x11_exception(self):
+        """Test _scroll_x11 handles exception."""
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+
+        with patch("subprocess.run", side_effect=Exception("Error")):
+            result = manager._scroll_x11()
+
+        assert result is False
+
+
+class TestScrollWaylandDetailed:
+    """Detailed tests for _scroll_wayland method."""
+
+    def test_scroll_wayland_ydotool_timeout(self):
+        """Test _scroll_wayland handles ydotool timeout."""
+        import subprocess
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+        manager.ydotool_available = True
+        manager.wtype_available = False
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 1)):
+            result = manager._scroll_wayland()
+
+        assert result is False
+
+    def test_scroll_wayland_wtype_timeout(self):
+        """Test _scroll_wayland handles wtype timeout."""
+        import subprocess
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+        manager.ydotool_available = False
+        manager.wtype_available = True
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 1)):
+            result = manager._scroll_wayland()
+
+        assert result is False
+
+
+class TestIsAvailableDetailed:
+    """Detailed tests for is_available method."""
+
+    def test_is_available_gtk_not_available(self):
+        """Test is_available when GTK not available."""
+        from src import scroll_capture as sc
+
+        manager = sc.ScrollCaptureManager()
+
+        with patch.object(sc, "GTK_AVAILABLE", False):
+            available, error = manager.is_available()
+
+        assert available is False
+        assert "GTK" in error
+
+    def test_is_available_opencv_not_available(self):
+        """Test is_available when OpenCV not available."""
+        from src import scroll_capture as sc
+
+        manager = sc.ScrollCaptureManager()
+
+        with patch.object(sc, "GTK_AVAILABLE", True):
+            with patch.object(sc, "_ensure_opencv", return_value=False):
+                available, error = manager.is_available()
+
+        assert available is False
+        assert "OpenCV" in error
+
+    def test_is_available_unknown_display_without_xdotool(self):
+        """Test is_available with unknown display and no xdotool."""
+        from src import scroll_capture as sc
+        from src.capture import DisplayServer
+
+        manager = sc.ScrollCaptureManager()
+        manager.display_server = DisplayServer.UNKNOWN
+        manager.xdotool_available = False
+
+        with patch.object(sc, "GTK_AVAILABLE", True):
+            with patch.object(sc, "_ensure_opencv", return_value=True):
+                available, error = manager.is_available()
+
+        assert available is False
+        assert "xdotool" in error.lower()
+
+
+class TestCheckWtypeDetailed:
+    """Detailed tests for _check_wtype method."""
+
+    def test_check_wtype_timeout(self):
+        """Test _check_wtype handles timeout."""
+        import subprocess
+        from src.scroll_capture import ScrollCaptureManager
+
+        manager = ScrollCaptureManager()
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("cmd", 2)):
+            result = manager._check_wtype()
+
+        assert result is False
