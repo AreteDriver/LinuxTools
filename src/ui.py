@@ -2640,14 +2640,18 @@ class MainWindow:
         top_bar.pack_start(Gtk.Box(), True, True, 0)
 
         # Settings button
-        settings_btn = Gtk.Button(label="\u2699")
+        settings_btn = Gtk.Button()
+        settings_icon = Gtk.Image.new_from_icon_name("emblem-system-symbolic", Gtk.IconSize.MENU)
+        settings_btn.set_image(settings_icon)
         settings_btn.set_tooltip_text(_("Settings"))
         settings_btn.get_style_context().add_class("likx-icon-btn")
         settings_btn.connect("clicked", self._on_settings)
         top_bar.pack_start(settings_btn, False, False, 0)
 
         # Close button
-        close_btn = Gtk.Button(label="\u2715")
+        close_btn = Gtk.Button()
+        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
+        close_btn.set_image(close_icon)
         close_btn.get_style_context().add_class("likx-close-btn")
         close_btn.connect("clicked", lambda w: self._on_delete_event(w, None))
         top_bar.pack_start(close_btn, False, False, 0)
@@ -2663,16 +2667,18 @@ class MainWindow:
         grid.set_margin_end(12)
         main_box.pack_start(grid, False, False, 0)
 
-        # Main capture buttons - 2x2 grid
+        # Main capture buttons - 2x2 grid with symbolic icons
         primary_buttons = [
-            ("\u25a2", _("Selection (Ctrl+Shift+R)"), self._on_region, 0, 0),
-            ("\u25a3", _("Fullscreen (Ctrl+Shift+F)"), self._on_fullscreen, 1, 0),
-            ("\u25a1", _("Window (Ctrl+Shift+W)"), self._on_window, 0, 1),
-            ("\u25cf", _("Record GIF (Ctrl+Alt+G)"), self._on_record_gif, 1, 1),
+            ("edit-select-all-symbolic", _("Selection (Ctrl+Shift+R)"), self._on_region, 0, 0),
+            ("view-fullscreen-symbolic", _("Fullscreen (Ctrl+Shift+F)"), self._on_fullscreen, 1, 0),
+            ("window-new-symbolic", _("Window (Ctrl+Shift+W)"), self._on_window, 0, 1),
+            ("media-record-symbolic", _("Record GIF (Ctrl+Alt+G)"), self._on_record_gif, 1, 1),
         ]
 
-        for icon, tip, callback, col, row in primary_buttons:
-            btn = Gtk.Button(label=icon)
+        for icon_name, tip, callback, col, row in primary_buttons:
+            btn = Gtk.Button()
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.LARGE_TOOLBAR)
+            btn.set_image(icon)
             btn.set_tooltip_text(tip)
             btn.get_style_context().add_class("likx-capture-btn")
             btn.connect("clicked", callback)
@@ -2685,13 +2691,16 @@ class MainWindow:
         main_box.pack_start(secondary_box, False, False, 0)
 
         secondary_buttons = [
-            ("\u2913", _("Scroll Capture"), self._on_scroll_capture),
-            ("\u2750", _("Open Image"), self._on_open_image),
-            ("\u2630", _("History"), self._on_history),
+            ("go-down-symbolic", _("Scroll Capture")),
+            ("document-open-symbolic", _("Open Image")),
+            ("folder-pictures-symbolic", _("History")),
         ]
+        secondary_callbacks = [self._on_scroll_capture, self._on_open_image, self._on_history]
 
-        for icon, tip, callback in secondary_buttons:
-            btn = Gtk.Button(label=icon)
+        for (icon_name, tip), callback in zip(secondary_buttons, secondary_callbacks):
+            btn = Gtk.Button()
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)
+            btn.set_image(icon)
             btn.set_tooltip_text(tip)
             btn.get_style_context().add_class("likx-secondary-btn")
             btn.connect("clicked", callback)
