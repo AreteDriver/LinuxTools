@@ -53,8 +53,8 @@ class TestCmdRun:
         mock_handle.read.side_effect = KeyboardInterrupt
 
         with (
-            patch("g13_linux.cli.open_g13", return_value=mock_handle) as mock_open,
-            patch("g13_linux.cli.G13Mapper"),
+            patch("g13_linux.device.open_g13", return_value=mock_handle) as mock_open,
+            patch("g13_linux.mapper.G13Mapper"),
         ):
             args = MagicMock()
             args.simple = True  # Test simple mode which calls open_g13
@@ -65,7 +65,7 @@ class TestCmdRun:
 
     def test_cmd_run_handles_device_error(self, capsys):
         """Test cmd_run handles device open error in simple mode."""
-        with patch("g13_linux.cli.open_g13", side_effect=Exception("Device not found")):
+        with patch("g13_linux.device.open_g13", side_effect=Exception("Device not found")):
             args = MagicMock()
             args.simple = True  # Test simple mode
 
@@ -94,8 +94,8 @@ class TestCmdRun:
         mock_handle.read.side_effect = fake_read
 
         with (
-            patch("g13_linux.cli.open_g13", return_value=mock_handle),
-            patch("g13_linux.cli.G13Mapper", return_value=mock_mapper),
+            patch("g13_linux.device.open_g13", return_value=mock_handle),
+            patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper),
         ):
             args = MagicMock()
             args.simple = True  # Test simple mode
@@ -516,13 +516,13 @@ class TestCLIMissingCoverage:
     """Tests for edge cases to achieve 100% coverage."""
 
     def test_cmd_run_read_event_returns_none(self, capsys):
-        """Test cmd_run when read_event returns None (line 47->45)."""
+        """Test cmd_run when read returns None (simple mode)."""
         mock_handle = MagicMock()
         mock_mapper = MagicMock()
 
         call_count = [0]
 
-        def fake_read_event(h):
+        def fake_read(timeout_ms=None):
             call_count[0] += 1
             if call_count[0] == 1:
                 return None  # First call returns None
@@ -530,12 +530,14 @@ class TestCLIMissingCoverage:
                 return b"\x00" * 8  # Second call returns data
             raise KeyboardInterrupt  # Third call exits
 
+        mock_handle.read.side_effect = fake_read
+
         with (
             patch("g13_linux.device.open_g13", return_value=mock_handle),
-            patch("g13_linux.device.read_event", side_effect=fake_read_event),
             patch("g13_linux.mapper.G13Mapper", return_value=mock_mapper),
         ):
             args = MagicMock()
+            args.simple = True  # Test simple mode
             cmd_run(args)
 
         # Should only handle the one valid event (not the None)
