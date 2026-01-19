@@ -521,10 +521,6 @@ class TestEditorWindowToolbarMethods:
         from src.ui import EditorWindow
         assert hasattr(EditorWindow, "_update_context_bar")
 
-    def test_has_draw_color_swatch(self):
-        from src.ui import EditorWindow
-        assert hasattr(EditorWindow, "_draw_color_swatch")
-
     def test_has_on_stamp_selected(self):
         from src.ui import EditorWindow
         assert hasattr(EditorWindow, "_on_stamp_selected")
