@@ -3,6 +3,7 @@
 **Screenshot capture and annotation tool for Linux**
 
 [![CI](https://github.com/AreteDriver/LikX/actions/workflows/ci.yml/badge.svg)](https://github.com/AreteDriver/LikX/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/AreteDriver/LikX/actions/workflows/codeql.yml/badge.svg)](https://github.com/AreteDriver/LikX/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/AreteDriver/LikX)](https://github.com/AreteDriver/LikX/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
