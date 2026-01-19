@@ -1053,11 +1053,26 @@ class EditorWindow:
         # Compact 2-row honeycomb color palette - 19 preset + 1 custom
         self._hex_palette = [
             # Row 0 (10 hexes): grays + warm colors
-            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
-            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            (0, 0, 0),
+            (0.4, 0.4, 0.4),
+            (0.75, 0.75, 0.75),
+            (1, 1, 1),
+            (0.5, 0, 0),
+            (1, 0, 0),
+            (1, 0.5, 0),
+            (1, 1, 0),
+            (0.5, 0.5, 0),
+            (0, 0.5, 0),
             # Row 1 (9 hexes, offset): greens, blues, purples + custom slot
-            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.5, 0.5), (0, 0, 0.5),
-            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
+            (0, 0.8, 0),
+            (0, 0.8, 0.8),
+            (0, 0.5, 0.5),
+            (0, 0, 0.5),
+            (0, 0, 1),
+            (0.3, 0, 0.5),
+            (0.6, 0.3, 1),
+            (1, 0.4, 0.7),
+            (0.5, 0, 0.3),
         ]
         self._custom_color = (0.5, 0.5, 0.5)  # Default custom color
         self._custom_hex_idx = 19  # Index for custom color picker hex
@@ -1110,8 +1125,8 @@ class EditorWindow:
         size = self._hex_size
 
         for cx, cy, idx in self._hex_positions:
-            is_custom = (idx == self._custom_hex_idx)
-            is_selected = (idx == getattr(self, '_selected_hex_idx', -1))
+            is_custom = idx == self._custom_hex_idx
+            is_selected = idx == getattr(self, "_selected_hex_idx", -1)
 
             cr.save()
             cr.translate(cx, cy)
@@ -1126,13 +1141,13 @@ class EditorWindow:
             if is_custom:
                 # Draw rainbow gradient for custom color picker
                 gradient = cairo.LinearGradient(-size, 0, size, 0)
-                gradient.add_color_stop_rgb(0.0, 1, 0, 0)      # Red
-                gradient.add_color_stop_rgb(0.17, 1, 0.5, 0)   # Orange
-                gradient.add_color_stop_rgb(0.33, 1, 1, 0)     # Yellow
-                gradient.add_color_stop_rgb(0.5, 0, 1, 0)      # Green
-                gradient.add_color_stop_rgb(0.67, 0, 0.5, 1)   # Blue
-                gradient.add_color_stop_rgb(0.83, 0.5, 0, 1)   # Indigo
-                gradient.add_color_stop_rgb(1.0, 1, 0, 0.5)    # Violet
+                gradient.add_color_stop_rgb(0.0, 1, 0, 0)  # Red
+                gradient.add_color_stop_rgb(0.17, 1, 0.5, 0)  # Orange
+                gradient.add_color_stop_rgb(0.33, 1, 1, 0)  # Yellow
+                gradient.add_color_stop_rgb(0.5, 0, 1, 0)  # Green
+                gradient.add_color_stop_rgb(0.67, 0, 0.5, 1)  # Blue
+                gradient.add_color_stop_rgb(0.83, 0.5, 0, 1)  # Indigo
+                gradient.add_color_stop_rgb(1.0, 1, 0, 0.5)  # Violet
                 cr.set_source(gradient)
             else:
                 # Regular preset color
