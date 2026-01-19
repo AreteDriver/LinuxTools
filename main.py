@@ -16,6 +16,8 @@ Options:
 """
 
 import argparse
+import fcntl
+import os
 import sys
 from pathlib import Path
 
@@ -23,6 +25,26 @@ from src import __version__
 from src.config import load_config, get_save_path
 from src.capture import CaptureMode, capture, save_capture, copy_to_clipboard
 from src.notification import show_screenshot_saved, show_notification
+
+
+LOCK_FILE = Path.home() / ".cache" / "likx" / "likx.lock"
+
+
+def acquire_single_instance_lock():
+    """Acquire a lock to ensure only one instance runs.
+
+    Returns the lock file handle if acquired, None if another instance is running.
+    """
+    LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        lock_fd = open(LOCK_FILE, "w")
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        lock_fd.write(str(os.getpid()))
+        lock_fd.flush()
+        return lock_fd
+    except (IOError, OSError):
+        return None
 
 
 def parse_args():
@@ -82,6 +104,12 @@ def main():
 
     # If no capture mode specified, launch GUI
     if not (args.fullscreen or args.region or args.window):
+        # Ensure single instance
+        lock_fd = acquire_single_instance_lock()
+        if lock_fd is None:
+            print("LikX is already running.", file=sys.stderr)
+            sys.exit(0)
+
         try:
             from src.ui import run_app
 
@@ -89,6 +117,8 @@ def main():
         except Exception as e:
             print(f"Error launching GUI: {e}", file=sys.stderr)
             sys.exit(1)
+        finally:
+            lock_fd.close()
         return
 
     # Determine capture mode

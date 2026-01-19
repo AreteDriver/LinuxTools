@@ -2591,123 +2591,111 @@ class EditorWindow:
 
 
 class MainWindow:
-    """Main application window with GNOME Screenshot-style UI."""
+    """Main application window with sleek futuristic UI."""
 
     def __init__(self):
         if not GTK_AVAILABLE:
             raise RuntimeError("GTK is not available")
 
-        self._load_gnome_css()
+        self._load_futuristic_css()
 
-        self.window = Gtk.Window(title=_("Screenshot"))
-        self.window.set_default_size(400, -1)
+        self.window = Gtk.Window(title="LikX")
+        self.window.set_decorated(False)
         self.window.set_resizable(False)
         self.window.set_position(Gtk.WindowPosition.CENTER)
+        self.window.set_keep_above(True)
         self.window.connect("destroy", self._on_destroy)
         self.window.connect("delete-event", self._on_delete_event)
 
-        # GNOME-style HeaderBar
-        header = Gtk.HeaderBar()
-        header.set_show_close_button(True)
-        header.set_title(_("Screenshot"))
-        self.window.set_titlebar(header)
-
-        # Settings button in header
-        settings_btn = Gtk.Button.new_from_icon_name(
-            "emblem-system-symbolic", Gtk.IconSize.BUTTON
-        )
-        settings_btn.set_tooltip_text(_("Settings"))
-        settings_btn.connect("clicked", self._on_settings)
-        header.pack_end(settings_btn)
-
-        # History button in header
-        history_btn = Gtk.Button.new_from_icon_name(
-            "folder-pictures-symbolic", Gtk.IconSize.BUTTON
-        )
-        history_btn.set_tooltip_text(_("History"))
-        history_btn.connect("clicked", self._on_history)
-        header.pack_end(history_btn)
+        # Enable transparency
+        screen = self.window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual:
+            self.window.set_visual(visual)
+        self.window.set_app_paintable(True)
 
         self.hotkey_manager = HotkeyManager()
 
-        # Main content box
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
-        main_box.set_margin_top(24)
-        main_box.set_margin_bottom(24)
-        main_box.set_margin_start(24)
-        main_box.set_margin_end(24)
-        self.window.add(main_box)
+        # Main container with styling
+        frame = Gtk.EventBox()
+        frame.get_style_context().add_class("likx-frame")
+        self.window.add(frame)
 
-        # Capture mode section
-        mode_label = Gtk.Label()
-        mode_label.set_markup(_("<b>Capture Mode</b>"))
-        mode_label.set_xalign(0)
-        main_box.pack_start(mode_label, False, False, 0)
+        # Enable dragging the window
+        frame.connect("button-press-event", self._on_frame_click)
 
-        # Radio buttons for capture mode
-        mode_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        mode_box.set_margin_start(12)
-        main_box.pack_start(mode_box, False, False, 0)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        frame.add(main_box)
 
-        self.radio_screen = Gtk.RadioButton.new_with_label(
-            None, _("Grab the whole screen")
-        )
-        mode_box.pack_start(self.radio_screen, False, False, 0)
+        # Top bar with title and close
+        top_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        top_bar.get_style_context().add_class("likx-topbar")
+        main_box.pack_start(top_bar, False, False, 0)
 
-        self.radio_window = Gtk.RadioButton.new_with_label_from_widget(
-            self.radio_screen, _("Grab the current window")
-        )
-        mode_box.pack_start(self.radio_window, False, False, 0)
+        title = Gtk.Label(label="LikX")
+        title.get_style_context().add_class("likx-title")
+        top_bar.pack_start(title, False, False, 8)
 
-        self.radio_selection = Gtk.RadioButton.new_with_label_from_widget(
-            self.radio_screen, _("Grab a selected area")
-        )
-        self.radio_selection.set_active(True)
-        mode_box.pack_start(self.radio_selection, False, False, 0)
+        # Spacer
+        top_bar.pack_start(Gtk.Box(), True, True, 0)
 
-        # Delay section
-        delay_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        delay_box.set_margin_top(12)
-        main_box.pack_start(delay_box, False, False, 0)
+        # Settings button
+        settings_btn = Gtk.Button(label="\u2699")
+        settings_btn.set_tooltip_text(_("Settings"))
+        settings_btn.get_style_context().add_class("likx-icon-btn")
+        settings_btn.connect("clicked", self._on_settings)
+        top_bar.pack_start(settings_btn, False, False, 0)
 
-        delay_label = Gtk.Label(label=_("Delay in seconds:"))
-        delay_box.pack_start(delay_label, False, False, 0)
+        # Close button
+        close_btn = Gtk.Button(label="\u2715")
+        close_btn.get_style_context().add_class("likx-close-btn")
+        close_btn.connect("clicked", lambda w: self._on_delete_event(w, None))
+        top_bar.pack_start(close_btn, False, False, 0)
 
-        self.delay_spin = Gtk.SpinButton.new_with_range(0, 60, 1)
-        self.delay_spin.set_value(0)
-        delay_box.pack_start(self.delay_spin, False, False, 0)
+        # Primary capture buttons (2x2 grid)
+        grid = Gtk.Grid()
+        grid.set_row_spacing(6)
+        grid.set_column_spacing(6)
+        grid.set_halign(Gtk.Align.CENTER)
+        grid.set_margin_top(10)
+        grid.set_margin_bottom(6)
+        grid.set_margin_start(12)
+        grid.set_margin_end(12)
+        main_box.pack_start(grid, False, False, 0)
 
-        # Extra options expander
-        expander = Gtk.Expander(label=_("More options"))
-        expander.set_margin_top(6)
-        main_box.pack_start(expander, False, False, 0)
+        # Main capture buttons - 2x2 grid
+        primary_buttons = [
+            ("\u25a2", _("Selection (Ctrl+Shift+R)"), self._on_region, 0, 0),
+            ("\u25a3", _("Fullscreen (Ctrl+Shift+F)"), self._on_fullscreen, 1, 0),
+            ("\u25a1", _("Window (Ctrl+Shift+W)"), self._on_window, 0, 1),
+            ("\u25cf", _("Record GIF (Ctrl+Alt+G)"), self._on_record_gif, 1, 1),
+        ]
 
-        extra_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        extra_box.set_margin_top(12)
-        extra_box.set_margin_start(12)
-        expander.add(extra_box)
+        for icon, tip, callback, col, row in primary_buttons:
+            btn = Gtk.Button(label=icon)
+            btn.set_tooltip_text(tip)
+            btn.get_style_context().add_class("likx-capture-btn")
+            btn.connect("clicked", callback)
+            grid.attach(btn, col, row, 1, 1)
 
-        # GIF recording option
-        self.gif_btn = Gtk.Button.new_with_label(_("Record GIF"))
-        self.gif_btn.connect("clicked", self._on_record_gif)
-        extra_box.pack_start(self.gif_btn, False, False, 0)
+        # Secondary actions row
+        secondary_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        secondary_box.set_halign(Gtk.Align.CENTER)
+        secondary_box.set_margin_bottom(10)
+        main_box.pack_start(secondary_box, False, False, 0)
 
-        # Scroll capture option
-        self.scroll_btn = Gtk.Button.new_with_label(_("Scrolling Capture"))
-        self.scroll_btn.connect("clicked", self._on_scroll_capture)
-        extra_box.pack_start(self.scroll_btn, False, False, 0)
+        secondary_buttons = [
+            ("\u2913", _("Scroll Capture"), self._on_scroll_capture),
+            ("\u2750", _("Open Image"), self._on_open_image),
+            ("\u2630", _("History"), self._on_history),
+        ]
 
-        # Open image option
-        self.open_btn = Gtk.Button.new_with_label(_("Open Image..."))
-        self.open_btn.connect("clicked", self._on_open_image)
-        extra_box.pack_start(self.open_btn, False, False, 0)
-
-        # Take Screenshot button
-        self.capture_btn = Gtk.Button.new_with_label(_("Take Screenshot"))
-        self.capture_btn.get_style_context().add_class("suggested-action")
-        self.capture_btn.set_margin_top(12)
-        self.capture_btn.connect("clicked", self._on_capture)
-        main_box.pack_start(self.capture_btn, False, False, 0)
+        for icon, tip, callback in secondary_buttons:
+            btn = Gtk.Button(label=icon)
+            btn.set_tooltip_text(tip)
+            btn.get_style_context().add_class("likx-secondary-btn")
+            btn.connect("clicked", callback)
+            secondary_box.pack_start(btn, False, False, 0)
 
         # Initialize capture queue (hidden from UI but still functional)
         cfg = config.load_config()
@@ -2738,25 +2726,13 @@ class MainWindow:
             self.window.hide()
             self.tray.update_visibility(False)
 
-    def _on_capture(self, button: Gtk.Button) -> None:
-        """Handle Take Screenshot button click."""
-        delay = int(self.delay_spin.get_value())
-
-        if delay > 0:
-            self.window.hide()
-            GLib.timeout_add_seconds(delay, self._do_capture)
-        else:
-            self._do_capture()
-
-    def _do_capture(self) -> bool:
-        """Perform the actual capture based on selected mode."""
-        if self.radio_screen.get_active():
-            self._on_fullscreen(None)
-        elif self.radio_window.get_active():
-            self._on_window(None)
-        else:
-            self._on_region(None)
-        return False  # Don't repeat timeout
+    def _on_frame_click(self, widget, event):
+        """Allow dragging the window."""
+        if event.button == 1:
+            self.window.begin_move_drag(
+                event.button, int(event.x_root), int(event.y_root), event.time
+            )
+        return False
 
     def _init_tray(self) -> None:
         """Initialize system tray icon."""
@@ -2806,10 +2782,86 @@ class MainWindow:
         self.hotkey_manager.unregister_all()
         Gtk.main_quit()
 
-    def _load_gnome_css(self) -> None:
-        """Load GNOME-style CSS styling."""
+    def _load_futuristic_css(self) -> None:
+        """Load sleek futuristic CSS styling."""
         css = b"""
-        /* Use system defaults - minimal overrides for native look */
+        .likx-frame {
+            background: rgba(18, 18, 24, 0.95);
+            border-radius: 16px;
+            border: 1px solid rgba(80, 100, 160, 0.25);
+        }
+        .likx-topbar {
+            background: transparent;
+            padding: 6px 4px 2px 4px;
+        }
+        .likx-title {
+            color: rgba(120, 140, 200, 0.8);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .likx-icon-btn {
+            background: transparent;
+            border: none;
+            color: rgba(120, 140, 180, 0.6);
+            min-width: 20px;
+            min-height: 20px;
+            padding: 2px 5px;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+        .likx-icon-btn:hover {
+            color: rgba(160, 180, 240, 1);
+            background: rgba(60, 80, 140, 0.3);
+        }
+        .likx-close-btn {
+            background: transparent;
+            border: none;
+            color: rgba(180, 90, 90, 0.6);
+            min-width: 20px;
+            min-height: 20px;
+            padding: 2px 5px;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+        .likx-close-btn:hover {
+            color: rgba(255, 100, 100, 1);
+            background: rgba(180, 60, 60, 0.25);
+        }
+        .likx-capture-btn {
+            background: linear-gradient(180deg, rgba(50, 70, 120, 0.4) 0%, rgba(40, 55, 100, 0.3) 100%);
+            border: 1px solid rgba(80, 110, 180, 0.25);
+            border-radius: 10px;
+            color: rgba(170, 190, 255, 0.95);
+            min-width: 44px;
+            min-height: 44px;
+            padding: 6px;
+            font-size: 18px;
+        }
+        .likx-capture-btn:hover {
+            background: linear-gradient(180deg, rgba(70, 100, 180, 0.5) 0%, rgba(55, 80, 150, 0.4) 100%);
+            border-color: rgba(100, 140, 220, 0.5);
+            color: #ffffff;
+        }
+        .likx-capture-btn:active {
+            background: rgba(80, 120, 200, 0.6);
+        }
+        .likx-secondary-btn {
+            background: transparent;
+            border: 1px solid rgba(60, 80, 120, 0.2);
+            border-radius: 6px;
+            color: rgba(130, 150, 200, 0.7);
+            min-width: 28px;
+            min-height: 28px;
+            padding: 4px;
+            font-size: 12px;
+        }
+        .likx-secondary-btn:hover {
+            background: rgba(50, 70, 120, 0.3);
+            border-color: rgba(80, 110, 160, 0.4);
+            color: rgba(180, 200, 255, 1);
+        }
         """
         provider = Gtk.CssProvider()
         provider.load_from_data(css)
