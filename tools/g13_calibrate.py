@@ -24,8 +24,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-# Button click order
+# Button click order - includes LCD area first for reference positioning
 BUTTON_ORDER = [
+    "LCD",  # LCD display area (click top-left, then bottom-right)
     "M1",
     "M2",
     "M3",
@@ -56,6 +57,9 @@ BUTTON_ORDER = [
     "DOWN",
     "STICK",
 ]
+
+# Special items that need two clicks (top-left and bottom-right)
+TWO_CLICK_ITEMS = {"LCD", "STICK"}
 
 # Default button sizes
 BUTTON_SIZES = {
@@ -102,6 +106,8 @@ class G13Calibrator(QMainWindow):
         self.original_pixmap = QPixmap(image_path)
         self.positions: dict[str, tuple[int, int, int, int]] = {}
         self.current_idx = 0
+        # For two-click items, store the first click position
+        self._pending_first_click: tuple[int, int] | None = None
 
         self._init_ui()
         self._update_status()
@@ -162,12 +168,31 @@ class G13Calibrator(QMainWindow):
         """Update the status label."""
         if self.current_idx < len(BUTTON_ORDER):
             btn = BUTTON_ORDER[self.current_idx]
-            self.status_label.setText(
-                f"Click TOP-LEFT corner of: {btn}  ({self.current_idx + 1}/{len(BUTTON_ORDER)})"
-            )
-            self.status_label.setStyleSheet(
-                "font-size: 16px; font-weight: bold; padding: 10px; background: #333; color: #0f0;"
-            )
+            is_two_click = btn in TWO_CLICK_ITEMS
+
+            if is_two_click and self._pending_first_click is not None:
+                # Waiting for second click
+                self.status_label.setText(
+                    f"Click BOTTOM-RIGHT corner of: {btn}  ({self.current_idx + 1}/{len(BUTTON_ORDER)})"
+                )
+                self.status_label.setStyleSheet(
+                    "font-size: 16px; font-weight: bold; padding: 10px; background: #630; color: #ff0;"
+                )
+            elif is_two_click:
+                # First click for two-click item
+                self.status_label.setText(
+                    f"Click TOP-LEFT corner of: {btn}  ({self.current_idx + 1}/{len(BUTTON_ORDER)}) [2-click item]"
+                )
+                self.status_label.setStyleSheet(
+                    "font-size: 16px; font-weight: bold; padding: 10px; background: #036; color: #0ff;"
+                )
+            else:
+                self.status_label.setText(
+                    f"Click TOP-LEFT corner of: {btn}  ({self.current_idx + 1}/{len(BUTTON_ORDER)})"
+                )
+                self.status_label.setStyleSheet(
+                    "font-size: 16px; font-weight: bold; padding: 10px; background: #333; color: #0f0;"
+                )
         else:
             self.status_label.setText("✓ All buttons mapped! Copy the code.")
             self.status_label.setStyleSheet(
@@ -180,8 +205,27 @@ class G13Calibrator(QMainWindow):
             return
 
         btn_name = BUTTON_ORDER[self.current_idx]
-        w, h = get_button_size(btn_name)
-        self.positions[btn_name] = (x, y, w, h)
+        is_two_click = btn_name in TWO_CLICK_ITEMS
+
+        if is_two_click:
+            if self._pending_first_click is None:
+                # First click - store top-left corner
+                self._pending_first_click = (x, y)
+                self._update_status()
+                self._update_preview()  # Show pending click marker
+                return
+            else:
+                # Second click - calculate width/height from corners
+                x1, y1 = self._pending_first_click
+                w = max(1, x - x1)
+                h = max(1, y - y1)
+                self.positions[btn_name] = (x1, y1, w, h)
+                self._pending_first_click = None
+        else:
+            # Regular single-click button
+            w, h = get_button_size(btn_name)
+            self.positions[btn_name] = (x, y, w, h)
+
         self.current_idx += 1
 
         self._update_preview()
@@ -194,13 +238,28 @@ class G13Calibrator(QMainWindow):
         painter = QPainter(pixmap)
 
         for name, (x, y, w, h) in self.positions.items():
-            # Draw rectangle
-            painter.setPen(QPen(QColor(0, 255, 0), 2))
+            # Use different colors for different element types
+            if name == "LCD":
+                painter.setPen(QPen(QColor(0, 200, 255), 2))  # Cyan for LCD
+            elif name == "STICK":
+                painter.setPen(QPen(QColor(255, 100, 0), 2))  # Orange for joystick
+            else:
+                painter.setPen(QPen(QColor(0, 255, 0), 2))  # Green for buttons
+
             painter.drawRect(x, y, w, h)
 
             # Draw label
             painter.setPen(QColor(255, 255, 0))
             painter.drawText(x + 2, y + h - 3, name)
+
+        # Show pending first click for two-click items
+        if self._pending_first_click is not None:
+            x, y = self._pending_first_click
+            painter.setPen(QPen(QColor(255, 0, 255), 3))  # Magenta marker
+            # Draw crosshair at pending position
+            painter.drawLine(x - 10, y, x + 10, y)
+            painter.drawLine(x, y - 10, x, y + 10)
+            painter.drawEllipse(x - 5, y - 5, 10, 10)
 
         painter.end()
         self.image_label.setPixmap(pixmap)
@@ -250,13 +309,24 @@ class G13Calibrator(QMainWindow):
             x, y, w, h = self.positions["STICK"]
             lines.append(f'JOYSTICK_AREA = {{"x": {x}, "y": {y}, "width": {w}, "height": {h}}}')
 
-        # Add LCD_AREA placeholder
-        lines.append('LCD_AREA = {"x": 385, "y": 158, "width": 160, "height": 45}')
+        # Add LCD_AREA if LCD is defined, otherwise use default
+        if "LCD" in self.positions:
+            x, y, w, h = self.positions["LCD"]
+            lines.append(f'LCD_AREA = {{"x": {x}, "y": {y}, "width": {w}, "height": {h}}}')
+        else:
+            lines.append('LCD_AREA = {"x": 385, "y": 158, "width": 160, "height": 45}  # Default - recalibrate!')
 
         self.output_text.setText("\n".join(lines))
 
     def _undo_last(self):
         """Undo the last button placement."""
+        # If we're in the middle of a two-click item, cancel it
+        if self._pending_first_click is not None:
+            self._pending_first_click = None
+            self._update_preview()
+            self._update_status()
+            return
+
         if self.current_idx > 0:
             self.current_idx -= 1
             btn_name = BUTTON_ORDER[self.current_idx]
@@ -270,6 +340,7 @@ class G13Calibrator(QMainWindow):
         """Reset all button placements."""
         self.positions.clear()
         self.current_idx = 0
+        self._pending_first_click = None
         self.image_label.setPixmap(self.original_pixmap)
         self._update_status()
         self.output_text.clear()

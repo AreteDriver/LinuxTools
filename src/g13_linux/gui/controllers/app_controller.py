@@ -114,6 +114,7 @@ class ApplicationController(QObject):
         # Connect to device
         if self.device.connect():
             self.main_window.set_status("G13 device connected")
+            self.main_window.set_device_connected(True, "G13 device connected")
 
             # Initialize hardware controller
             if self.device.handle:
@@ -126,6 +127,7 @@ class ApplicationController(QObject):
             self.event_thread.start()
         else:
             self.main_window.set_status("No G13 device found")
+            self.main_window.set_device_connected(False, "No G13 device found")
 
         # Load available profiles
         profiles = self.profile_manager.list_profiles()
@@ -213,11 +215,13 @@ class ApplicationController(QObject):
     def _on_device_connected(self):
         """Handle device connection"""
         self.main_window.set_status("G13 device connected")
+        self.main_window.set_device_connected(True, "G13 device connected")
 
     @pyqtSlot()
     def _on_device_disconnected(self):
         """Handle device disconnection"""
         self.main_window.set_status("G13 device disconnected")
+        self.main_window.set_device_connected(False, "G13 device disconnected")
         if self.event_thread:
             self.event_thread.stop()
 

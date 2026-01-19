@@ -33,12 +33,12 @@ except ImportError:  # pragma: no cover
 LOGITECH_BLUE = "#00B8FC"
 LOGITECH_BLUE_HOVER = "#33c9ff"
 
-# Button state styles (semi-transparent to show device image through)
+# Button state styles - improved visibility with better contrast
 STYLE_NORMAL = """
     QPushButton {
-        background: rgba(42, 42, 42, 140);
-        color: rgba(200, 200, 200, 220);
-        border: 1px solid rgba(68, 68, 68, 180);
+        background: rgba(30, 30, 35, 200);
+        color: rgba(220, 220, 220, 255);
+        border: 1px solid rgba(80, 80, 85, 220);
         border-radius: 4px;
         font-size: 9px;
         font-weight: bold;
@@ -48,7 +48,7 @@ STYLE_NORMAL = """
 
 STYLE_HOVER = """
     QPushButton {
-        background: rgba(50, 60, 70, 180);
+        background: rgba(45, 55, 70, 220);
         color: #ffffff;
         border: 2px solid #00B8FC;
         border-radius: 4px;
@@ -60,9 +60,9 @@ STYLE_HOVER = """
 
 STYLE_ACTIVE = """
     QPushButton {
-        background: rgba(0, 184, 252, 200);
+        background: rgba(0, 184, 252, 230);
         color: #000000;
-        border: 2px solid #00B8FC;
+        border: 2px solid #00D4FF;
         border-radius: 4px;
         font-size: 9px;
         font-weight: bold;
@@ -72,9 +72,9 @@ STYLE_ACTIVE = """
 
 STYLE_BOUND = """
     QPushButton {
-        background: rgba(42, 58, 42, 160);
-        color: #88cc88;
-        border: 1px solid rgba(74, 106, 74, 200);
+        background: rgba(35, 55, 35, 200);
+        color: #99dd99;
+        border: 1px solid rgba(80, 120, 80, 230);
         border-radius: 4px;
         font-size: 9px;
         font-weight: bold;
@@ -84,8 +84,8 @@ STYLE_BOUND = """
 
 STYLE_BOUND_HOVER = """
     QPushButton {
-        background: rgba(50, 80, 60, 180);
-        color: #aaffaa;
+        background: rgba(45, 75, 55, 220);
+        color: #bbffbb;
         border: 2px solid #00B8FC;
         border-radius: 4px;
         font-size: 9px;
