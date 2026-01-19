@@ -2590,6 +2590,136 @@ class EditorWindow:
         Gtk.main_quit()
 
 
+class QuickToolbar:
+    """Floating toolbar that appears after capture with quick actions."""
+
+    def __init__(
+        self,
+        result: "CaptureResult",
+        on_save: Callable,
+        on_copy: Callable,
+        on_edit: Callable,
+        on_upload: Callable,
+    ):
+        if not GTK_AVAILABLE:
+            raise RuntimeError("GTK is not available")
+
+        self.result = result
+        self.on_save = on_save
+        self.on_copy = on_copy
+        self.on_edit = on_edit
+        self.on_upload = on_upload
+
+        self._load_toolbar_css()
+
+        self.window = Gtk.Window(type=Gtk.WindowType.POPUP)
+        self.window.set_decorated(False)
+        self.window.set_keep_above(True)
+        self.window.set_accept_focus(True)
+
+        # Enable transparency
+        screen = self.window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual:
+            self.window.set_visual(visual)
+        self.window.set_app_paintable(True)
+
+        # Auto-hide after 8 seconds
+        GLib.timeout_add_seconds(8, self._auto_close)
+
+        # Main frame
+        frame = Gtk.EventBox()
+        frame.get_style_context().add_class("quick-toolbar-frame")
+        self.window.add(frame)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(8)
+        box.set_margin_end(8)
+        frame.add(box)
+
+        # Action buttons
+        actions = [
+            ("document-save-symbolic", _("Save"), self._do_save),
+            ("edit-copy-symbolic", _("Copy"), self._do_copy),
+            ("document-edit-symbolic", _("Edit"), self._do_edit),
+            ("send-to-symbolic", _("Upload"), self._do_upload),
+            ("window-close-symbolic", _("Dismiss"), self._close),
+        ]
+
+        for icon_name, tooltip, callback in actions:
+            btn = Gtk.Button()
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.LARGE_TOOLBAR)
+            btn.set_image(icon)
+            btn.set_tooltip_text(tooltip)
+            btn.get_style_context().add_class("quick-toolbar-btn")
+            btn.connect("clicked", callback)
+            box.pack_start(btn, False, False, 0)
+
+        # Position near mouse cursor
+        display = Gdk.Display.get_default()
+        seat = display.get_default_seat()
+        pointer = seat.get_pointer()
+        _, x, y = pointer.get_position()
+        self.window.move(x + 10, y + 10)
+
+        self.window.show_all()
+
+    def _load_toolbar_css(self) -> None:
+        css = b"""
+        .quick-toolbar-frame {
+            background: rgba(24, 24, 32, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(80, 100, 160, 0.3);
+        }
+        .quick-toolbar-btn {
+            background: rgba(50, 70, 120, 0.3);
+            border: none;
+            border-radius: 6px;
+            min-width: 36px;
+            min-height: 36px;
+            padding: 4px;
+            color: rgba(180, 200, 255, 0.9);
+        }
+        .quick-toolbar-btn:hover {
+            background: rgba(70, 100, 180, 0.5);
+            color: #ffffff;
+        }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+
+    def _do_save(self, button: Gtk.Button) -> None:
+        self.on_save(self.result)
+        self._close()
+
+    def _do_copy(self, button: Gtk.Button) -> None:
+        self.on_copy(self.result)
+        self._close()
+
+    def _do_edit(self, button: Gtk.Button) -> None:
+        self.on_edit(self.result)
+        self._close()
+
+    def _do_upload(self, button: Gtk.Button) -> None:
+        self.on_upload(self.result)
+        self._close()
+
+    def _close(self, button: Gtk.Button = None) -> None:
+        self.window.destroy()
+
+    def _auto_close(self) -> bool:
+        if self.window.get_visible():
+            self.window.destroy()
+        return False
+
+
 class MainWindow:
     """Main application window with sleek futuristic UI."""
 
@@ -2977,7 +3107,7 @@ class MainWindow:
     def _handle_capture_result(
         self, result: CaptureResult, mode: CaptureMode = CaptureMode.REGION
     ) -> None:
-        """Handle capture result - queue or edit based on mode."""
+        """Handle capture result - queue, quick toolbar, or edit based on mode."""
         if not result.success:
             show_notification(_("Capture Failed"), result.error, icon="dialog-error")
             return
@@ -2993,20 +3123,59 @@ class MainWindow:
                 _("{} capture(s) in queue").format(self.capture_queue.count),
                 icon="dialog-information",
             )
+        elif cfg.get("quick_toolbar_enabled", True):
+            # Show quick toolbar for immediate action choice
+            QuickToolbar(
+                result,
+                on_save=self._quick_save,
+                on_copy=self._quick_copy,
+                on_edit=self._quick_edit,
+                on_upload=self._quick_upload,
+            )
         elif cfg.get("editor_enabled", True):
-            # Add to existing editor as tab, or create new editor
-            if self.active_editor and self.active_editor.window.get_visible():
-                self.active_editor.add_tab(result)
-                self.active_editor.window.present()
-            else:
-                self.active_editor = EditorWindow(result)
-                self.active_editor.window.connect(
-                    "destroy", lambda w: setattr(self, "active_editor", None)
-                )
+            self._open_editor(result)
         else:
-            filepath = save_capture(result)
-            if filepath.success and cfg.get("show_notification", True):
-                show_screenshot_saved(str(filepath.filepath))
+            self._quick_save(result)
+
+    def _quick_save(self, result: CaptureResult) -> None:
+        """Save capture directly."""
+        filepath = save_capture(result)
+        cfg = config.load_config()
+        if filepath.success and cfg.get("show_notification", True):
+            show_screenshot_saved(str(filepath.filepath))
+
+    def _quick_copy(self, result: CaptureResult) -> None:
+        """Copy capture to clipboard."""
+        if copy_to_clipboard(result):
+            show_notification(_("Copied"), _("Screenshot copied to clipboard"))
+        else:
+            show_notification(_("Error"), _("Failed to copy to clipboard"), icon="dialog-error")
+
+    def _quick_edit(self, result: CaptureResult) -> None:
+        """Open capture in editor."""
+        self._open_editor(result)
+
+    def _quick_upload(self, result: CaptureResult) -> None:
+        """Upload capture to cloud."""
+        cfg = config.load_config()
+        uploader = Uploader()
+        upload_result = uploader.upload(result, cfg.get("upload_service", "imgur"))
+        if upload_result.get("success"):
+            url = upload_result.get("url", "")
+            show_upload_success(url)
+        else:
+            show_upload_error(upload_result.get("error", _("Upload failed")))
+
+    def _open_editor(self, result: CaptureResult) -> None:
+        """Open capture in editor window."""
+        if self.active_editor and self.active_editor.window.get_visible():
+            self.active_editor.add_tab(result)
+            self.active_editor.window.present()
+        else:
+            self.active_editor = EditorWindow(result)
+            self.active_editor.window.connect(
+                "destroy", lambda w: setattr(self, "active_editor", None)
+            )
 
     def _register_global_hotkeys(self) -> None:
         """Register global keyboard shortcuts."""

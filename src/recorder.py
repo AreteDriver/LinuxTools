@@ -24,6 +24,14 @@ class RecordingState(Enum):
     ERROR = "error"
 
 
+class OutputFormat(Enum):
+    """Output format for recordings."""
+
+    GIF = "gif"
+    MP4 = "mp4"
+    WEBM = "webm"
+
+
 @dataclass
 class RecordingResult:
     """Result of a recording operation."""
@@ -225,8 +233,13 @@ class GifRecorder:
             stdin=subprocess.PIPE,
         )
 
-    def stop_recording(self) -> RecordingResult:
-        """Stop recording and encode to GIF.
+    def stop_recording(
+        self, output_format: OutputFormat = OutputFormat.GIF
+    ) -> RecordingResult:
+        """Stop recording and encode to specified format.
+
+        Args:
+            output_format: Output format (GIF, MP4, or WEBM)
 
         Returns:
             RecordingResult with the output filepath or error.
@@ -251,11 +264,18 @@ class GifRecorder:
             self.state = RecordingState.ERROR
             return RecordingResult(False, error="Recording file not created")
 
-        # Encode to GIF
+        # Encode to output format
         self.state = RecordingState.ENCODING
         self._notify_state_change()
 
-        result = self._encode_to_gif(duration)
+        if output_format == OutputFormat.GIF:
+            result = self._encode_to_gif(duration)
+        elif output_format == OutputFormat.MP4:
+            result = self._finalize_video(duration, "mp4")
+        elif output_format == OutputFormat.WEBM:
+            result = self._finalize_video(duration, "webm")
+        else:
+            result = self._encode_to_gif(duration)
 
         # Cleanup temp video
         if self.temp_video and self.temp_video.exists():
@@ -268,6 +288,76 @@ class GifRecorder:
         self._notify_state_change()
 
         return result
+
+    def _finalize_video(self, duration: float, format_ext: str) -> RecordingResult:
+        """Finalize and compress video to MP4 or WebM.
+
+        Args:
+            duration: Recording duration in seconds
+            format_ext: Output format extension ('mp4' or 'webm')
+
+        Returns:
+            RecordingResult with output path or error.
+        """
+        cfg = config.load_config()
+        quality = cfg.get("video_quality", "medium")
+
+        # Generate output path
+        output_path = config.get_save_path(format_str=format_ext)
+
+        # Quality presets (CRF values - lower = better quality, larger file)
+        crf_values = {"low": 28, "medium": 23, "high": 18}
+        crf = crf_values.get(quality, 23)
+
+        if format_ext == "mp4":
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(self.temp_video),
+                "-c:v",
+                "libx264",
+                "-preset",
+                "medium",
+                "-crf",
+                str(crf),
+                "-movflags",
+                "+faststart",
+                str(output_path),
+            ]
+        else:  # webm
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(self.temp_video),
+                "-c:v",
+                "libvpx-vp9",
+                "-crf",
+                str(crf),
+                "-b:v",
+                "0",
+                str(output_path),
+            ]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=300)
+            if result.returncode != 0:
+                return RecordingResult(
+                    False,
+                    error=f"Video encoding failed: {result.stderr.decode()[:200]}",
+                )
+
+            return RecordingResult(
+                True,
+                filepath=output_path,
+                duration=duration,
+            )
+
+        except subprocess.TimeoutExpired:
+            return RecordingResult(False, error="Video encoding timed out")
+        except Exception as e:
+            return RecordingResult(False, error=f"Video encoding error: {e}")
 
     def _encode_to_gif(self, duration: float) -> RecordingResult:
         """Encode temp video to optimized GIF using ffmpeg palette generation."""
