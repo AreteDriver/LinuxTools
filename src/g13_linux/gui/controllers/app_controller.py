@@ -7,6 +7,7 @@ Main orchestrator connecting models to views.
 from PyQt6.QtCore import QObject, pyqtSlot
 from PyQt6.QtWidgets import QMessageBox
 
+from ..dialogs.calibration_dialog import CalibrationDialog
 from ..models.app_profile_rules import AppProfileRulesManager
 from ..models.event_decoder import EventDecoder
 from ..models.g13_device import G13Device
@@ -81,6 +82,7 @@ class ApplicationController(QObject):
         hw_widget.lcd_text_changed.connect(self._update_lcd)
         hw_widget.backlight_color_changed.connect(self._update_backlight_color)
         hw_widget.backlight_brightness_changed.connect(self._update_backlight_brightness)
+        hw_widget.calibration_requested.connect(self._open_calibration_dialog)
 
         # Macro recorder signals
         self.macro_recorder.state_changed.connect(self._on_recorder_state_changed)
@@ -346,6 +348,51 @@ class ApplicationController(QObject):
             self.main_window.set_status(f"Backlight brightness: {brightness}%")
         except Exception as e:
             self._on_error(f"Backlight error: {e}")
+
+    @pyqtSlot()
+    def _open_calibration_dialog(self):
+        """Open the button position calibration dialog."""
+        dialog = CalibrationDialog(self.main_window)
+        dialog.calibration_complete.connect(self._on_calibration_complete)
+        dialog.exec()
+
+    @pyqtSlot(dict)
+    def _on_calibration_complete(self, positions: dict):
+        """Handle completed calibration."""
+        if not positions:
+            return
+
+        # Convert positions to the format expected by button mapper
+        button_positions = {}
+        lcd_area = None
+        joystick_area = None
+
+        for name, (x, y, w, h) in positions.items():
+            pos_dict = {"x": x, "y": y, "width": w, "height": h}
+            if name == "LCD":
+                lcd_area = pos_dict
+            elif name == "STICK":
+                joystick_area = pos_dict
+                button_positions[name] = pos_dict
+            else:
+                button_positions[name] = pos_dict
+
+        # Update button mapper with new positions
+        self.main_window.button_mapper.update_button_positions(
+            button_positions, lcd_area, joystick_area
+        )
+
+        self.main_window.set_status(f"Calibration applied: {len(button_positions)} buttons")
+
+        # Show message about saving
+        QMessageBox.information(
+            self.main_window,
+            "Calibration Applied",
+            f"Button positions have been updated ({len(button_positions)} buttons).\n\n"
+            "To make this permanent, copy the generated code from the\n"
+            "calibration dialog and save it to:\n"
+            "src/g13_linux/gui/resources/g13_layout.py",
+        )
 
     # Macro recording methods
 

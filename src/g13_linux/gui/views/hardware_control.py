@@ -29,6 +29,7 @@ class HardwareControlWidget(QWidget):
     lcd_text_changed = pyqtSignal(str)
     backlight_color_changed = pyqtSignal(str)  # Hex color
     backlight_brightness_changed = pyqtSignal(int)
+    calibration_requested = pyqtSignal()  # Request to open calibration dialog
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -123,6 +124,25 @@ class HardwareControlWidget(QWidget):
         backlight_layout.addLayout(brightness_layout)
         backlight_group.setLayout(backlight_layout)
         layout.addWidget(backlight_group)
+
+        # Button Calibration
+        calibration_group = QGroupBox("Button Calibration")
+        calibration_layout = QVBoxLayout()
+
+        calibration_desc = QLabel(
+            "If button clicks are not registering correctly on the device image, "
+            "you can recalibrate the button positions."
+        )
+        calibration_desc.setWordWrap(True)
+        calibration_desc.setStyleSheet("color: #aaa; font-size: 11px;")
+        calibration_layout.addWidget(calibration_desc)
+
+        calibrate_btn = QPushButton("Calibrate Button Positions...")
+        calibrate_btn.clicked.connect(self.calibration_requested.emit)
+        calibration_layout.addWidget(calibrate_btn)
+
+        calibration_group.setLayout(calibration_layout)
+        layout.addWidget(calibration_group)
 
         layout.addStretch()
         self.setLayout(layout)

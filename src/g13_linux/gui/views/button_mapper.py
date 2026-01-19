@@ -144,6 +144,49 @@ class ButtonMapperWidget(QWidget):
         for btn in self.buttons.values():
             btn.set_highlighted(False)
 
+    def update_button_positions(
+        self,
+        button_positions: dict,
+        lcd_area: dict | None = None,
+        joystick_area: dict | None = None,
+    ):
+        """Update button positions from calibration.
+
+        Args:
+            button_positions: Dict of button_id -> {x, y, width, height}
+            lcd_area: Optional LCD area position dict
+            joystick_area: Optional joystick area position dict
+        """
+        # Update the module-level positions (for this session only)
+        global G13_BUTTON_POSITIONS, LCD_AREA, JOYSTICK_AREA
+
+        # Merge new positions with existing
+        for button_id, pos in button_positions.items():
+            G13_BUTTON_POSITIONS[button_id] = pos
+
+        if lcd_area:
+            # Update LCD area - need to reassign since it's a dict
+            LCD_AREA.update(lcd_area)
+
+        if joystick_area:
+            JOYSTICK_AREA.update(joystick_area)
+
+        # Refresh all button positions
+        self._update_button_positions()
+
+        # Update LCD preview position
+        scale_x = self.width() / KEYBOARD_WIDTH
+        scale_y = self.height() / KEYBOARD_HEIGHT
+        self.lcd_preview.setGeometry(
+            int(LCD_AREA["x"] * scale_x),
+            int(LCD_AREA["y"] * scale_y),
+            int(LCD_AREA["width"] * scale_x),
+            int(LCD_AREA["height"] * scale_y),
+        )
+
+        # Trigger repaint
+        self.update()
+
     def update_joystick(self, x: int, y: int):
         """Update joystick position indicator (0-255 for each axis)"""
         self._joystick_x = x
