@@ -412,6 +412,9 @@ class EditorWindow:
 
         self.window.show_all()
 
+        # Initialize keyboard shortcut bindings
+        self._init_key_bindings()
+
         # Create cursors for drawing tools
         self._init_cursors()
         self._update_cursor()
@@ -1053,11 +1056,26 @@ class EditorWindow:
         # Color palette - 19 colors + 1 custom picker
         self._hex_palette = [
             # Row 0 (10 hexes): grays + warm colors
-            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
-            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            (0, 0, 0),
+            (0.4, 0.4, 0.4),
+            (0.75, 0.75, 0.75),
+            (1, 1, 1),
+            (0.5, 0, 0),
+            (1, 0, 0),
+            (1, 0.5, 0),
+            (1, 1, 0),
+            (0.5, 0.5, 0),
+            (0, 0.5, 0),
             # Row 1 (9 hexes): cool colors
-            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.5, 0.5), (0, 0, 0.5),
-            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
+            (0, 0.8, 0),
+            (0, 0.8, 0.8),
+            (0, 0.5, 0.5),
+            (0, 0, 0.5),
+            (0, 0, 1),
+            (0.3, 0, 0.5),
+            (0.6, 0.3, 1),
+            (1, 0.4, 0.7),
+            (0.5, 0, 0.3),
         ]
         self._custom_color = (0.5, 0.5, 0.5)  # Default custom color
         self._custom_hex_idx = 19  # Index for custom color picker hex
@@ -2331,257 +2349,10 @@ class EditorWindow:
             # Auto-clear after 2 seconds
             GLib.timeout_add(2000, lambda: self.statusbar.pop(ctx))
 
-    def _on_key_press(self, widget: Gtk.Widget, event: Gdk.EventKey) -> bool:
-        """Handle keyboard shortcuts."""
-        ctrl = event.state & Gdk.ModifierType.CONTROL_MASK
-        shift = event.state & Gdk.ModifierType.SHIFT_MASK
-
-        # Tab switching shortcuts
-        if ctrl and event.keyval == Gdk.KEY_Tab:
-            if len(self.tabs) > 1:
-                if shift:
-                    # Ctrl+Shift+Tab - Previous tab
-                    next_idx = (self.current_tab_index - 1) % len(self.tabs)
-                else:
-                    # Ctrl+Tab - Next tab
-                    next_idx = (self.current_tab_index + 1) % len(self.tabs)
-                self.notebook.set_current_page(next_idx)
-            return True
-
-        # Ctrl+W - Close current tab
-        if ctrl and not shift and event.keyval in (Gdk.KEY_w, Gdk.KEY_W):
-            self.close_tab(self.current_tab_index)
-            return True
-
-        # Ctrl+Shift+P - Command Palette
-        if ctrl and shift and event.keyval in (Gdk.KEY_p, Gdk.KEY_P):
-            self._show_command_palette()
-            return True
-
-        # Ctrl+Shift+H - Distribute horizontally
-        if ctrl and shift and event.keyval in (Gdk.KEY_h, Gdk.KEY_H):
-            if self.editor_state.distribute_horizontal():
-                self._show_toast("Distributed horizontally")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select 3+ elements to distribute")
-            return True
-
-        # Ctrl+Shift+J - Distribute vertically
-        if ctrl and shift and event.keyval in (Gdk.KEY_j, Gdk.KEY_J):
-            if self.editor_state.distribute_vertical():
-                self._show_toast("Distributed vertically")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select 3+ elements to distribute")
-            return True
-
-        # Ctrl+Shift+G - Ungroup
-        if ctrl and shift and event.keyval in (Gdk.KEY_g, Gdk.KEY_G):
-            if self.editor_state.ungroup_selected():
-                self._show_toast("Ungrouped")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("No groups to ungroup")
-            return True
-
-        # Ctrl+G - Group (must check after Ctrl+Shift+G)
-        if ctrl and not shift and event.keyval in (Gdk.KEY_g, Gdk.KEY_G):
-            if self.editor_state.group_selected():
-                count = len(self.editor_state.selected_indices)
-                self._show_toast(f"Grouped {count} elements")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select 2+ elements to group")
-            return True
-
-        # Alignment shortcuts (Ctrl+Alt)
-        alt = event.state & Gdk.ModifierType.MOD1_MASK
-        if ctrl and alt:
-            if event.keyval in (Gdk.KEY_l, Gdk.KEY_L):
-                if self.editor_state.align_left():
-                    self._show_toast("Aligned left")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_r, Gdk.KEY_R):
-                if self.editor_state.align_right():
-                    self._show_toast("Aligned right")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_t, Gdk.KEY_T):
-                if self.editor_state.align_top():
-                    self._show_toast("Aligned top")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_b, Gdk.KEY_B):
-                if self.editor_state.align_bottom():
-                    self._show_toast("Aligned bottom")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_c, Gdk.KEY_C):
-                if self.editor_state.align_center_horizontal():
-                    self._show_toast("Aligned center (horizontal)")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_m, Gdk.KEY_M):
-                if self.editor_state.align_center_vertical():
-                    self._show_toast("Aligned center (vertical)")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_w, Gdk.KEY_W):
-                if self.editor_state.match_width():
-                    self._show_toast("Matched width")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to match")
-                return True
-            elif event.keyval in (Gdk.KEY_e, Gdk.KEY_E):
-                if self.editor_state.match_height():
-                    self._show_toast("Matched height")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to match")
-                return True
-            elif event.keyval in (Gdk.KEY_s, Gdk.KEY_S):
-                if self.editor_state.match_size():
-                    self._show_toast("Matched size")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to match")
-                return True
-            elif event.keyval in (Gdk.KEY_f, Gdk.KEY_F):
-                if self.editor_state.flip_vertical():
-                    self._show_toast("Flipped vertically")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to flip")
-                return True
-
-        # Ctrl+Shift+F - Flip horizontal
-        if ctrl and shift and event.keyval in (Gdk.KEY_f, Gdk.KEY_F):
-            if self.editor_state.flip_horizontal():
-                self._show_toast("Flipped horizontally")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select element(s) to flip")
-            return True
-
-        # Ctrl+Shift+R - Rotate 90° counter-clockwise
-        if ctrl and shift and event.keyval in (Gdk.KEY_r, Gdk.KEY_R):
-            if self.editor_state.rotate_selected(-90):
-                self._show_toast("Rotated -90°")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select element(s) to rotate")
-            return True
-
-        # Ctrl+R - Rotate 90° clockwise
-        if ctrl and not shift and not alt and event.keyval in (Gdk.KEY_r, Gdk.KEY_R):
-            if self.editor_state.rotate_selected(90):
-                self._show_toast("Rotated 90°")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select element(s) to rotate")
-            return True
-
-        # Ctrl shortcuts
-        if ctrl:
-            if event.keyval == Gdk.KEY_s:
-                self._save()
-                return True
-            elif event.keyval == Gdk.KEY_c:
-                # Context-aware: copy annotations if selected, else copy image
-                if self.editor_state.selected_indices:
-                    if self.editor_state.copy_selected():
-                        count = len(self.editor_state.selected_indices)
-                        self._show_toast(f"Copied {count} annotation(s)")
-                else:
-                    self._copy_to_clipboard()
-                return True
-            elif event.keyval == Gdk.KEY_v:
-                # Paste annotations from clipboard
-                if self.editor_state.paste_annotations():
-                    count = len(self.editor_state.selected_indices)
-                    self._show_toast(f"Pasted {count} annotation(s)")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_z:
-                self._undo()
-                return True
-            elif event.keyval == Gdk.KEY_y:
-                self._redo()
-                return True
-            elif event.keyval == Gdk.KEY_bracketright:
-                # Ctrl+] - Bring to front
-                if self.editor_state.bring_to_front():
-                    self._show_toast("Brought to front")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_bracketleft:
-                # Ctrl+[ - Send to back
-                if self.editor_state.send_to_back():
-                    self._show_toast("Sent to back")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_d:
-                # Ctrl+D - Duplicate selected
-                if self.editor_state.duplicate_selected():
-                    count = len(self.editor_state.selected_indices)
-                    self._show_toast(f"Duplicated {count} annotation(s)")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_l:
-                # Ctrl+L - Lock/unlock selected
-                if self.editor_state.toggle_lock_selected():
-                    locked = self.editor_state.is_selection_locked()
-                    state = "Locked" if locked else "Unlocked"
-                    self._show_toast(state)
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to lock")
-                return True
-            elif event.keyval == Gdk.KEY_apostrophe:
-                # Ctrl+' - Toggle grid snap
-                new_state = not self.editor_state.grid_snap_enabled
-                self.editor_state.set_grid_snap(new_state)
-                state = "Grid snap ON" if new_state else "Grid snap OFF"
-                self._show_toast(state)
-                self.drawing_area.queue_draw()
-                return True
-
-        # Shift+[ / Shift+] - Adjust opacity
-        if shift and not ctrl and not alt:
-            if event.keyval == Gdk.KEY_bracketleft:
-                if self.editor_state.adjust_selected_opacity(-0.1):
-                    opacity = self.editor_state.get_selected_opacity() or 1.0
-                    self._show_toast(f"Opacity: {int(opacity * 100)}%")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to adjust opacity")
-                return True
-            elif event.keyval == Gdk.KEY_bracketright:
-                if self.editor_state.adjust_selected_opacity(0.1):
-                    opacity = self.editor_state.get_selected_opacity() or 1.0
-                    self._show_toast(f"Opacity: {int(opacity * 100)}%")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to adjust opacity")
-                return True
-
-        # Tool shortcuts (no modifier)
-        tool_shortcuts = {
+    def _init_key_bindings(self) -> None:
+        """Initialize keyboard shortcut dispatch tables."""
+        # Tool shortcuts (no modifiers)
+        self._tool_shortcuts = {
             Gdk.KEY_p: ToolType.PEN,
             Gdk.KEY_h: ToolType.HIGHLIGHTER,
             Gdk.KEY_l: ToolType.LINE,
@@ -2600,40 +2371,256 @@ class EditorWindow:
             Gdk.KEY_c: ToolType.CROP,
             Gdk.KEY_v: ToolType.SELECT,
         }
-        if event.keyval in tool_shortcuts:
-            tool = tool_shortcuts[event.keyval]
+
+        # Ctrl+Alt alignment shortcuts: (key, method, success_msg, fail_msg)
+        self._align_shortcuts = {
+            Gdk.KEY_l: ("align_left", "Aligned left"),
+            Gdk.KEY_L: ("align_left", "Aligned left"),
+            Gdk.KEY_r: ("align_right", "Aligned right"),
+            Gdk.KEY_R: ("align_right", "Aligned right"),
+            Gdk.KEY_t: ("align_top", "Aligned top"),
+            Gdk.KEY_T: ("align_top", "Aligned top"),
+            Gdk.KEY_b: ("align_bottom", "Aligned bottom"),
+            Gdk.KEY_B: ("align_bottom", "Aligned bottom"),
+            Gdk.KEY_c: ("align_center_horizontal", "Aligned center (horizontal)"),
+            Gdk.KEY_C: ("align_center_horizontal", "Aligned center (horizontal)"),
+            Gdk.KEY_m: ("align_center_vertical", "Aligned center (vertical)"),
+            Gdk.KEY_M: ("align_center_vertical", "Aligned center (vertical)"),
+            Gdk.KEY_w: ("match_width", "Matched width"),
+            Gdk.KEY_W: ("match_width", "Matched width"),
+            Gdk.KEY_e: ("match_height", "Matched height"),
+            Gdk.KEY_E: ("match_height", "Matched height"),
+            Gdk.KEY_s: ("match_size", "Matched size"),
+            Gdk.KEY_S: ("match_size", "Matched size"),
+            Gdk.KEY_f: ("flip_vertical", "Flipped vertically"),
+            Gdk.KEY_F: ("flip_vertical", "Flipped vertically"),
+        }
+
+    def _handle_alignment_shortcut(self, key: int) -> bool:
+        """Handle Ctrl+Alt alignment shortcuts."""
+        if key not in self._align_shortcuts:
+            return False
+        method_name, success_msg = self._align_shortcuts[key]
+        method = getattr(self.editor_state, method_name)
+        if method():
+            self._show_toast(success_msg)
+            self.drawing_area.queue_draw()
+        else:
+            self._show_toast("Select 2+ elements")
+        return True
+
+    def _handle_ctrl_shortcuts(self, key: int, shift: bool) -> bool:
+        """Handle Ctrl+key shortcuts. Returns True if handled."""
+        if key == Gdk.KEY_s:
+            self._save()
+            return True
+        if key == Gdk.KEY_c:
+            if self.editor_state.selected_indices:
+                if self.editor_state.copy_selected():
+                    self._show_toast(
+                        f"Copied {len(self.editor_state.selected_indices)} annotation(s)"
+                    )
+            else:
+                self._copy_to_clipboard()
+            return True
+        if key == Gdk.KEY_v:
+            if self.editor_state.paste_annotations():
+                self._show_toast(
+                    f"Pasted {len(self.editor_state.selected_indices)} annotation(s)"
+                )
+                self.drawing_area.queue_draw()
+            return True
+        if key == Gdk.KEY_z:
+            self._undo()
+            return True
+        if key == Gdk.KEY_y:
+            self._redo()
+            return True
+        if key == Gdk.KEY_bracketright:
+            if self.editor_state.bring_to_front():
+                self._show_toast("Brought to front")
+                self.drawing_area.queue_draw()
+            return True
+        if key == Gdk.KEY_bracketleft:
+            if self.editor_state.send_to_back():
+                self._show_toast("Sent to back")
+                self.drawing_area.queue_draw()
+            return True
+        if key == Gdk.KEY_d:
+            if self.editor_state.duplicate_selected():
+                self._show_toast(
+                    f"Duplicated {len(self.editor_state.selected_indices)} annotation(s)"
+                )
+                self.drawing_area.queue_draw()
+            return True
+        if key == Gdk.KEY_l:
+            if self.editor_state.toggle_lock_selected():
+                state = (
+                    "Locked" if self.editor_state.is_selection_locked() else "Unlocked"
+                )
+                self._show_toast(state)
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select element(s) to lock")
+            return True
+        if key == Gdk.KEY_apostrophe:
+            new_state = not self.editor_state.grid_snap_enabled
+            self.editor_state.set_grid_snap(new_state)
+            self._show_toast("Grid snap ON" if new_state else "Grid snap OFF")
+            self.drawing_area.queue_draw()
+            return True
+        return False
+
+    def _handle_ctrl_shift_shortcuts(self, key: int) -> bool:
+        """Handle Ctrl+Shift+key shortcuts. Returns True if handled."""
+        if key in (Gdk.KEY_p, Gdk.KEY_P):
+            self._show_command_palette()
+            return True
+        if key in (Gdk.KEY_h, Gdk.KEY_H):
+            if self.editor_state.distribute_horizontal():
+                self._show_toast("Distributed horizontally")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select 3+ elements to distribute")
+            return True
+        if key in (Gdk.KEY_j, Gdk.KEY_J):
+            if self.editor_state.distribute_vertical():
+                self._show_toast("Distributed vertically")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select 3+ elements to distribute")
+            return True
+        if key in (Gdk.KEY_g, Gdk.KEY_G):
+            if self.editor_state.ungroup_selected():
+                self._show_toast("Ungrouped")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("No groups to ungroup")
+            return True
+        if key in (Gdk.KEY_f, Gdk.KEY_F):
+            if self.editor_state.flip_horizontal():
+                self._show_toast("Flipped horizontally")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select element(s) to flip")
+            return True
+        if key in (Gdk.KEY_r, Gdk.KEY_R):
+            if self.editor_state.rotate_selected(-90):
+                self._show_toast("Rotated -90°")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select element(s) to rotate")
+            return True
+        return False
+
+    def _on_key_press(self, widget: Gtk.Widget, event: Gdk.EventKey) -> bool:
+        """Handle keyboard shortcuts using dispatch tables."""
+        ctrl = event.state & Gdk.ModifierType.CONTROL_MASK
+        shift = event.state & Gdk.ModifierType.SHIFT_MASK
+        alt = event.state & Gdk.ModifierType.MOD1_MASK
+        key = event.keyval
+
+        # Tab switching: Ctrl+Tab / Ctrl+Shift+Tab
+        if ctrl and key == Gdk.KEY_Tab:
+            if len(self.tabs) > 1:
+                offset = -1 if shift else 1
+                self.notebook.set_current_page(
+                    (self.current_tab_index + offset) % len(self.tabs)
+                )
+            return True
+
+        # Ctrl+W - Close tab
+        if ctrl and not shift and key in (Gdk.KEY_w, Gdk.KEY_W):
+            self.close_tab(self.current_tab_index)
+            return True
+
+        # Ctrl+G - Group (must check before Ctrl+Shift+G)
+        if ctrl and not shift and key in (Gdk.KEY_g, Gdk.KEY_G):
+            if self.editor_state.group_selected():
+                self._show_toast(
+                    f"Grouped {len(self.editor_state.selected_indices)} elements"
+                )
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select 2+ elements to group")
+            return True
+
+        # Ctrl+R - Rotate 90° (must check before Ctrl+Shift+R)
+        if ctrl and not shift and not alt and key in (Gdk.KEY_r, Gdk.KEY_R):
+            if self.editor_state.rotate_selected(90):
+                self._show_toast("Rotated 90°")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select element(s) to rotate")
+            return True
+
+        # Ctrl+Shift shortcuts
+        if ctrl and shift:
+            if self._handle_ctrl_shift_shortcuts(key):
+                return True
+
+        # Ctrl+Alt alignment shortcuts
+        if ctrl and alt:
+            if self._handle_alignment_shortcut(key):
+                return True
+
+        # Ctrl-only shortcuts (no shift, no alt)
+        if ctrl and not shift and not alt:
+            if self._handle_ctrl_shortcuts(key, shift):
+                return True
+
+        # Shift+[ / Shift+] - Adjust opacity
+        if shift and not ctrl and not alt:
+            if key == Gdk.KEY_bracketleft:
+                if self.editor_state.adjust_selected_opacity(-0.1):
+                    opacity = self.editor_state.get_selected_opacity() or 1.0
+                    self._show_toast(f"Opacity: {int(opacity * 100)}%")
+                    self.drawing_area.queue_draw()
+                else:
+                    self._show_toast("Select element(s) to adjust opacity")
+                return True
+            if key == Gdk.KEY_bracketright:
+                if self.editor_state.adjust_selected_opacity(0.1):
+                    opacity = self.editor_state.get_selected_opacity() or 1.0
+                    self._show_toast(f"Opacity: {int(opacity * 100)}%")
+                    self.drawing_area.queue_draw()
+                else:
+                    self._show_toast("Select element(s) to adjust opacity")
+                return True
+
+        # Tool shortcuts (no modifiers)
+        if key in self._tool_shortcuts:
+            tool = self._tool_shortcuts[key]
             self._set_tool(tool)
-            # Update toggle buttons if they exist
             if hasattr(self, "tool_buttons") and tool in self.tool_buttons:
                 self.tool_buttons[tool].set_active(True)
             return True
 
-        # Zoom shortcuts (no modifier)
-        if event.keyval in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
+        # Zoom shortcuts
+        if key in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
             self.editor_state.zoom_in()
             self._update_zoom_label()
             self.drawing_area.queue_draw()
             return True
-        if event.keyval in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+        if key in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
             self.editor_state.zoom_out()
             self._update_zoom_label()
             self.drawing_area.queue_draw()
             return True
-        if event.keyval == Gdk.KEY_0:
+        if key == Gdk.KEY_0:
             self.editor_state.reset_zoom()
             self._update_zoom_label()
             self.drawing_area.queue_draw()
             return True
 
-        # Delete/Backspace to delete selected element
-        if event.keyval in (Gdk.KEY_Delete, Gdk.KEY_BackSpace):
+        # Delete/Backspace
+        if key in (Gdk.KEY_Delete, Gdk.KEY_BackSpace):
             if self.editor_state.delete_selected():
                 self.statusbar.push(self.statusbar_context, "Element deleted")
                 self.drawing_area.queue_draw()
                 return True
 
-        # Arrow keys to nudge selected annotations
-        # Shift+Arrow = 10px, Arrow = 1px
+        # Arrow keys to nudge (Shift = 10px, normal = 1px)
         nudge_amount = 10 if shift else 1
         arrow_offsets = {
             Gdk.KEY_Up: (0, -nudge_amount),
@@ -2641,14 +2628,14 @@ class EditorWindow:
             Gdk.KEY_Left: (-nudge_amount, 0),
             Gdk.KEY_Right: (nudge_amount, 0),
         }
-        if event.keyval in arrow_offsets:
-            dx, dy = arrow_offsets[event.keyval]
+        if key in arrow_offsets:
+            dx, dy = arrow_offsets[key]
             if self.editor_state.nudge_selected(dx, dy):
                 self.drawing_area.queue_draw()
                 return True
 
         # Escape to deselect/cancel
-        if event.keyval == Gdk.KEY_Escape:
+        if key == Gdk.KEY_Escape:
             if self.editor_state.selected_index is not None:
                 self.editor_state.deselect()
                 self.drawing_area.queue_draw()
