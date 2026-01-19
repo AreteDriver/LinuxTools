@@ -948,24 +948,11 @@ class EditorWindow:
         self.ctx_size_box.pack_start(self.size_spin, False, False, 0)
         bar.pack_start(self.ctx_size_box, False, False, 0)
 
-        # === COLOR GROUP ===
-        self.ctx_color_box = Gtk.Box(spacing=4)
+        # === INLINE HEX COLOR PICKER ===
+        self.ctx_color_box = Gtk.Box(spacing=0)
         self.ctx_color_box.get_style_context().add_class("context-group")
-        color_label = Gtk.Label(label=_("Color:"))
-        color_label.get_style_context().add_class("ctx-label")
-        self.ctx_color_box.pack_start(color_label, False, False, 0)
-        self.color_btn = Gtk.ColorButton()
-        self.color_btn.set_rgba(Gdk.RGBA(1, 0, 0, 1))
-        self.color_btn.set_tooltip_text(_("Pick color"))
-        self.color_btn.connect("color-set", self._on_color_chosen)
-        self.ctx_color_box.pack_start(self.color_btn, False, False, 0)
-        # Quick color palette button
-        self.palette_btn = Gtk.Button(label="▾")
-        self.palette_btn.set_tooltip_text(_("Color palette"))
-        self.palette_btn.get_style_context().add_class("ctx-btn")
-        self._create_color_popover()
-        self.palette_btn.connect("clicked", lambda b: self.color_popover.show_all())
-        self.ctx_color_box.pack_start(self.palette_btn, False, False, 0)
+        self._setup_inline_hex_picker()
+        self.ctx_color_box.pack_start(self._hex_canvas, False, False, 0)
         bar.pack_start(self.ctx_color_box, False, False, 0)
 
         # === ARROW STYLE GROUP ===
@@ -1059,93 +1046,53 @@ class EditorWindow:
 
         return bar
 
-    def _create_color_popover(self) -> None:
-        """Create color palette popover with hexagonal honeycomb layout."""
-        self.color_popover = Gtk.Popover()
-        self.color_popover.set_relative_to(self.palette_btn)
+    def _setup_inline_hex_picker(self) -> None:
+        """Create inline hexagonal color picker for toolbar."""
+        import math
 
-        pop_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        pop_box.set_margin_start(8)
-        pop_box.set_margin_end(8)
-        pop_box.set_margin_top(8)
-        pop_box.set_margin_bottom(8)
-
-        # Honeycomb color palette - 19 colors in hex pattern
-        # Row 0: 4 colors, Row 1: 5 colors (offset), Row 2: 5 colors, Row 3: 5 colors (offset)
+        # Compact 2-row honeycomb color palette - 19 colors
         self._hex_palette = [
-            # Row 0 (4 hexes)
-            (0, 0, 0),
-            (0.4, 0.4, 0.4),
-            (0.75, 0.75, 0.75),
-            (1, 1, 1),
-            # Row 1 (5 hexes, offset)
-            (0.5, 0, 0),
-            (1, 0, 0),
-            (1, 0.5, 0),
-            (1, 1, 0),
-            (0.5, 0.5, 0),
-            # Row 2 (5 hexes)
-            (0, 0.4, 0),
-            (0, 0.8, 0),
-            (0, 0.8, 0.8),
-            (0, 0.4, 0.4),
-            (0, 0, 0.5),
-            # Row 3 (5 hexes, offset)
-            (0, 0, 1),
-            (0.3, 0, 0.5),
-            (0.6, 0.3, 1),
-            (1, 0.4, 0.7),
-            (0.5, 0, 0.3),
+            # Row 0 (10 hexes): grays + warm colors
+            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
+            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            # Row 1 (9 hexes, offset): greens, blues, purples
+            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0.5, 0.5), (0, 0, 0.5),
+            (0, 0, 1), (0.3, 0, 0.5), (0.6, 0.3, 1), (1, 0.4, 0.7), (0.5, 0, 0.3),
         ]
-        self._hex_size = 14  # Radius of hexagon
-        self._hex_positions = []  # Will store (cx, cy, color_index)
+        self._hex_size = 9  # Small for toolbar
+        self._hex_positions = []
+        self._selected_hex_idx = 5  # Default to red
         self._build_hex_positions()
 
         # Calculate canvas size
-        import math
-
         hex_w = self._hex_size * math.sqrt(3)
         hex_h = self._hex_size * 1.5
-        max_row_width = 4 * hex_w
-        canvas_w = int(max_row_width + self._hex_size * 3)
-        canvas_h = int(hex_h * 5 + self._hex_size * 2)
+        canvas_w = int(hex_w * 10 + self._hex_size)
+        canvas_h = int(hex_h * 2 + self._hex_size)
 
         # Hexagon drawing area
-        hex_canvas = Gtk.DrawingArea()
-        hex_canvas.set_size_request(canvas_w, canvas_h)
-        hex_canvas.connect("draw", self._draw_hex_palette)
-        hex_canvas.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        hex_canvas.connect("button-press-event", self._on_hex_click)
-        pop_box.pack_start(hex_canvas, False, False, 0)
-
-        # Recent colors
-        recent_label = Gtk.Label(label=_("Recent:"))
-        recent_label.get_style_context().add_class("ctx-label")
-        pop_box.pack_start(recent_label, False, False, 4)
-        self.recent_colors_box = Gtk.Box(spacing=2)
-        pop_box.pack_start(self.recent_colors_box, False, False, 0)
-
-        self.color_popover.add(pop_box)
+        self._hex_canvas = Gtk.DrawingArea()
+        self._hex_canvas.set_size_request(canvas_w, canvas_h)
+        self._hex_canvas.connect("draw", self._draw_hex_palette)
+        self._hex_canvas.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self._hex_canvas.connect("button-press-event", self._on_hex_click)
 
     def _build_hex_positions(self) -> None:
-        """Calculate center positions for each hexagon in honeycomb layout."""
+        """Calculate center positions for each hexagon in 2-row honeycomb layout."""
         import math
 
         size = self._hex_size
         hex_w = size * math.sqrt(3)  # Exact honeycomb horizontal spacing
         hex_h = size * 1.5  # Exact honeycomb vertical spacing
 
-        # Width needed for 5 hexes (widest row)
-        max_row_width = 4 * hex_w
-        canvas_center = size + max_row_width / 2 + hex_w / 2
-
-        # Row structure: [4, 5, 4, 5, 1] for symmetric honeycomb (19 colors)
-        row_counts = [4, 5, 4, 5, 1]
+        # 2-row layout: 10 hexes on top, 9 hexes below (offset)
+        row_counts = [10, 9]
         color_idx = 0
 
         for row, count in enumerate(row_counts):
-            row_width = (count - 1) * hex_w
-            start_x = canvas_center - row_width / 2
+            # Offset odd rows for honeycomb effect
+            x_offset = (hex_w / 2) if row % 2 == 1 else 0
+            start_x = size + x_offset
 
             for col in range(count):
                 cx = start_x + col * hex_w
@@ -1154,7 +1101,7 @@ class EditorWindow:
                 color_idx += 1
 
     def _draw_hex_palette(self, widget, cr) -> bool:
-        """Draw hexagonal color palette."""
+        """Draw hexagonal color palette with selection indicator."""
         import math
 
         size = self._hex_size
@@ -1163,8 +1110,8 @@ class EditorWindow:
             if idx >= len(self._hex_palette):
                 break
             r, g, b = self._hex_palette[idx]
+            is_selected = (idx == getattr(self, '_selected_hex_idx', -1))
 
-            # Draw hexagon
             cr.save()
             cr.translate(cx, cy)
 
@@ -1179,9 +1126,13 @@ class EditorWindow:
             cr.set_source_rgb(r, g, b)
             cr.fill_preserve()
 
-            # Draw border
-            cr.set_source_rgba(0.3, 0.3, 0.3, 0.5)
-            cr.set_line_width(1)
+            # Draw border - highlight selected
+            if is_selected:
+                cr.set_source_rgba(1, 1, 1, 0.9)
+                cr.set_line_width(2)
+            else:
+                cr.set_source_rgba(0.2, 0.2, 0.2, 0.6)
+                cr.set_line_width(1)
             cr.stroke()
 
             cr.restore()
@@ -1199,12 +1150,12 @@ class EditorWindow:
         for cx, cy, idx in self._hex_positions:
             if idx >= len(self._hex_palette):
                 break
-            # Check if point is inside hexagon (approximate with circle)
             dist = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
-            if dist < size * 0.9:  # Slightly smaller for click tolerance
+            if dist < size * 0.9:
                 r, g, b = self._hex_palette[idx]
+                self._selected_hex_idx = idx
                 self._set_color_rgb(r, g, b)
-                self.color_popover.popdown()
+                self._hex_canvas.queue_draw()  # Redraw to show selection
                 return True
 
         return False
@@ -1311,10 +1262,8 @@ class EditorWindow:
         return True
 
     def _set_color_rgb(self, r: float, g: float, b: float) -> None:
-        """Set color from RGB and update button."""
+        """Set color from RGB values."""
         self.editor_state.set_color(Color(r, g, b, 1.0))
-        self.color_btn.set_rgba(Gdk.RGBA(r, g, b, 1.0))
-        self._update_recent_colors()
 
     def _update_recent_colors(self) -> None:
         """Update the recent colors display in toolbar."""
