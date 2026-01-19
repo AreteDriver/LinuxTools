@@ -20,7 +20,7 @@ jobs:
           ./build-deb.sh
 
       - name: Upload .deb artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: deb-package
           path: "*.deb"
@@ -41,7 +41,7 @@ jobs:
           ./build-appimage.sh
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: appimage
           path: "*.AppImage"
@@ -56,7 +56,7 @@ jobs:
         id: snapcraft
 
       - name: Upload Snap artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: snap
           path: ${{ steps.snapcraft.outputs.snap }}
