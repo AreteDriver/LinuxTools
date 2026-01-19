@@ -1054,18 +1054,29 @@ class EditorWindow:
         # Preset colors (14 colors) - these stay at top for consistency
         self._preset_colors = [
             # Row 0: grays, warm colors
-            (0, 0, 0), (0.4, 0.4, 0.4), (0.75, 0.75, 0.75), (1, 1, 1),
-            (0.5, 0, 0), (1, 0, 0), (1, 0.5, 0), (1, 1, 0), (0.5, 0.5, 0), (0, 0.5, 0),
+            (0, 0, 0),
+            (0.4, 0.4, 0.4),
+            (0.75, 0.75, 0.75),
+            (1, 1, 1),
+            (0.5, 0, 0),
+            (1, 0, 0),
+            (1, 0.5, 0),
+            (1, 1, 0),
+            (0.5, 0.5, 0),
+            (0, 0.5, 0),
             # Row 1 start: cool colors
-            (0, 0.8, 0), (0, 0.8, 0.8), (0, 0, 0.5), (0, 0, 1),
+            (0, 0.8, 0),
+            (0, 0.8, 0.8),
+            (0, 0, 0.5),
+            (0, 0, 1),
         ]
 
         # Load recent colors from config (default to common colors)
         cfg = load_config()
-        default_recent = [
-            (1, 0, 0), (0, 0.8, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1)
+        default_recent = [(1, 0, 0), (0, 0.8, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1)]
+        self._recent_colors = [
+            tuple(c) for c in cfg.get("recent_colors", default_recent)
         ]
-        self._recent_colors = [tuple(c) for c in cfg.get("recent_colors", default_recent)]
 
         # Combined palette: 14 preset + 5 recent = 19 colors + 1 custom
         # Presets at top (row 0 + start of row 1), recent at bottom of row 1
