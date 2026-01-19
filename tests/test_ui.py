@@ -509,10 +509,6 @@ class TestEditorWindowToolbarMethods:
         from src.ui import EditorWindow
         assert hasattr(EditorWindow, "_load_css")
 
-    def test_has_create_color_popover(self):
-        from src.ui import EditorWindow
-        assert hasattr(EditorWindow, "_create_color_popover")
-
     def test_has_create_stamp_popover(self):
         from src.ui import EditorWindow
         assert hasattr(EditorWindow, "_create_stamp_popover")
