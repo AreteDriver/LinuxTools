@@ -232,6 +232,47 @@ class EditorState:
         """Set font family for text tool."""
         self.font_family = family
 
+    def apply_template(self, template: dict) -> None:
+        """Apply an annotation template to set tool and style."""
+        from . import config
+
+        # Set tool
+        tool_name = template.get("tool", "PEN")
+        try:
+            self.current_tool = ToolType[tool_name]
+        except KeyError:
+            self.current_tool = ToolType.PEN
+
+        # Set color
+        if "color" in template:
+            c = template["color"]
+            self.current_color = Color(c[0], c[1], c[2], c[3] if len(c) > 3 else 255)
+
+        # Set stroke width
+        if "stroke_width" in template:
+            self.stroke_width = template["stroke_width"]
+
+        # Set font settings
+        if "font_size" in template:
+            self.font_size = template["font_size"]
+        if "font_bold" in template:
+            self.font_bold = template["font_bold"]
+        if "font_italic" in template:
+            self.font_italic = template["font_italic"]
+        if "font_family" in template:
+            self.font_family = template["font_family"]
+
+        # Set arrow style
+        if "arrow_style" in template:
+            try:
+                self.arrow_style = ArrowStyle[template["arrow_style"]]
+            except KeyError:
+                pass
+
+        # Set stamp
+        if "stamp" in template:
+            self.current_stamp = template["stamp"]
+
     def start_drawing(self, x: float, y: float) -> None:
         """Start a new drawing element at the given position."""
         self.is_drawing = True
