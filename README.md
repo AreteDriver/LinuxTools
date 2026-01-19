@@ -8,6 +8,10 @@
 [![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
 [![GTK: 3.0](https://img.shields.io/badge/GTK-3.0-orange.svg)](https://www.gtk.org/)
 
+<p align="center">
+  <img src="docs/images/likx-ui-3.27.png" alt="LikX UI" width="400">
+</p>
+
 ---
 
 ## Features
