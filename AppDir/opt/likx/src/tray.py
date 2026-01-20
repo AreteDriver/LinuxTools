@@ -33,7 +33,7 @@ if GTK_AVAILABLE:
         except (ValueError, ImportError):
             pass
 
-from .i18n import _
+from .i18n import _  # noqa: E402
 
 
 class SystemTray:
