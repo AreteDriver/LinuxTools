@@ -1,5 +1,7 @@
 """Command palette UI for LikX - searchable command interface."""
 
+from __future__ import annotations
+
 try:
     import gi
 

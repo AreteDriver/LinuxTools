@@ -1,7 +1,11 @@
 """System tray integration for LikX using AppIndicator3."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Callable, Optional
+
+from .i18n import _
 
 try:
     import gi
@@ -32,8 +36,6 @@ if GTK_AVAILABLE:
             APPINDICATOR_AVAILABLE = True
         except (ValueError, ImportError):
             pass
-
-from .i18n import _  # noqa: E402
 
 
 class SystemTray:

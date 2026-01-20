@@ -46,9 +46,7 @@ class CaptureQueue:
         if persist_dir:
             self._load_persisted()
 
-    def add(
-        self, result: CaptureResult, mode: CaptureMode = CaptureMode.REGION
-    ) -> int:
+    def add(self, result: CaptureResult, mode: CaptureMode = CaptureMode.REGION) -> int:
         """Add capture to queue.
 
         Args:
