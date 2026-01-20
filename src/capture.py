@@ -461,6 +461,53 @@ def capture_window_wayland(delay: int = 0) -> CaptureResult:
     )
 
 
+def _get_active_window_id() -> Tuple[Optional[int], Optional[str]]:
+    """Get active window ID using xdotool.
+
+    Returns:
+        Tuple of (window_id, error_message). One will be None.
+    """
+    result = subprocess.run(
+        ["xdotool", "getactivewindow"],
+        capture_output=True,
+        text=True,
+        timeout=2,
+    )
+    if result.returncode != 0:
+        return None, "Could not get active window. Is xdotool installed?"
+    return int(result.stdout.strip()), None
+
+
+def _get_window_geometry(window_id: int) -> Tuple[Optional[dict], Optional[str]]:
+    """Get window geometry using xdotool.
+
+    Returns:
+        Tuple of (geometry_dict, error_message). One will be None.
+    """
+    result = subprocess.run(
+        ["xdotool", "getwindowgeometry", "--shell", str(window_id)],
+        capture_output=True,
+        text=True,
+        timeout=2,
+    )
+    if result.returncode != 0:
+        return None, "Could not get window geometry"
+
+    geometry = {}
+    for line in result.stdout.split("\n"):
+        if "=" in line:
+            key, value = line.split("=", 1)
+            try:
+                geometry[key.strip()] = int(value.strip())
+            except ValueError:
+                pass
+
+    if "X" not in geometry or "Y" not in geometry:
+        return None, "Invalid geometry data"
+
+    return geometry, None
+
+
 def capture_window(window_id: Optional[int] = None, delay: int = 0) -> CaptureResult:
     """Capture a specific window.
 
@@ -474,9 +521,7 @@ def capture_window(window_id: Optional[int] = None, delay: int = 0) -> CaptureRe
     if delay > 0:
         time.sleep(delay)
 
-    # Check display server
     display_server = detect_display_server()
-
     if display_server == DisplayServer.WAYLAND:
         return capture_window_wayland(0)
 
@@ -484,45 +529,15 @@ def capture_window(window_id: Optional[int] = None, delay: int = 0) -> CaptureRe
         return CaptureResult(False, error="GTK not available")
 
     try:
-        # Get active window ID using xdotool if not specified
         if window_id is None:
-            result = subprocess.run(
-                ["xdotool", "getactivewindow"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-            )
-            if result.returncode != 0:
-                return CaptureResult(
-                    False, error="Could not get active window. Is xdotool installed?"
-                )
-            window_id = int(result.stdout.strip())
+            window_id, error = _get_active_window_id()
+            if error:
+                return CaptureResult(False, error=error)
 
-        # Get window geometry using xdotool
-        result = subprocess.run(
-            ["xdotool", "getwindowgeometry", "--shell", str(window_id)],
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
+        geometry, error = _get_window_geometry(window_id)
+        if error:
+            return CaptureResult(False, error=error)
 
-        if result.returncode != 0:
-            return CaptureResult(False, error="Could not get window geometry")
-
-        # Parse geometry output
-        geometry = {}
-        for line in result.stdout.split("\n"):
-            if "=" in line:
-                key, value = line.split("=", 1)
-                try:
-                    geometry[key.strip()] = int(value.strip())
-                except ValueError:
-                    pass
-
-        if "X" not in geometry or "Y" not in geometry:
-            return CaptureResult(False, error="Invalid geometry data")
-
-        # Capture the window region
         return capture_region(
             geometry["X"], geometry["Y"], geometry["WIDTH"], geometry["HEIGHT"], delay=0
         )
@@ -588,6 +603,70 @@ def save_capture(
         return CaptureResult(False, error=f"Failed to save: {str(e)}")
 
 
+def _copy_wayland_clipboard(temp_file: str) -> bool:
+    """Copy image to Wayland clipboard using wl-copy."""
+    with open(temp_file, "rb") as f:
+        proc = subprocess.Popen(
+            ["wl-copy", "--type", "image/png"],
+            stdin=f,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        proc.wait(timeout=5)
+        if proc.returncode == 0:
+            os.unlink(temp_file)
+            return True
+    return False
+
+
+def _copy_x11_clipboard(temp_file: str) -> bool:
+    """Copy image to X11 clipboard using xclip."""
+    proc = subprocess.Popen(
+        ["xclip", "-selection", "clipboard", "-t", "image/png", temp_file],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    time.sleep(0.1)  # Brief wait for xclip to read file
+    # Keep temp file for xclip to serve (cleaned up by /tmp)
+    return proc.poll() is None or proc.returncode == 0
+
+
+def _copy_gtk_clipboard(pixbuf) -> bool:
+    """Copy image to GTK clipboard."""
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+
+    if not Gtk.init_check()[0]:
+        Gtk.init([])
+
+    clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+    clipboard.set_image(pixbuf)
+    clipboard.store()
+
+    while Gtk.events_pending():
+        Gtk.main_iteration_do(False)
+
+    return True
+
+
+def _try_external_clipboard(pixbuf, display_server: DisplayServer) -> Tuple[bool, str]:
+    """Try copying to clipboard using external tools.
+
+    Returns:
+        Tuple of (success, temp_file_path)
+    """
+    temp_file = f"/tmp/likx_clip_{int(time.time())}.png"
+    pixbuf.savev(temp_file, "png", [], [])
+
+    if display_server == DisplayServer.WAYLAND:
+        if _copy_wayland_clipboard(temp_file):
+            return True, temp_file
+    elif _copy_x11_clipboard(temp_file):
+        return True, temp_file
+
+    return False, temp_file
+
+
 def copy_to_clipboard(result: CaptureResult, use_gtk: bool = True) -> bool:
     """Copy a captured screenshot to the clipboard.
 
@@ -601,66 +680,22 @@ def copy_to_clipboard(result: CaptureResult, use_gtk: bool = True) -> bool:
     if not result.success or result.pixbuf is None:
         return False
 
-    # Try external clipboard tools first (they persist after exit)
     display_server = detect_display_server()
-    temp_file = f"/tmp/likx_clip_{int(time.time())}.png"
+    temp_file = None
 
     try:
-        if result.pixbuf:
-            result.pixbuf.savev(temp_file, "png", [], [])
-
-        if display_server == DisplayServer.WAYLAND:
-            # wl-copy for Wayland
-            with open(temp_file, "rb") as f:
-                proc = subprocess.Popen(
-                    ["wl-copy", "--type", "image/png"],
-                    stdin=f,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                proc.wait(timeout=5)
-                if proc.returncode == 0:
-                    os.unlink(temp_file)
-                    return True
-        else:
-            # xclip for X11 - use background mode to persist
-            proc = subprocess.Popen(
-                ["xclip", "-selection", "clipboard", "-t", "image/png", temp_file],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            # Don't wait - xclip forks to background
-            time.sleep(0.1)  # Brief wait for xclip to read file
-            if proc.poll() is None or proc.returncode == 0:
-                # Keep temp file for xclip to serve (it will be cleaned up by /tmp)
-                return True
-
-    except FileNotFoundError:
-        pass  # External tool not found, fall through to GTK
-    except Exception:
+        success, temp_file = _try_external_clipboard(result.pixbuf, display_server)
+        if success:
+            return True
+    except (FileNotFoundError, Exception):
         pass
 
-    # Cleanup temp file if external tools failed
-    if os.path.exists(temp_file):
+    if temp_file and os.path.exists(temp_file):
         os.unlink(temp_file)
 
-    # Fallback to GTK clipboard (works when running in GUI context)
     if use_gtk and GTK_AVAILABLE:
         try:
-            gi.require_version("Gtk", "3.0")
-            from gi.repository import Gtk
-
-            if not Gtk.init_check()[0]:
-                Gtk.init([])
-
-            clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-            clipboard.set_image(result.pixbuf)
-            clipboard.store()
-
-            while Gtk.events_pending():
-                Gtk.main_iteration_do(False)
-
-            return True
+            return _copy_gtk_clipboard(result.pixbuf)
         except Exception:
             pass
 
