@@ -232,6 +232,42 @@ class EditorState:
         """Set font family for text tool."""
         self.font_family = family
 
+    def _apply_template_tool(self, template: dict) -> None:
+        """Apply tool setting from template."""
+        tool_name = template.get("tool", "PEN")
+        try:
+            self.current_tool = ToolType[tool_name]
+        except KeyError:
+            self.current_tool = ToolType.PEN
+
+    def _apply_template_style(self, template: dict) -> None:
+        """Apply style settings (color, stroke, arrow, stamp) from template."""
+        if "color" in template:
+            c = template["color"]
+            self.current_color = Color(c[0], c[1], c[2], c[3] if len(c) > 3 else 255)
+        if "stroke_width" in template:
+            self.stroke_width = template["stroke_width"]
+        if "arrow_style" in template:
+            try:
+                self.arrow_style = ArrowStyle[template["arrow_style"]]
+            except KeyError:
+                pass
+        if "stamp" in template:
+            self.current_stamp = template["stamp"]
+
+    def _apply_template_font(self, template: dict) -> None:
+        """Apply font settings from template."""
+        font_attrs = ["font_size", "font_bold", "font_italic", "font_family"]
+        for attr in font_attrs:
+            if attr in template:
+                setattr(self, attr, template[attr])
+
+    def apply_template(self, template: dict) -> None:
+        """Apply an annotation template to set tool and style."""
+        self._apply_template_tool(template)
+        self._apply_template_style(template)
+        self._apply_template_font(template)
+
     def start_drawing(self, x: float, y: float) -> None:
         """Start a new drawing element at the given position."""
         self.is_drawing = True
@@ -559,88 +595,89 @@ class EditorState:
                 return name
         return None
 
-    def move_selected(self, x: float, y: float, aspect_locked: bool = False) -> bool:
-        """Move selected elements to follow mouse at (x, y).
-
-        Args:
-            x: Target X position
-            y: Target Y position
-            aspect_locked: If True, maintain aspect ratio when resizing
-
-        Returns True if elements were moved.
-        """
-        if not self.selected_indices or self._drag_start is None:
-            return False
-
-        # Check if selection contains locked elements
-        if self.is_selection_locked():
-            return False
-
-        # Resize only works for single selection
-        if self._resize_handle and len(self.selected_indices) == 1:
-            return self._resize_selected(x, y, aspect_locked)
-
-        # Apply grid snapping if enabled
-        if self.grid_snap_enabled:
-            x, y = self._snap_to_grid(x, y)
-
-        # Moving all selected elements
-        dx = x - self._drag_start.x
-        dy = y - self._drag_start.y
-
-        # Move all selected elements
+    def _move_elements_by_offset(self, dx: float, dy: float) -> None:
+        """Move all selected elements by the given offset."""
         for idx in self.selected_indices:
             elem = self.elements[idx]
             for p in elem.points:
                 p.x += dx
                 p.y += dy
 
-        # Apply snapping (based on first selected element)
-        if self.selected_indices:
-            first_idx = min(self.selected_indices)
-            first_elem = self.elements[first_idx]
-            bbox = self._get_element_bbox(first_elem)
-            if bbox:
-                snap_dx, snap_dy = self._apply_snap(bbox)
-                if snap_dx != 0 or snap_dy != 0:
-                    # Apply snap offset to all selected elements
-                    for idx in self.selected_indices:
-                        elem = self.elements[idx]
-                        for p in elem.points:
-                            p.x += snap_dx
-                            p.y += snap_dy
+    def _apply_snap_to_selection(self) -> None:
+        """Apply snapping based on first selected element."""
+        if not self.selected_indices:
+            return
+        first_elem = self.elements[min(self.selected_indices)]
+        bbox = self._get_element_bbox(first_elem)
+        if bbox:
+            snap_dx, snap_dy = self._apply_snap(bbox)
+            if snap_dx != 0 or snap_dy != 0:
+                self._move_elements_by_offset(snap_dx, snap_dy)
 
+    def move_selected(self, x: float, y: float, aspect_locked: bool = False) -> bool:
+        """Move selected elements to follow mouse at (x, y)."""
+        if not self.selected_indices or self._drag_start is None:
+            return False
+        if self.is_selection_locked():
+            return False
+
+        if self._resize_handle and len(self.selected_indices) == 1:
+            return self._resize_selected(x, y, aspect_locked)
+
+        if self.grid_snap_enabled:
+            x, y = self._snap_to_grid(x, y)
+
+        dx, dy = x - self._drag_start.x, y - self._drag_start.y
+        self._move_elements_by_offset(dx, dy)
+        self._apply_snap_to_selection()
         self._drag_start = Point(x, y)
         return True
 
-    def _resize_selected(self, x: float, y: float, aspect_locked: bool = False) -> bool:
-        """Resize the selected element based on drag position.
+    def _apply_aspect_ratio_edge(
+        self, handle: str, x1: float, y1: float, x2: float, y2: float, aspect_ratio: float
+    ) -> Tuple[float, float, float, float]:
+        """Apply aspect ratio lock for edge handles (n, s, e, w)."""
+        new_width = abs(x2 - x1)
+        new_height = abs(y2 - y1)
 
-        Args:
-            x: Target X position
-            y: Target Y position
-            aspect_locked: If True, maintain original aspect ratio
-        """
-        if self.selected_index is None or not self._resize_handle:
-            return False
+        if handle in ("n", "s"):
+            new_width = new_height * aspect_ratio
+            center_x = (x1 + x2) / 2
+            return center_x - new_width / 2, y1, center_x + new_width / 2, y2
 
-        elem = self.elements[self.selected_index]
-        if len(elem.points) < 2:
-            return False
+        # handle in ("e", "w")
+        new_height = new_width / aspect_ratio
+        center_y = (y1 + y2) / 2
+        return x1, center_y - new_height / 2, x2, center_y + new_height / 2
 
-        # For shapes with 2 points (start/end), resize by moving the appropriate corner
-        handle = self._resize_handle
+    def _apply_aspect_ratio_corner(
+        self, handle: str, x1: float, y1: float, x2: float, y2: float,
+        orig_width: float, orig_height: float
+    ) -> Tuple[float, float, float, float]:
+        """Apply aspect ratio lock for corner handles."""
+        new_width = abs(x2 - x1)
+        new_height = abs(y2 - y1)
+        width_ratio = new_width / orig_width if orig_width > 0 else 1
+        height_ratio = new_height / orig_height if orig_height > 0 else 1
+        scale = max(width_ratio, height_ratio)
 
-        # Get current bbox
-        xs = [p.x for p in elem.points]
-        ys = [p.y for p in elem.points]
-        x1, y1, x2, y2 = min(xs), min(ys), max(xs), max(ys)
+        new_width = orig_width * scale
+        new_height = orig_height * scale
 
-        # Store original dimensions for aspect ratio
-        orig_width = x2 - x1
-        orig_height = y2 - y1
+        # Anchor to the opposite corner
+        anchors = {
+            "nw": (x2 - new_width, y2 - new_height, x2, y2),
+            "ne": (x1, y2 - new_height, x1 + new_width, y2),
+            "sw": (x2 - new_width, y1, x2, y1 + new_height),
+            "se": (x1, y1, x1 + new_width, y1 + new_height),
+        }
+        handle_key = ("n" if "n" in handle else "s") + ("w" if "w" in handle else "e")
+        return anchors.get(handle_key, (x1, y1, x2, y2))
 
-        # Update corner based on handle
+    def _update_bbox_from_handle(
+        self, handle: str, x: float, y: float, x1: float, y1: float, x2: float, y2: float
+    ) -> Tuple[float, float, float, float]:
+        """Update bounding box coordinates based on resize handle."""
         if "n" in handle:
             y1 = y
         if "s" in handle:
@@ -649,58 +686,36 @@ class EditorState:
             x1 = x
         if "e" in handle:
             x2 = x
+        return x1, y1, x2, y2
 
-        # Apply aspect ratio lock if enabled
+    def _resize_selected(self, x: float, y: float, aspect_locked: bool = False) -> bool:
+        """Resize the selected element based on drag position."""
+        if self.selected_index is None or not self._resize_handle:
+            return False
+
+        elem = self.elements[self.selected_index]
+        if len(elem.points) < 2:
+            return False
+
+        handle = self._resize_handle
+        xs, ys = [p.x for p in elem.points], [p.y for p in elem.points]
+        x1, y1, x2, y2 = min(xs), min(ys), max(xs), max(ys)
+        orig_width, orig_height = x2 - x1, y2 - y1
+
+        x1, y1, x2, y2 = self._update_bbox_from_handle(handle, x, y, x1, y1, x2, y2)
+
         if aspect_locked and orig_width > 0 and orig_height > 0:
             aspect_ratio = orig_width / orig_height
-            new_width = abs(x2 - x1)
-            new_height = abs(y2 - y1)
-
-            # Determine which dimension to constrain based on handle
-            if handle in ("n", "s"):
-                # Vertical drag - adjust width to match
-                new_width = new_height * aspect_ratio
-                center_x = (x1 + x2) / 2
-                x1 = center_x - new_width / 2
-                x2 = center_x + new_width / 2
-            elif handle in ("e", "w"):
-                # Horizontal drag - adjust height to match
-                new_height = new_width / aspect_ratio
-                center_y = (y1 + y2) / 2
-                y1 = center_y - new_height / 2
-                y2 = center_y + new_height / 2
+            if handle in ("n", "s", "e", "w"):
+                x1, y1, x2, y2 = self._apply_aspect_ratio_edge(handle, x1, y1, x2, y2, aspect_ratio)
             else:
-                # Corner drag - use the larger change
-                width_ratio = new_width / orig_width if orig_width > 0 else 1
-                height_ratio = new_height / orig_height if orig_height > 0 else 1
-                scale = max(width_ratio, height_ratio)
+                x1, y1, x2, y2 = self._apply_aspect_ratio_corner(handle, x1, y1, x2, y2, orig_width, orig_height)
 
-                new_width = orig_width * scale
-                new_height = orig_height * scale
-
-                # Anchor to the opposite corner
-                if "n" in handle and "w" in handle:
-                    x1 = x2 - new_width
-                    y1 = y2 - new_height
-                elif "n" in handle and "e" in handle:
-                    x2 = x1 + new_width
-                    y1 = y2 - new_height
-                elif "s" in handle and "w" in handle:
-                    x1 = x2 - new_width
-                    y2 = y1 + new_height
-                elif "s" in handle and "e" in handle:
-                    x2 = x1 + new_width
-                    y2 = y1 + new_height
-
-        # Ensure minimum size
         if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
             return False
 
-        # Update element points
         if len(elem.points) == 2:
-            elem.points[0] = Point(x1, y1)
-            elem.points[1] = Point(x2, y2)
-
+            elem.points[0], elem.points[1] = Point(x1, y1), Point(x2, y2)
         return True
 
     def finish_move(self) -> None:
@@ -1038,227 +1053,98 @@ class EditorState:
 
         return True
 
-    def align_left(self) -> bool:
-        """Align selected elements to the leftmost edge.
+    def _get_valid_bboxes(self) -> List[Tuple[int, Tuple[float, float, float, float]]]:
+        """Get bounding boxes for all valid selected elements.
 
         Returns:
-            True if elements were aligned.
+            List of (index, bbox) tuples for valid elements.
+        """
+        result = []
+        for idx in self.selected_indices:
+            if 0 <= idx < len(self.elements):
+                bbox = self._get_element_bbox(self.elements[idx])
+                if bbox:
+                    result.append((idx, bbox))
+        return result
+
+    def _align_elements(
+        self, get_target: callable, get_offset: callable, apply_offset: callable
+    ) -> bool:
+        """Generic alignment helper.
+
+        Args:
+            get_target: Function to compute target value from list of bboxes
+            get_offset: Function to compute offset from (bbox, target)
+            apply_offset: Function to apply offset to points
         """
         if len(self.selected_indices) < 2:
             return False
 
-        # Find leftmost edge
-        min_x = float("inf")
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    min_x = min(min_x, bbox[0])
-
-        if min_x == float("inf"):
+        valid_bboxes = self._get_valid_bboxes()
+        if not valid_bboxes:
             return False
 
-        # Save for undo
+        target = get_target([bbox for _, bbox in valid_bboxes])
+        if target is None:
+            return False
+
         self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
         self.redo_stack.clear()
 
-        # Move elements to align left edges
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    dx = min_x - bbox[0]
-                    if abs(dx) > 0.1:
-                        for p in self.elements[idx].points:
-                            p.x += dx
+        for idx, bbox in valid_bboxes:
+            offset = get_offset(bbox, target)
+            if abs(offset) > 0.1:
+                apply_offset(self.elements[idx].points, offset)
 
         return True
+
+    def align_left(self) -> bool:
+        """Align selected elements to the leftmost edge."""
+        return self._align_elements(
+            get_target=lambda bboxes: min(b[0] for b in bboxes),
+            get_offset=lambda bbox, target: target - bbox[0],
+            apply_offset=lambda points, dx: [setattr(p, "x", p.x + dx) for p in points],
+        )
 
     def align_right(self) -> bool:
-        """Align selected elements to the rightmost edge.
-
-        Returns:
-            True if elements were aligned.
-        """
-        if len(self.selected_indices) < 2:
-            return False
-
-        # Find rightmost edge
-        max_x = float("-inf")
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    max_x = max(max_x, bbox[2])
-
-        if max_x == float("-inf"):
-            return False
-
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
-
-        # Move elements to align right edges
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    dx = max_x - bbox[2]
-                    if abs(dx) > 0.1:
-                        for p in self.elements[idx].points:
-                            p.x += dx
-
-        return True
+        """Align selected elements to the rightmost edge."""
+        return self._align_elements(
+            get_target=lambda bboxes: max(b[2] for b in bboxes),
+            get_offset=lambda bbox, target: target - bbox[2],
+            apply_offset=lambda points, dx: [setattr(p, "x", p.x + dx) for p in points],
+        )
 
     def align_top(self) -> bool:
-        """Align selected elements to the topmost edge.
-
-        Returns:
-            True if elements were aligned.
-        """
-        if len(self.selected_indices) < 2:
-            return False
-
-        # Find topmost edge
-        min_y = float("inf")
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    min_y = min(min_y, bbox[1])
-
-        if min_y == float("inf"):
-            return False
-
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
-
-        # Move elements to align top edges
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    dy = min_y - bbox[1]
-                    if abs(dy) > 0.1:
-                        for p in self.elements[idx].points:
-                            p.y += dy
-
-        return True
+        """Align selected elements to the topmost edge."""
+        return self._align_elements(
+            get_target=lambda bboxes: min(b[1] for b in bboxes),
+            get_offset=lambda bbox, target: target - bbox[1],
+            apply_offset=lambda points, dy: [setattr(p, "y", p.y + dy) for p in points],
+        )
 
     def align_bottom(self) -> bool:
-        """Align selected elements to the bottommost edge.
-
-        Returns:
-            True if elements were aligned.
-        """
-        if len(self.selected_indices) < 2:
-            return False
-
-        # Find bottommost edge
-        max_y = float("-inf")
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    max_y = max(max_y, bbox[3])
-
-        if max_y == float("-inf"):
-            return False
-
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
-
-        # Move elements to align bottom edges
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    dy = max_y - bbox[3]
-                    if abs(dy) > 0.1:
-                        for p in self.elements[idx].points:
-                            p.y += dy
-
-        return True
+        """Align selected elements to the bottommost edge."""
+        return self._align_elements(
+            get_target=lambda bboxes: max(b[3] for b in bboxes),
+            get_offset=lambda bbox, target: target - bbox[3],
+            apply_offset=lambda points, dy: [setattr(p, "y", p.y + dy) for p in points],
+        )
 
     def align_center_horizontal(self) -> bool:
-        """Align selected elements to the horizontal center.
-
-        Returns:
-            True if elements were aligned.
-        """
-        if len(self.selected_indices) < 2:
-            return False
-
-        # Find average center X
-        centers = []
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    centers.append((bbox[0] + bbox[2]) / 2)
-
-        if not centers:
-            return False
-
-        target_x = sum(centers) / len(centers)
-
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
-
-        # Move elements to align centers
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    current_center = (bbox[0] + bbox[2]) / 2
-                    dx = target_x - current_center
-                    if abs(dx) > 0.1:
-                        for p in self.elements[idx].points:
-                            p.x += dx
-
-        return True
+        """Align selected elements to the horizontal center."""
+        return self._align_elements(
+            get_target=lambda bboxes: sum((b[0] + b[2]) / 2 for b in bboxes) / len(bboxes),
+            get_offset=lambda bbox, target: target - (bbox[0] + bbox[2]) / 2,
+            apply_offset=lambda points, dx: [setattr(p, "x", p.x + dx) for p in points],
+        )
 
     def align_center_vertical(self) -> bool:
-        """Align selected elements to the vertical center.
-
-        Returns:
-            True if elements were aligned.
-        """
-        if len(self.selected_indices) < 2:
-            return False
-
-        # Find average center Y
-        centers = []
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    centers.append((bbox[1] + bbox[3]) / 2)
-
-        if not centers:
-            return False
-
-        target_y = sum(centers) / len(centers)
-
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
-
-        # Move elements to align centers
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                bbox = self._get_element_bbox(self.elements[idx])
-                if bbox:
-                    current_center = (bbox[1] + bbox[3]) / 2
-                    dy = target_y - current_center
-                    if abs(dy) > 0.1:
-                        for p in self.elements[idx].points:
-                            p.y += dy
-
-        return True
+        """Align selected elements to the vertical center."""
+        return self._align_elements(
+            get_target=lambda bboxes: sum((b[1] + b[3]) / 2 for b in bboxes) / len(bboxes),
+            get_offset=lambda bbox, target: target - (bbox[1] + bbox[3]) / 2,
+            apply_offset=lambda points, dy: [setattr(p, "y", p.y + dy) for p in points],
+        )
 
     def group_selected(self) -> bool:
         """Group all selected elements together.
@@ -1471,139 +1357,75 @@ class EditorState:
 
         return True
 
-    def flip_horizontal(self) -> bool:
-        """Flip selected elements horizontally (mirror on vertical axis).
+    def _get_unlocked_selected_points(self) -> Tuple[List[Tuple[int, DrawingElement]], List[float], List[float]]:
+        """Get unlocked selected elements and their point coordinates.
 
         Returns:
-            True if any elements were flipped.
+            Tuple of (list of (idx, elem), all_x, all_y)
+        """
+        elements = []
+        all_x, all_y = [], []
+        for idx in self.selected_indices:
+            if 0 <= idx < len(self.elements):
+                elem = self.elements[idx]
+                if not elem.locked:
+                    elements.append((idx, elem))
+                    for p in elem.points:
+                        all_x.append(p.x)
+                        all_y.append(p.y)
+        return elements, all_x, all_y
+
+    def _transform_selected(self, transform_fn: callable) -> bool:
+        """Generic transformation helper for selected elements.
+
+        Args:
+            transform_fn: Function(elem, center_x, center_y) that transforms element points
         """
         if not self.selected_indices:
             return False
 
-        # Get bounding box of all selected elements
-        all_x = []
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                elem = self.elements[idx]
-                if elem.locked:
-                    continue
-                for p in elem.points:
-                    all_x.append(p.x)
-
+        elements, all_x, all_y = self._get_unlocked_selected_points()
         if not all_x:
             return False
 
         center_x = (min(all_x) + max(all_x)) / 2
+        center_y = (min(all_y) + max(all_y)) / 2
 
-        # Save for undo
         self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
         self.redo_stack.clear()
 
-        # Flip points around center
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                elem = self.elements[idx]
-                if elem.locked:
-                    continue
-                for p in elem.points:
-                    p.x = center_x + (center_x - p.x)
+        for idx, elem in elements:
+            transform_fn(elem, center_x, center_y)
 
         return True
+
+    def flip_horizontal(self) -> bool:
+        """Flip selected elements horizontally (mirror on vertical axis)."""
+        def transform(elem, center_x, center_y):
+            for p in elem.points:
+                p.x = center_x + (center_x - p.x)
+        return self._transform_selected(transform)
 
     def flip_vertical(self) -> bool:
-        """Flip selected elements vertically (mirror on horizontal axis).
-
-        Returns:
-            True if any elements were flipped.
-        """
-        if not self.selected_indices:
-            return False
-
-        # Get bounding box of all selected elements
-        all_y = []
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                elem = self.elements[idx]
-                if elem.locked:
-                    continue
-                for p in elem.points:
-                    all_y.append(p.y)
-
-        if not all_y:
-            return False
-
-        center_y = (min(all_y) + max(all_y)) / 2
-
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
-
-        # Flip points around center
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                elem = self.elements[idx]
-                if elem.locked:
-                    continue
-                for p in elem.points:
-                    p.y = center_y + (center_y - p.y)
-
-        return True
+        """Flip selected elements vertically (mirror on horizontal axis)."""
+        def transform(elem, center_x, center_y):
+            for p in elem.points:
+                p.y = center_y + (center_y - p.y)
+        return self._transform_selected(transform)
 
     def rotate_selected(self, angle_degrees: float) -> bool:
-        """Rotate selected elements by the specified angle around their center.
-
-        Args:
-            angle_degrees: Angle in degrees (positive = clockwise).
-
-        Returns:
-            True if any elements were rotated.
-        """
-        if not self.selected_indices:
-            return False
-
-        # Collect all points from non-locked selected elements
-        all_points = []
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                elem = self.elements[idx]
-                if elem.locked:
-                    continue
-                for p in elem.points:
-                    all_points.append((p.x, p.y))
-
-        if not all_points:
-            return False
-
-        # Calculate center of all points
-        all_x = [p[0] for p in all_points]
-        all_y = [p[1] for p in all_points]
-        center_x = (min(all_x) + max(all_x)) / 2
-        center_y = (min(all_y) + max(all_y)) / 2
-
-        # Convert angle to radians (negative because screen Y is inverted)
+        """Rotate selected elements by the specified angle around their center."""
         angle_rad = math.radians(-angle_degrees)
         cos_a = math.cos(angle_rad)
         sin_a = math.sin(angle_rad)
 
-        # Save for undo
-        self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
-        self.redo_stack.clear()
+        def transform(elem, center_x, center_y):
+            for p in elem.points:
+                dx, dy = p.x - center_x, p.y - center_y
+                p.x = center_x + dx * cos_a - dy * sin_a
+                p.y = center_y + dx * sin_a + dy * cos_a
 
-        # Rotate points around center
-        for idx in self.selected_indices:
-            if 0 <= idx < len(self.elements):
-                elem = self.elements[idx]
-                if elem.locked:
-                    continue
-                for p in elem.points:
-                    # Translate to origin
-                    dx = p.x - center_x
-                    dy = p.y - center_y
-                    # Rotate
-                    p.x = center_x + dx * cos_a - dy * sin_a
-                    p.y = center_y + dx * sin_a + dy * cos_a
-
-        return True
+        return self._transform_selected(transform)
 
     def set_selected_opacity(self, opacity: float) -> bool:
         """Set the opacity of selected elements.
@@ -2009,6 +1831,48 @@ def apply_pixelate_region(
     return new_pixbuf
 
 
+def _render_element(ctx: Any, element: DrawingElement, base_pixbuf: Optional[Any]) -> None:
+    """Render a single drawing element to the context."""
+    r, g, b, a = element.color.to_tuple()
+    ctx.set_source_rgba(r, g, b, a)
+    ctx.set_line_width(element.stroke_width)
+
+    # Dispatch table for tool renderers
+    tool_renderers = {
+        ToolType.PEN: lambda: _render_freehand(ctx, element),
+        ToolType.LINE: lambda: _render_line(ctx, element),
+        ToolType.ARROW: lambda: _render_arrow(ctx, element),
+        ToolType.RECTANGLE: lambda: _render_rectangle(ctx, element),
+        ToolType.ELLIPSE: lambda: _render_ellipse(ctx, element),
+        ToolType.TEXT: lambda: _render_text(ctx, element),
+        ToolType.ERASER: lambda: _render_eraser(ctx, element),
+        ToolType.MEASURE: lambda: _render_measure(ctx, element),
+        ToolType.NUMBER: lambda: _render_number(ctx, element),
+        ToolType.STAMP: lambda: _render_stamp(ctx, element),
+        ToolType.CALLOUT: lambda: _render_callout(ctx, element),
+    }
+
+    # Handle highlighter specially (different alpha and width)
+    if element.tool == ToolType.HIGHLIGHTER:
+        ctx.set_source_rgba(r, g, b, 0.3)
+        ctx.set_line_width(element.stroke_width * 3)
+        _render_freehand(ctx, element)
+        return
+
+    # Handle blur/pixelate (require base_pixbuf)
+    if element.tool == ToolType.BLUR and base_pixbuf:
+        _render_blur(ctx, element, base_pixbuf)
+        return
+    if element.tool == ToolType.PIXELATE and base_pixbuf:
+        _render_pixelate(ctx, element, base_pixbuf)
+        return
+
+    # Use dispatch table for standard tools
+    renderer = tool_renderers.get(element.tool)
+    if renderer:
+        renderer()
+
+
 def render_elements(
     surface_or_ctx: Any,
     elements: List[DrawingElement],
@@ -2026,50 +1890,14 @@ def render_elements(
     except ImportError:
         return
 
-    # Accept either a surface or an existing context
     if isinstance(surface_or_ctx, cairo.Context):
         ctx = surface_or_ctx
     else:
         ctx = cairo.Context(surface_or_ctx)
 
     for element in elements:
-        if not element.points:
-            continue
-
-        r, g, b, a = element.color.to_tuple()
-        ctx.set_source_rgba(r, g, b, a)
-        ctx.set_line_width(element.stroke_width)
-
-        if element.tool == ToolType.PEN:
-            _render_freehand(ctx, element)
-        elif element.tool == ToolType.HIGHLIGHTER:
-            ctx.set_source_rgba(r, g, b, 0.3)
-            ctx.set_line_width(element.stroke_width * 3)
-            _render_freehand(ctx, element)
-        elif element.tool == ToolType.LINE:
-            _render_line(ctx, element)
-        elif element.tool == ToolType.ARROW:
-            _render_arrow(ctx, element)
-        elif element.tool == ToolType.RECTANGLE:
-            _render_rectangle(ctx, element)
-        elif element.tool == ToolType.ELLIPSE:
-            _render_ellipse(ctx, element)
-        elif element.tool == ToolType.TEXT:
-            _render_text(ctx, element)
-        elif element.tool == ToolType.ERASER:
-            _render_eraser(ctx, element)
-        elif element.tool == ToolType.BLUR and base_pixbuf:
-            _render_blur(ctx, element, base_pixbuf)
-        elif element.tool == ToolType.PIXELATE and base_pixbuf:
-            _render_pixelate(ctx, element, base_pixbuf)
-        elif element.tool == ToolType.MEASURE:
-            _render_measure(ctx, element)
-        elif element.tool == ToolType.NUMBER:
-            _render_number(ctx, element)
-        elif element.tool == ToolType.STAMP:
-            _render_stamp(ctx, element)
-        elif element.tool == ToolType.CALLOUT:
-            _render_callout(ctx, element)
+        if element.points:
+            _render_element(ctx, element, base_pixbuf)
 
 
 def _render_freehand(ctx: Any, element: DrawingElement) -> None:
