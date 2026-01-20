@@ -98,127 +98,115 @@ def parse_args():
     return parser.parse_args()
 
 
+def _run_gui_mode():
+    """Launch the GUI application."""
+    lock_fd = acquire_single_instance_lock()
+    if lock_fd is None:
+        print("LikX is already running.", file=sys.stderr)
+        sys.exit(0)
+    try:
+        from src.ui import run_app
+        run_app()
+    except Exception as e:
+        print(f"Error launching GUI: {e}", file=sys.stderr)
+        sys.exit(1)
+    finally:
+        lock_fd.close()
+
+
+def _capture_region(delay):
+    """Capture a selected region interactively."""
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    from src.ui import RegionSelector
+
+    region_result = [None]
+
+    def on_region_selected(x, y, width, height):
+        region_result[0] = (x, y, width, height)
+        Gtk.main_quit()
+
+    RegionSelector(on_region_selected)
+    Gtk.main()
+
+    if region_result[0] is None:
+        print("Region selection cancelled", file=sys.stderr)
+        sys.exit(1)
+
+    return capture(CaptureMode.REGION, delay=delay, region=region_result[0])
+
+
+def _handle_no_edit_output(result, args, output_path):
+    """Handle output when --no-edit is specified."""
+    if args.copy:
+        if copy_to_clipboard(result):
+            print("Screenshot copied to clipboard")
+            if load_config().get("show_notification", True):
+                show_notification("Screenshot Copied", "Image copied to clipboard")
+        else:
+            print("Failed to copy to clipboard", file=sys.stderr)
+            sys.exit(1)
+    else:
+        result = save_capture(result, output_path)
+        if result.success:
+            print(f"Screenshot saved to: {result.filepath}")
+            if load_config().get("show_notification", True):
+                show_screenshot_saved(str(result.filepath))
+        else:
+            print(f"Failed to save: {result.error}", file=sys.stderr)
+            sys.exit(1)
+
+
+def _open_editor(result, output_path):
+    """Open the editor or fall back to direct save."""
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+        from src.ui import EditorWindow
+        EditorWindow(result)
+        Gtk.main()
+    except Exception as e:
+        print(f"Editor failed: {e}", file=sys.stderr)
+        result = save_capture(result, output_path)
+        if result.success:
+            print(f"Screenshot saved to: {result.filepath}")
+            if load_config().get("show_notification", True):
+                show_screenshot_saved(str(result.filepath))
+        else:
+            print(f"Failed to save: {result.error}", file=sys.stderr)
+            sys.exit(1)
+
+
 def main():
     """Main entry point for LikX."""
     args = parse_args()
 
-    # If no capture mode specified, launch GUI
     if not (args.fullscreen or args.region or args.window):
-        # Ensure single instance
-        lock_fd = acquire_single_instance_lock()
-        if lock_fd is None:
-            print("LikX is already running.", file=sys.stderr)
-            sys.exit(0)
-
-        try:
-            from src.ui import run_app
-
-            run_app()
-        except Exception as e:
-            print(f"Error launching GUI: {e}", file=sys.stderr)
-            sys.exit(1)
-        finally:
-            lock_fd.close()
+        _run_gui_mode()
         return
 
-    # Determine capture mode
-    if args.fullscreen:
-        mode = CaptureMode.FULLSCREEN
-    elif args.region:
-        mode = CaptureMode.REGION
-    elif args.window:
-        mode = CaptureMode.WINDOW
-    else:
-        mode = CaptureMode.FULLSCREEN
+    mode = CaptureMode.FULLSCREEN if args.fullscreen else (
+        CaptureMode.REGION if args.region else CaptureMode.WINDOW)
 
-    # Handle region capture
-    if mode == CaptureMode.REGION:
-        try:
-            import gi
-
-            gi.require_version("Gtk", "3.0")
-            from gi.repository import Gtk
-
-            from src.ui import RegionSelector
-
-            region_result = [None]
-
-            def on_region_selected(x, y, width, height):
-                region_result[0] = (x, y, width, height)
-                Gtk.main_quit()
-
-            RegionSelector(on_region_selected)
-            Gtk.main()
-
-            if region_result[0] is None:
-                print("Region selection cancelled", file=sys.stderr)
-                sys.exit(1)
-
-            result = capture(mode, delay=args.delay, region=region_result[0])
-        except Exception as e:
-            print(f"Error during region capture: {e}", file=sys.stderr)
-            sys.exit(1)
-    else:
-        # Fullscreen or window capture
-        result = capture(mode, delay=args.delay)
+    try:
+        result = _capture_region(args.delay) if mode == CaptureMode.REGION else capture(mode, delay=args.delay)
+    except Exception as e:
+        print(f"Error during capture: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if not result.success:
         print(f"Capture failed: {result.error}", file=sys.stderr)
         show_notification("Capture Failed", result.error, icon="dialog-error")
         sys.exit(1)
 
-    # Determine output path
-    if args.output:
-        output_path = Path(args.output)
-    else:
-        output_path = get_save_path()
+    output_path = Path(args.output) if args.output else get_save_path()
 
-    # Either save directly or open editor
     if args.no_edit:
-        if args.copy:
-            # Copy to clipboard instead of saving
-            if copy_to_clipboard(result):
-                print("Screenshot copied to clipboard")
-                cfg = load_config()
-                if cfg.get("show_notification", True):
-                    show_notification("Screenshot Copied", "Image copied to clipboard")
-            else:
-                print("Failed to copy to clipboard", file=sys.stderr)
-                sys.exit(1)
-        else:
-            result = save_capture(result, output_path)
-            if result.success:
-                print(f"Screenshot saved to: {result.filepath}")
-                cfg = load_config()
-                if cfg.get("show_notification", True):
-                    show_screenshot_saved(str(result.filepath))
-            else:
-                print(f"Failed to save: {result.error}", file=sys.stderr)
-                sys.exit(1)
+        _handle_no_edit_output(result, args, output_path)
     else:
-        # Open editor
-        try:
-            import gi
-
-            gi.require_version("Gtk", "3.0")
-            from gi.repository import Gtk
-
-            from src.ui import EditorWindow
-
-            EditorWindow(result)
-            Gtk.main()
-        except Exception as e:
-            # If editor fails, save directly
-            print(f"Editor failed: {e}", file=sys.stderr)
-            result = save_capture(result, output_path)
-            if result.success:
-                print(f"Screenshot saved to: {result.filepath}")
-                cfg = load_config()
-                if cfg.get("show_notification", True):
-                    show_screenshot_saved(str(result.filepath))
-            else:
-                print(f"Failed to save: {result.error}", file=sys.stderr)
-                sys.exit(1)
+        _open_editor(result, output_path)
 
 
 if __name__ == "__main__":
