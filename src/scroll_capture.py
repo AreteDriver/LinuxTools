@@ -460,7 +460,7 @@ class ScrollCaptureManager:
         # Convert surface to pixbuf
         return self._surface_to_pixbuf(surface)
 
-    def _surface_to_pixbuf(self, surface: cairo.ImageSurface) -> object:
+    def _surface_to_pixbuf(self, surface: "cairo.ImageSurface") -> object:
         """Convert cairo surface to GdkPixbuf."""
         _ensure_opencv()  # Ensure numpy is loaded
         width = surface.get_width()

@@ -1,5 +1,7 @@
 """System tray integration for LikX using AppIndicator3."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Callable, Optional
 
