@@ -18,7 +18,13 @@ except (ImportError, ValueError):
 
 from . import capture as capture_module
 from . import config
-from .capture import CaptureMode, CaptureResult, capture, save_capture
+from .capture import (
+    CaptureMode,
+    CaptureResult,
+    capture,
+    copy_to_clipboard,
+    save_capture,
+)
 from .editor import ArrowStyle, Color, EditorState, ToolType, render_elements
 from .effects import (
     add_background,
@@ -405,6 +411,9 @@ class EditorWindow:
         self.notebook.set_show_tabs(len(self.tabs) > 1)
 
         self.window.show_all()
+
+        # Initialize keyboard shortcut bindings
+        self._init_key_bindings()
 
         # Create cursors for drawing tools
         self._init_cursors()
@@ -942,24 +951,11 @@ class EditorWindow:
         self.ctx_size_box.pack_start(self.size_spin, False, False, 0)
         bar.pack_start(self.ctx_size_box, False, False, 0)
 
-        # === COLOR GROUP ===
-        self.ctx_color_box = Gtk.Box(spacing=4)
+        # === INLINE HEX COLOR PICKER ===
+        self.ctx_color_box = Gtk.Box(spacing=0)
         self.ctx_color_box.get_style_context().add_class("context-group")
-        color_label = Gtk.Label(label=_("Color:"))
-        color_label.get_style_context().add_class("ctx-label")
-        self.ctx_color_box.pack_start(color_label, False, False, 0)
-        self.color_btn = Gtk.ColorButton()
-        self.color_btn.set_rgba(Gdk.RGBA(1, 0, 0, 1))
-        self.color_btn.set_tooltip_text(_("Pick color"))
-        self.color_btn.connect("color-set", self._on_color_chosen)
-        self.ctx_color_box.pack_start(self.color_btn, False, False, 0)
-        # Quick color palette button
-        self.palette_btn = Gtk.Button(label="▾")
-        self.palette_btn.set_tooltip_text(_("Color palette"))
-        self.palette_btn.get_style_context().add_class("ctx-btn")
-        self._create_color_popover()
-        self.palette_btn.connect("clicked", lambda b: self.color_popover.show_all())
-        self.ctx_color_box.pack_start(self.palette_btn, False, False, 0)
+        self._setup_inline_hex_picker()
+        self.ctx_color_box.pack_start(self._hex_canvas, False, False, 0)
         bar.pack_start(self.ctx_color_box, False, False, 0)
 
         # === ARROW STYLE GROUP ===
@@ -1053,76 +1049,174 @@ class EditorWindow:
 
         return bar
 
-    def _create_color_popover(self) -> None:
-        """Create color palette popover."""
-        self.color_popover = Gtk.Popover()
-        self.color_popover.set_relative_to(self.palette_btn)
+    def _setup_inline_hex_picker(self) -> None:
+        """Create inline hexagonal color picker for toolbar."""
+        import math
 
-        pop_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        pop_box.set_margin_start(8)
-        pop_box.set_margin_end(8)
-        pop_box.set_margin_top(8)
-        pop_box.set_margin_bottom(8)
-
-        # 20-color palette grid (10x2)
-        palette = [
+        # Color palette - 19 colors + 1 custom picker
+        self._hex_palette = [
+            # Row 0 (10 hexes): grays + warm colors
             (0, 0, 0),
             (0.4, 0.4, 0.4),
-            (0.5, 0, 0),
-            (0.5, 0.25, 0),
-            (0.5, 0.5, 0),
-            (0, 0.4, 0),
-            (0, 0.4, 0.4),
-            (0, 0, 0.5),
-            (0.3, 0, 0.5),
-            (0.5, 0, 0.3),
-            (1, 1, 1),
             (0.75, 0.75, 0.75),
+            (1, 1, 1),
+            (0.5, 0, 0),
             (1, 0, 0),
             (1, 0.5, 0),
             (1, 1, 0),
+            (0.5, 0.5, 0),
+            (0, 0.5, 0),
+            # Row 1 (9 hexes): cool colors
             (0, 0.8, 0),
             (0, 0.8, 0.8),
+            (0, 0.5, 0.5),
+            (0, 0, 0.5),
             (0, 0, 1),
+            (0.3, 0, 0.5),
             (0.6, 0.3, 1),
             (1, 0.4, 0.7),
+            (0.5, 0, 0.3),
         ]
-        color_grid = Gtk.Grid(row_spacing=2, column_spacing=2)
-        for i, (r, g, b) in enumerate(palette):
-            btn = Gtk.Button()
-            da = Gtk.DrawingArea()
-            da.set_size_request(20, 20)
-            da.connect(
-                "draw",
-                lambda w, cr, r=r, g=g, b=b: self._draw_color_swatch(cr, r, g, b),
-            )
-            btn.add(da)
-            btn.set_tooltip_text(f"RGB({int(r * 255)},{int(g * 255)},{int(b * 255)})")
-            btn.connect(
-                "clicked",
-                lambda b, r=r, g=g, bl=b: (
-                    self._set_color_rgb(r, g, bl),
-                    self.color_popover.popdown(),
-                ),
-            )
-            color_grid.attach(btn, i % 10, i // 10, 1, 1)
-        pop_box.pack_start(color_grid, False, False, 0)
+        self._custom_color = (0.5, 0.5, 0.5)  # Default custom color
+        self._custom_hex_idx = 19  # Index for custom color picker hex
+        self._hex_size = 9  # Small for toolbar
+        self._hex_positions = []
+        self._selected_hex_idx = 5  # Default to red
+        self._build_hex_positions()
 
-        # Recent colors
-        recent_label = Gtk.Label(label=_("Recent:"))
-        recent_label.get_style_context().add_class("ctx-label")
-        pop_box.pack_start(recent_label, False, False, 4)
-        self.recent_colors_box = Gtk.Box(spacing=2)
-        pop_box.pack_start(self.recent_colors_box, False, False, 0)
+        # Calculate canvas size (row 1 is offset, so needs extra width)
+        hex_w = self._hex_size * math.sqrt(3)
+        hex_h = self._hex_size * 1.5
+        canvas_w = int(hex_w * 10.5 + self._hex_size)
+        canvas_h = int(hex_h * 2 + self._hex_size)
 
-        self.color_popover.add(pop_box)
+        # Hexagon drawing area
+        self._hex_canvas = Gtk.DrawingArea()
+        self._hex_canvas.set_size_request(canvas_w, canvas_h)
+        self._hex_canvas.connect("draw", self._draw_hex_palette)
+        self._hex_canvas.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self._hex_canvas.connect("button-press-event", self._on_hex_click)
 
-    def _draw_color_swatch(self, cr, r: float, g: float, b: float) -> bool:
-        """Draw a simple color swatch."""
-        cr.set_source_rgb(r, g, b)
-        cr.rectangle(0, 0, 20, 20)
-        cr.fill()
+    def _build_hex_positions(self) -> None:
+        """Calculate center positions for each hexagon in 2-row honeycomb layout."""
+        import math
+
+        size = self._hex_size
+        hex_w = size * math.sqrt(3)  # Exact honeycomb horizontal spacing
+        hex_h = size * 1.5  # Exact honeycomb vertical spacing
+
+        # 2-row layout: 10 hexes on top, 10 hexes below (offset) - last is custom
+        row_counts = [10, 10]
+        color_idx = 0
+
+        for row, count in enumerate(row_counts):
+            # Offset odd rows for honeycomb effect
+            x_offset = (hex_w / 2) if row % 2 == 1 else 0
+            start_x = size + x_offset
+
+            for col in range(count):
+                cx = start_x + col * hex_w
+                cy = size + row * hex_h
+                self._hex_positions.append((cx, cy, color_idx))
+                color_idx += 1
+
+    def _draw_hex_palette(self, widget, cr) -> bool:
+        """Draw hexagonal color palette with selection indicator."""
+        import math
+        import cairo
+
+        size = self._hex_size
+
+        for cx, cy, idx in self._hex_positions:
+            is_custom = idx == self._custom_hex_idx
+            is_selected = idx == getattr(self, "_selected_hex_idx", -1)
+
+            cr.save()
+            cr.translate(cx, cy)
+
+            # Create hexagon path (pointy-top orientation)
+            cr.move_to(0, -size)
+            for i in range(1, 6):
+                angle = math.pi / 3 * i - math.pi / 2
+                cr.line_to(size * math.cos(angle), size * math.sin(angle))
+            cr.close_path()
+
+            if is_custom:
+                # Draw rainbow gradient for custom color picker
+                gradient = cairo.LinearGradient(-size, 0, size, 0)
+                gradient.add_color_stop_rgb(0.0, 1, 0, 0)  # Red
+                gradient.add_color_stop_rgb(0.17, 1, 0.5, 0)  # Orange
+                gradient.add_color_stop_rgb(0.33, 1, 1, 0)  # Yellow
+                gradient.add_color_stop_rgb(0.5, 0, 1, 0)  # Green
+                gradient.add_color_stop_rgb(0.67, 0, 0.5, 1)  # Blue
+                gradient.add_color_stop_rgb(0.83, 0.5, 0, 1)  # Indigo
+                gradient.add_color_stop_rgb(1.0, 1, 0, 0.5)  # Violet
+                cr.set_source(gradient)
+            else:
+                # Regular preset color
+                if idx < len(self._hex_palette):
+                    r, g, b = self._hex_palette[idx]
+                else:
+                    r, g, b = 0.5, 0.5, 0.5
+                cr.set_source_rgb(r, g, b)
+
+            cr.fill_preserve()
+
+            # Draw border - highlight selected
+            if is_selected:
+                cr.set_source_rgba(1, 1, 1, 0.9)
+                cr.set_line_width(2)
+            else:
+                cr.set_source_rgba(0.2, 0.2, 0.2, 0.6)
+                cr.set_line_width(1)
+            cr.stroke()
+
+            cr.restore()
+
         return True
+
+    def _on_hex_click(self, widget, event) -> bool:
+        """Handle click on hexagonal color palette."""
+        import math
+
+        x, y = event.x, event.y
+        size = self._hex_size
+
+        # Find which hexagon was clicked
+        for cx, cy, idx in self._hex_positions:
+            dist = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+            if dist < size * 0.9:
+                if idx == self._custom_hex_idx:
+                    # Open color chooser dialog
+                    self._open_color_chooser()
+                elif idx < len(self._hex_palette):
+                    r, g, b = self._hex_palette[idx]
+                    self._selected_hex_idx = idx
+                    self._set_color_rgb(r, g, b)
+                    self._hex_canvas.queue_draw()
+                return True
+
+        return False
+
+    def _open_color_chooser(self) -> None:
+        """Open GTK color chooser dialog for custom color."""
+        dialog = Gtk.ColorChooserDialog(title=_("Choose Color"))
+        dialog.set_use_alpha(False)
+
+        # Set current custom color as starting point
+        r, g, b = self._custom_color
+        rgba = Gdk.RGBA(red=r, green=g, blue=b, alpha=1.0)
+        dialog.set_rgba(rgba)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            rgba = dialog.get_rgba()
+            self._custom_color = (rgba.red, rgba.green, rgba.blue)
+            self._selected_hex_idx = self._custom_hex_idx
+            self._set_color_rgb(rgba.red, rgba.green, rgba.blue)
+            self._hex_canvas.queue_draw()
+
+        dialog.destroy()
 
     def _create_stamp_popover(self) -> None:
         """Create stamp selector popover."""
@@ -1226,10 +1320,8 @@ class EditorWindow:
         return True
 
     def _set_color_rgb(self, r: float, g: float, b: float) -> None:
-        """Set color from RGB and update button."""
+        """Set color from RGB values."""
         self.editor_state.set_color(Color(r, g, b, 1.0))
-        self.color_btn.set_rgba(Gdk.RGBA(r, g, b, 1.0))
-        self._update_recent_colors()
 
     def _update_recent_colors(self) -> None:
         """Update the recent colors display in toolbar."""
@@ -2075,46 +2167,46 @@ class EditorWindow:
                 self.drawing_area.queue_draw()
         return True
 
+    def _handle_select_motion(self, img_x: float, img_y: float, shift: bool) -> None:
+        """Handle motion for SELECT tool."""
+        if self.editor_state._drag_start is not None:
+            if self.editor_state.move_selected(img_x, img_y, aspect_locked=shift):
+                self.drawing_area.queue_draw()
+        else:
+            self._update_resize_cursor(img_x, img_y)
+
+    def _handle_crop_motion(self, img_x: float, img_y: float, shift: bool) -> None:
+        """Handle motion for CROP tool."""
+        if not hasattr(self, "_crop_start"):
+            return
+        if shift:
+            dx, dy = img_x - self._crop_start[0], img_y - self._crop_start[1]
+            size = max(abs(dx), abs(dy))
+            self._crop_end = (
+                self._crop_start[0] + (size if dx >= 0 else -size),
+                self._crop_start[1] + (size if dy >= 0 else -size),
+            )
+        else:
+            self._crop_end = (img_x, img_y)
+        self.drawing_area.queue_draw()
+
     def _on_motion(self, widget: Gtk.Widget, event: Gdk.EventMotion) -> bool:
         """Handle mouse motion."""
         img_x, img_y = self._screen_to_image(event.x, event.y)
+        shift = bool(event.state & Gdk.ModifierType.SHIFT_MASK)
 
-        # Handle SELECT tool dragging (move/resize)
         if self.editor_state.current_tool == ToolType.SELECT:
-            if self.editor_state._drag_start is not None:
-                # Shift locks aspect ratio during resize
-                shift = bool(event.state & Gdk.ModifierType.SHIFT_MASK)
-                if self.editor_state.move_selected(img_x, img_y, aspect_locked=shift):
-                    self.drawing_area.queue_draw()
-            else:
-                # Update cursor based on hover position
-                self._update_resize_cursor(img_x, img_y)
+            self._handle_select_motion(img_x, img_y, shift)
             return True
 
         if self.editor_state.is_drawing:
-            if self.editor_state.current_tool == ToolType.CALLOUT:
-                # Update callout box position during drag
-                if hasattr(self, "_callout_tail"):
-                    self._callout_box = (img_x, img_y)
-                    self.drawing_area.queue_draw()
-            elif self.editor_state.current_tool == ToolType.CROP:
-                # Update crop selection with aspect ratio lock
-                if hasattr(self, "_crop_start"):
-                    # Check if shift is held for 1:1 aspect ratio
-                    shift = event.state & Gdk.ModifierType.SHIFT_MASK
-                    if shift:
-                        # Lock to 1:1 (square)
-                        dx = img_x - self._crop_start[0]
-                        dy = img_y - self._crop_start[1]
-                        size = max(abs(dx), abs(dy))
-                        self._crop_end = (
-                            self._crop_start[0] + (size if dx >= 0 else -size),
-                            self._crop_start[1] + (size if dy >= 0 else -size),
-                        )
-                    else:
-                        self._crop_end = (img_x, img_y)
-                    self.drawing_area.queue_draw()
-            elif self.editor_state.current_tool != ToolType.TEXT:
+            tool = self.editor_state.current_tool
+            if tool == ToolType.CALLOUT and hasattr(self, "_callout_tail"):
+                self._callout_box = (img_x, img_y)
+                self.drawing_area.queue_draw()
+            elif tool == ToolType.CROP:
+                self._handle_crop_motion(img_x, img_y, shift)
+            elif tool != ToolType.TEXT:
                 self.editor_state.continue_drawing(img_x, img_y)
                 self.drawing_area.queue_draw()
         return True
@@ -2257,257 +2349,10 @@ class EditorWindow:
             # Auto-clear after 2 seconds
             GLib.timeout_add(2000, lambda: self.statusbar.pop(ctx))
 
-    def _on_key_press(self, widget: Gtk.Widget, event: Gdk.EventKey) -> bool:
-        """Handle keyboard shortcuts."""
-        ctrl = event.state & Gdk.ModifierType.CONTROL_MASK
-        shift = event.state & Gdk.ModifierType.SHIFT_MASK
-
-        # Tab switching shortcuts
-        if ctrl and event.keyval == Gdk.KEY_Tab:
-            if len(self.tabs) > 1:
-                if shift:
-                    # Ctrl+Shift+Tab - Previous tab
-                    next_idx = (self.current_tab_index - 1) % len(self.tabs)
-                else:
-                    # Ctrl+Tab - Next tab
-                    next_idx = (self.current_tab_index + 1) % len(self.tabs)
-                self.notebook.set_current_page(next_idx)
-            return True
-
-        # Ctrl+W - Close current tab
-        if ctrl and not shift and event.keyval in (Gdk.KEY_w, Gdk.KEY_W):
-            self.close_tab(self.current_tab_index)
-            return True
-
-        # Ctrl+Shift+P - Command Palette
-        if ctrl and shift and event.keyval in (Gdk.KEY_p, Gdk.KEY_P):
-            self._show_command_palette()
-            return True
-
-        # Ctrl+Shift+H - Distribute horizontally
-        if ctrl and shift and event.keyval in (Gdk.KEY_h, Gdk.KEY_H):
-            if self.editor_state.distribute_horizontal():
-                self._show_toast("Distributed horizontally")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select 3+ elements to distribute")
-            return True
-
-        # Ctrl+Shift+J - Distribute vertically
-        if ctrl and shift and event.keyval in (Gdk.KEY_j, Gdk.KEY_J):
-            if self.editor_state.distribute_vertical():
-                self._show_toast("Distributed vertically")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select 3+ elements to distribute")
-            return True
-
-        # Ctrl+Shift+G - Ungroup
-        if ctrl and shift and event.keyval in (Gdk.KEY_g, Gdk.KEY_G):
-            if self.editor_state.ungroup_selected():
-                self._show_toast("Ungrouped")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("No groups to ungroup")
-            return True
-
-        # Ctrl+G - Group (must check after Ctrl+Shift+G)
-        if ctrl and not shift and event.keyval in (Gdk.KEY_g, Gdk.KEY_G):
-            if self.editor_state.group_selected():
-                count = len(self.editor_state.selected_indices)
-                self._show_toast(f"Grouped {count} elements")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select 2+ elements to group")
-            return True
-
-        # Alignment shortcuts (Ctrl+Alt)
-        alt = event.state & Gdk.ModifierType.MOD1_MASK
-        if ctrl and alt:
-            if event.keyval in (Gdk.KEY_l, Gdk.KEY_L):
-                if self.editor_state.align_left():
-                    self._show_toast("Aligned left")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_r, Gdk.KEY_R):
-                if self.editor_state.align_right():
-                    self._show_toast("Aligned right")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_t, Gdk.KEY_T):
-                if self.editor_state.align_top():
-                    self._show_toast("Aligned top")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_b, Gdk.KEY_B):
-                if self.editor_state.align_bottom():
-                    self._show_toast("Aligned bottom")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_c, Gdk.KEY_C):
-                if self.editor_state.align_center_horizontal():
-                    self._show_toast("Aligned center (horizontal)")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_m, Gdk.KEY_M):
-                if self.editor_state.align_center_vertical():
-                    self._show_toast("Aligned center (vertical)")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to align")
-                return True
-            elif event.keyval in (Gdk.KEY_w, Gdk.KEY_W):
-                if self.editor_state.match_width():
-                    self._show_toast("Matched width")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to match")
-                return True
-            elif event.keyval in (Gdk.KEY_e, Gdk.KEY_E):
-                if self.editor_state.match_height():
-                    self._show_toast("Matched height")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to match")
-                return True
-            elif event.keyval in (Gdk.KEY_s, Gdk.KEY_S):
-                if self.editor_state.match_size():
-                    self._show_toast("Matched size")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select 2+ elements to match")
-                return True
-            elif event.keyval in (Gdk.KEY_f, Gdk.KEY_F):
-                if self.editor_state.flip_vertical():
-                    self._show_toast("Flipped vertically")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to flip")
-                return True
-
-        # Ctrl+Shift+F - Flip horizontal
-        if ctrl and shift and event.keyval in (Gdk.KEY_f, Gdk.KEY_F):
-            if self.editor_state.flip_horizontal():
-                self._show_toast("Flipped horizontally")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select element(s) to flip")
-            return True
-
-        # Ctrl+Shift+R - Rotate 90° counter-clockwise
-        if ctrl and shift and event.keyval in (Gdk.KEY_r, Gdk.KEY_R):
-            if self.editor_state.rotate_selected(-90):
-                self._show_toast("Rotated -90°")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select element(s) to rotate")
-            return True
-
-        # Ctrl+R - Rotate 90° clockwise
-        if ctrl and not shift and not alt and event.keyval in (Gdk.KEY_r, Gdk.KEY_R):
-            if self.editor_state.rotate_selected(90):
-                self._show_toast("Rotated 90°")
-                self.drawing_area.queue_draw()
-            else:
-                self._show_toast("Select element(s) to rotate")
-            return True
-
-        # Ctrl shortcuts
-        if ctrl:
-            if event.keyval == Gdk.KEY_s:
-                self._save()
-                return True
-            elif event.keyval == Gdk.KEY_c:
-                # Context-aware: copy annotations if selected, else copy image
-                if self.editor_state.selected_indices:
-                    if self.editor_state.copy_selected():
-                        count = len(self.editor_state.selected_indices)
-                        self._show_toast(f"Copied {count} annotation(s)")
-                else:
-                    self._copy_to_clipboard()
-                return True
-            elif event.keyval == Gdk.KEY_v:
-                # Paste annotations from clipboard
-                if self.editor_state.paste_annotations():
-                    count = len(self.editor_state.selected_indices)
-                    self._show_toast(f"Pasted {count} annotation(s)")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_z:
-                self._undo()
-                return True
-            elif event.keyval == Gdk.KEY_y:
-                self._redo()
-                return True
-            elif event.keyval == Gdk.KEY_bracketright:
-                # Ctrl+] - Bring to front
-                if self.editor_state.bring_to_front():
-                    self._show_toast("Brought to front")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_bracketleft:
-                # Ctrl+[ - Send to back
-                if self.editor_state.send_to_back():
-                    self._show_toast("Sent to back")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_d:
-                # Ctrl+D - Duplicate selected
-                if self.editor_state.duplicate_selected():
-                    count = len(self.editor_state.selected_indices)
-                    self._show_toast(f"Duplicated {count} annotation(s)")
-                    self.drawing_area.queue_draw()
-                return True
-            elif event.keyval == Gdk.KEY_l:
-                # Ctrl+L - Lock/unlock selected
-                if self.editor_state.toggle_lock_selected():
-                    locked = self.editor_state.is_selection_locked()
-                    state = "Locked" if locked else "Unlocked"
-                    self._show_toast(state)
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to lock")
-                return True
-            elif event.keyval == Gdk.KEY_apostrophe:
-                # Ctrl+' - Toggle grid snap
-                new_state = not self.editor_state.grid_snap_enabled
-                self.editor_state.set_grid_snap(new_state)
-                state = "Grid snap ON" if new_state else "Grid snap OFF"
-                self._show_toast(state)
-                self.drawing_area.queue_draw()
-                return True
-
-        # Shift+[ / Shift+] - Adjust opacity
-        if shift and not ctrl and not alt:
-            if event.keyval == Gdk.KEY_bracketleft:
-                if self.editor_state.adjust_selected_opacity(-0.1):
-                    opacity = self.editor_state.get_selected_opacity() or 1.0
-                    self._show_toast(f"Opacity: {int(opacity * 100)}%")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to adjust opacity")
-                return True
-            elif event.keyval == Gdk.KEY_bracketright:
-                if self.editor_state.adjust_selected_opacity(0.1):
-                    opacity = self.editor_state.get_selected_opacity() or 1.0
-                    self._show_toast(f"Opacity: {int(opacity * 100)}%")
-                    self.drawing_area.queue_draw()
-                else:
-                    self._show_toast("Select element(s) to adjust opacity")
-                return True
-
-        # Tool shortcuts (no modifier)
-        tool_shortcuts = {
+    def _init_key_bindings(self) -> None:
+        """Initialize keyboard shortcut dispatch tables."""
+        # Tool shortcuts (no modifiers)
+        self._tool_shortcuts = {
             Gdk.KEY_p: ToolType.PEN,
             Gdk.KEY_h: ToolType.HIGHLIGHTER,
             Gdk.KEY_l: ToolType.LINE,
@@ -2526,62 +2371,282 @@ class EditorWindow:
             Gdk.KEY_c: ToolType.CROP,
             Gdk.KEY_v: ToolType.SELECT,
         }
-        if event.keyval in tool_shortcuts:
-            tool = tool_shortcuts[event.keyval]
-            self._set_tool(tool)
-            # Update toggle buttons if they exist
-            if hasattr(self, "tool_buttons") and tool in self.tool_buttons:
-                self.tool_buttons[tool].set_active(True)
+
+        # Ctrl+Alt alignment shortcuts: (key, method, success_msg, fail_msg)
+        self._align_shortcuts = {
+            Gdk.KEY_l: ("align_left", "Aligned left"),
+            Gdk.KEY_L: ("align_left", "Aligned left"),
+            Gdk.KEY_r: ("align_right", "Aligned right"),
+            Gdk.KEY_R: ("align_right", "Aligned right"),
+            Gdk.KEY_t: ("align_top", "Aligned top"),
+            Gdk.KEY_T: ("align_top", "Aligned top"),
+            Gdk.KEY_b: ("align_bottom", "Aligned bottom"),
+            Gdk.KEY_B: ("align_bottom", "Aligned bottom"),
+            Gdk.KEY_c: ("align_center_horizontal", "Aligned center (horizontal)"),
+            Gdk.KEY_C: ("align_center_horizontal", "Aligned center (horizontal)"),
+            Gdk.KEY_m: ("align_center_vertical", "Aligned center (vertical)"),
+            Gdk.KEY_M: ("align_center_vertical", "Aligned center (vertical)"),
+            Gdk.KEY_w: ("match_width", "Matched width"),
+            Gdk.KEY_W: ("match_width", "Matched width"),
+            Gdk.KEY_e: ("match_height", "Matched height"),
+            Gdk.KEY_E: ("match_height", "Matched height"),
+            Gdk.KEY_s: ("match_size", "Matched size"),
+            Gdk.KEY_S: ("match_size", "Matched size"),
+            Gdk.KEY_f: ("flip_vertical", "Flipped vertically"),
+            Gdk.KEY_F: ("flip_vertical", "Flipped vertically"),
+        }
+
+    def _handle_alignment_shortcut(self, key: int) -> bool:
+        """Handle Ctrl+Alt alignment shortcuts."""
+        if key not in self._align_shortcuts:
+            return False
+        method_name, success_msg = self._align_shortcuts[key]
+        method = getattr(self.editor_state, method_name)
+        if method():
+            self._show_toast(success_msg)
+            self.drawing_area.queue_draw()
+        else:
+            self._show_toast("Select 2+ elements")
+        return True
+
+    def _ctrl_copy(self) -> None:
+        """Handle Ctrl+C (copy)."""
+        if self.editor_state.selected_indices:
+            if self.editor_state.copy_selected():
+                self._show_toast(f"Copied {len(self.editor_state.selected_indices)} annotation(s)")
+        else:
+            self._copy_to_clipboard()
+
+    def _ctrl_paste(self) -> None:
+        """Handle Ctrl+V (paste)."""
+        if self.editor_state.paste_annotations():
+            self._show_toast(f"Pasted {len(self.editor_state.selected_indices)} annotation(s)")
+            self.drawing_area.queue_draw()
+
+    def _ctrl_lock_toggle(self) -> None:
+        """Handle Ctrl+L (lock toggle)."""
+        if self.editor_state.toggle_lock_selected():
+            state = "Locked" if self.editor_state.is_selection_locked() else "Unlocked"
+            self._show_toast(state)
+            self.drawing_area.queue_draw()
+        else:
+            self._show_toast("Select element(s) to lock")
+
+    def _ctrl_grid_toggle(self) -> None:
+        """Handle Ctrl+' (grid snap toggle)."""
+        new_state = not self.editor_state.grid_snap_enabled
+        self.editor_state.set_grid_snap(new_state)
+        self._show_toast("Grid snap ON" if new_state else "Grid snap OFF")
+        self.drawing_area.queue_draw()
+
+    def _handle_ctrl_shortcuts(self, key: int, shift: bool) -> bool:
+        """Handle Ctrl+key shortcuts. Returns True if handled."""
+        # Simple shortcuts with immediate actions
+        simple_shortcuts = {
+            Gdk.KEY_s: self._save,
+            Gdk.KEY_z: self._undo,
+            Gdk.KEY_y: self._redo,
+            Gdk.KEY_c: self._ctrl_copy,
+            Gdk.KEY_v: self._ctrl_paste,
+            Gdk.KEY_l: self._ctrl_lock_toggle,
+            Gdk.KEY_apostrophe: self._ctrl_grid_toggle,
+        }
+
+        if key in simple_shortcuts:
+            simple_shortcuts[key]()
             return True
 
-        # Zoom shortcuts (no modifier)
-        if event.keyval in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
+        # Shortcuts that need success check and toast
+        action_shortcuts = {
+            Gdk.KEY_bracketright: (self.editor_state.bring_to_front, "Brought to front"),
+            Gdk.KEY_bracketleft: (self.editor_state.send_to_back, "Sent to back"),
+            Gdk.KEY_d: (
+                self.editor_state.duplicate_selected,
+                lambda: f"Duplicated {len(self.editor_state.selected_indices)} annotation(s)",
+            ),
+        }
+
+        if key in action_shortcuts:
+            action, msg = action_shortcuts[key]
+            if action():
+                self._show_toast(msg() if callable(msg) else msg)
+                self.drawing_area.queue_draw()
+            return True
+
+        return False
+
+    def _handle_ctrl_shift_shortcuts(self, key: int) -> bool:
+        """Handle Ctrl+Shift+key shortcuts. Returns True if handled."""
+        if key in (Gdk.KEY_p, Gdk.KEY_P):
+            self._show_command_palette()
+            return True
+
+        # Shortcuts with action/success/fail pattern
+        shortcuts = {
+            (Gdk.KEY_h, Gdk.KEY_H): (
+                self.editor_state.distribute_horizontal,
+                "Distributed horizontally",
+                "Select 3+ elements to distribute",
+            ),
+            (Gdk.KEY_j, Gdk.KEY_J): (
+                self.editor_state.distribute_vertical,
+                "Distributed vertically",
+                "Select 3+ elements to distribute",
+            ),
+            (Gdk.KEY_g, Gdk.KEY_G): (
+                self.editor_state.ungroup_selected,
+                "Ungrouped",
+                "No groups to ungroup",
+            ),
+            (Gdk.KEY_f, Gdk.KEY_F): (
+                self.editor_state.flip_horizontal,
+                "Flipped horizontally",
+                "Select element(s) to flip",
+            ),
+            (Gdk.KEY_r, Gdk.KEY_R): (
+                lambda: self.editor_state.rotate_selected(-90),
+                "Rotated -90°",
+                "Select element(s) to rotate",
+            ),
+        }
+
+        for keys, (action, success_msg, fail_msg) in shortcuts.items():
+            if key in keys:
+                if action():
+                    self._show_toast(success_msg)
+                    self.drawing_area.queue_draw()
+                else:
+                    self._show_toast(fail_msg)
+                return True
+
+        return False
+
+    def _handle_tab_switch(self, key: int, shift: bool) -> bool:
+        """Handle Ctrl+Tab / Ctrl+Shift+Tab for tab switching."""
+        if key != Gdk.KEY_Tab or len(self.tabs) <= 1:
+            return key == Gdk.KEY_Tab
+        offset = -1 if shift else 1
+        self.notebook.set_current_page((self.current_tab_index + offset) % len(self.tabs))
+        return True
+
+    def _handle_opacity_adjust(self, key: int) -> bool:
+        """Handle Shift+[ / Shift+] for opacity adjustment."""
+        adjustments = {Gdk.KEY_bracketleft: -0.1, Gdk.KEY_bracketright: 0.1}
+        if key not in adjustments:
+            return False
+        if self.editor_state.adjust_selected_opacity(adjustments[key]):
+            opacity = self.editor_state.get_selected_opacity() or 1.0
+            self._show_toast(f"Opacity: {int(opacity * 100)}%")
+            self.drawing_area.queue_draw()
+        else:
+            self._show_toast("Select element(s) to adjust opacity")
+        return True
+
+    def _handle_zoom_shortcuts(self, key: int) -> bool:
+        """Handle zoom shortcuts (+/-/0)."""
+        if key in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
             self.editor_state.zoom_in()
-            self._update_zoom_label()
-            self.drawing_area.queue_draw()
-            return True
-        if event.keyval in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+        elif key in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
             self.editor_state.zoom_out()
-            self._update_zoom_label()
-            self.drawing_area.queue_draw()
-            return True
-        if event.keyval == Gdk.KEY_0:
+        elif key == Gdk.KEY_0:
             self.editor_state.reset_zoom()
-            self._update_zoom_label()
+        else:
+            return False
+        self._update_zoom_label()
+        self.drawing_area.queue_draw()
+        return True
+
+    def _handle_arrow_nudge(self, key: int, shift: bool) -> bool:
+        """Handle arrow key nudging."""
+        nudge = 10 if shift else 1
+        offsets = {
+            Gdk.KEY_Up: (0, -nudge), Gdk.KEY_Down: (0, nudge),
+            Gdk.KEY_Left: (-nudge, 0), Gdk.KEY_Right: (nudge, 0),
+        }
+        if key not in offsets:
+            return False
+        if self.editor_state.nudge_selected(*offsets[key]):
             self.drawing_area.queue_draw()
+        return True
+
+    def _handle_ctrl_key(self, key: int, shift: bool, alt: bool) -> bool:
+        """Handle Ctrl+key combinations."""
+        if self._handle_tab_switch(key, shift):
+            return True
+        if not shift and key in (Gdk.KEY_w, Gdk.KEY_W):
+            self.close_tab(self.current_tab_index)
+            return True
+        if not shift and key in (Gdk.KEY_g, Gdk.KEY_G):
+            if self.editor_state.group_selected():
+                self._show_toast(f"Grouped {len(self.editor_state.selected_indices)} elements")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select 2+ elements to group")
+            return True
+        if not shift and not alt and key in (Gdk.KEY_r, Gdk.KEY_R):
+            if self.editor_state.rotate_selected(90):
+                self._show_toast("Rotated 90°")
+                self.drawing_area.queue_draw()
+            else:
+                self._show_toast("Select element(s) to rotate")
+            return True
+        if shift and self._handle_ctrl_shift_shortcuts(key):
+            return True
+        if alt and self._handle_alignment_shortcut(key):
+            return True
+        if not shift and not alt and self._handle_ctrl_shortcuts(key, shift):
+            return True
+        return False
+
+    def _handle_tool_shortcut(self, key: int) -> bool:
+        """Handle tool selection shortcuts."""
+        if key not in self._tool_shortcuts:
+            return False
+        tool = self._tool_shortcuts[key]
+        self._set_tool(tool)
+        if hasattr(self, "tool_buttons") and tool in self.tool_buttons:
+            self.tool_buttons[tool].set_active(True)
+        return True
+
+    def _handle_escape(self) -> bool:
+        """Handle Escape key."""
+        if self.editor_state.selected_index is not None:
+            self.editor_state.deselect()
+        else:
+            self.editor_state.cancel_drawing()
+        self.drawing_area.queue_draw()
+        return True
+
+    def _on_key_press(self, widget: Gtk.Widget, event: Gdk.EventKey) -> bool:
+        """Handle keyboard shortcuts using dispatch tables."""
+        ctrl = event.state & Gdk.ModifierType.CONTROL_MASK
+        shift = event.state & Gdk.ModifierType.SHIFT_MASK
+        alt = event.state & Gdk.ModifierType.MOD1_MASK
+        key = event.keyval
+
+        if ctrl and self._handle_ctrl_key(key, shift, alt):
             return True
 
-        # Delete/Backspace to delete selected element
-        if event.keyval in (Gdk.KEY_Delete, Gdk.KEY_BackSpace):
+        if shift and not ctrl and not alt and self._handle_opacity_adjust(key):
+            return True
+
+        if self._handle_tool_shortcut(key):
+            return True
+
+        if self._handle_zoom_shortcuts(key):
+            return True
+
+        if key in (Gdk.KEY_Delete, Gdk.KEY_BackSpace):
             if self.editor_state.delete_selected():
                 self.statusbar.push(self.statusbar_context, "Element deleted")
                 self.drawing_area.queue_draw()
-                return True
-
-        # Arrow keys to nudge selected annotations
-        # Shift+Arrow = 10px, Arrow = 1px
-        nudge_amount = 10 if shift else 1
-        arrow_offsets = {
-            Gdk.KEY_Up: (0, -nudge_amount),
-            Gdk.KEY_Down: (0, nudge_amount),
-            Gdk.KEY_Left: (-nudge_amount, 0),
-            Gdk.KEY_Right: (nudge_amount, 0),
-        }
-        if event.keyval in arrow_offsets:
-            dx, dy = arrow_offsets[event.keyval]
-            if self.editor_state.nudge_selected(dx, dy):
-                self.drawing_area.queue_draw()
-                return True
-
-        # Escape to deselect/cancel
-        if event.keyval == Gdk.KEY_Escape:
-            if self.editor_state.selected_index is not None:
-                self.editor_state.deselect()
-                self.drawing_area.queue_draw()
-                return True
-            self.editor_state.cancel_drawing()
-            self.drawing_area.queue_draw()
             return True
+
+        if self._handle_arrow_nudge(key, shift):
+            return True
+
+        if key == Gdk.KEY_Escape:
+            return self._handle_escape()
 
         return False
 
@@ -2590,101 +2655,290 @@ class EditorWindow:
         Gtk.main_quit()
 
 
+class QuickToolbar:
+    """Floating toolbar that appears after capture with quick actions."""
+
+    def __init__(
+        self,
+        result: "CaptureResult",
+        on_save: Callable,
+        on_copy: Callable,
+        on_edit: Callable,
+        on_upload: Callable,
+    ):
+        if not GTK_AVAILABLE:
+            raise RuntimeError("GTK is not available")
+
+        self.result = result
+        self.on_save = on_save
+        self.on_copy = on_copy
+        self.on_edit = on_edit
+        self.on_upload = on_upload
+
+        self._load_toolbar_css()
+
+        self.window = Gtk.Window(type=Gtk.WindowType.POPUP)
+        self.window.set_decorated(False)
+        self.window.set_keep_above(True)
+        self.window.set_accept_focus(True)
+
+        # Enable transparency
+        screen = self.window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual:
+            self.window.set_visual(visual)
+        self.window.set_app_paintable(True)
+
+        # Auto-hide after 8 seconds
+        GLib.timeout_add_seconds(8, self._auto_close)
+
+        # Main frame
+        frame = Gtk.EventBox()
+        frame.get_style_context().add_class("quick-toolbar-frame")
+        self.window.add(frame)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(8)
+        box.set_margin_end(8)
+        frame.add(box)
+
+        # Action buttons
+        actions = [
+            ("document-save-symbolic", _("Save"), self._do_save),  # noqa: F823
+            ("edit-copy-symbolic", _("Copy"), self._do_copy),
+            ("document-edit-symbolic", _("Edit"), self._do_edit),
+            ("send-to-symbolic", _("Upload"), self._do_upload),
+            ("window-close-symbolic", _("Dismiss"), self._close),
+        ]
+
+        for icon_name, tooltip, callback in actions:
+            btn = Gtk.Button()
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.LARGE_TOOLBAR)
+            btn.set_image(icon)
+            btn.set_tooltip_text(tooltip)
+            btn.get_style_context().add_class("quick-toolbar-btn")
+            btn.connect("clicked", callback)
+            box.pack_start(btn, False, False, 0)
+
+        # Position near mouse cursor
+        display = Gdk.Display.get_default()
+        seat = display.get_default_seat()
+        pointer = seat.get_pointer()
+        _, x, y = pointer.get_position()
+        self.window.move(x + 10, y + 10)
+
+        self.window.show_all()
+
+    def _load_toolbar_css(self) -> None:
+        css = b"""
+        .quick-toolbar-frame {
+            background: rgba(24, 24, 32, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(80, 100, 160, 0.3);
+        }
+        .quick-toolbar-btn {
+            background: rgba(50, 70, 120, 0.3);
+            border: none;
+            border-radius: 6px;
+            min-width: 36px;
+            min-height: 36px;
+            padding: 4px;
+            color: rgba(180, 200, 255, 0.9);
+        }
+        .quick-toolbar-btn:hover {
+            background: rgba(70, 100, 180, 0.5);
+            color: #ffffff;
+        }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+
+    def _do_save(self, button: Gtk.Button) -> None:
+        self.on_save(self.result)
+        self._close()
+
+    def _do_copy(self, button: Gtk.Button) -> None:
+        self.on_copy(self.result)
+        self._close()
+
+    def _do_edit(self, button: Gtk.Button) -> None:
+        self.on_edit(self.result)
+        self._close()
+
+    def _do_upload(self, button: Gtk.Button) -> None:
+        self.on_upload(self.result)
+        self._close()
+
+    def _close(self, button: Gtk.Button = None) -> None:
+        self.window.destroy()
+
+    def _auto_close(self) -> bool:
+        if self.window.get_visible():
+            self.window.destroy()
+        return False
+
+
 class MainWindow:
-    """Main application window with hotkey support."""
+    """Main application window with sleek futuristic UI."""
 
     def __init__(self):
         if not GTK_AVAILABLE:
             raise RuntimeError("GTK is not available")
 
+        self._load_futuristic_css()
+
         self.window = Gtk.Window(title="LikX")
-        self.window.set_default_size(255, 210)
+        self.window.set_decorated(False)
+        self.window.set_resizable(False)
+        self.window.set_position(Gtk.WindowPosition.CENTER)
+        self.window.set_keep_above(True)
         self.window.connect("destroy", self._on_destroy)
         self.window.connect("delete-event", self._on_delete_event)
 
-        # HeaderBar (CSD)
-        header = Gtk.HeaderBar()
-        header.set_show_close_button(True)
-        header.set_title("LikX")
-        header.set_subtitle("Screenshot Tool")
-        self.window.set_titlebar(header)
-
-        # Hamburger menu (right side)
-        menu_btn = Gtk.MenuButton()
-        menu_btn.set_image(
-            Gtk.Image.new_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON)
-        )
-        menu_btn.set_popover(self._create_menu_popover())
-        header.pack_end(menu_btn)
+        # Enable transparency
+        screen = self.window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual:
+            self.window.set_visual(visual)
+        self.window.set_app_paintable(True)
 
         self.hotkey_manager = HotkeyManager()
 
-        # Initialize capture queue
+        # Main container with styling
+        frame = Gtk.EventBox()
+        frame.get_style_context().add_class("likx-frame")
+        self.window.add(frame)
+
+        # Enable dragging the window
+        frame.connect("button-press-event", self._on_frame_click)
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        frame.add(main_box)
+
+        # Top bar with title and close
+        top_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        top_bar.get_style_context().add_class("likx-topbar")
+        main_box.pack_start(top_bar, False, False, 0)
+
+        title = Gtk.Label(label="LikX")
+        title.get_style_context().add_class("likx-title")
+        top_bar.pack_start(title, False, False, 8)
+
+        # Spacer
+        top_bar.pack_start(Gtk.Box(), True, True, 0)
+
+        # Settings button
+        settings_btn = Gtk.Button()
+        settings_icon = Gtk.Image.new_from_icon_name(
+            "emblem-system-symbolic", Gtk.IconSize.MENU
+        )
+        settings_btn.set_image(settings_icon)
+        settings_btn.set_tooltip_text(_("Settings"))
+        settings_btn.get_style_context().add_class("likx-icon-btn")
+        settings_btn.connect("clicked", self._on_settings)
+        top_bar.pack_start(settings_btn, False, False, 0)
+
+        # Close button
+        close_btn = Gtk.Button()
+        close_icon = Gtk.Image.new_from_icon_name(
+            "window-close-symbolic", Gtk.IconSize.MENU
+        )
+        close_btn.set_image(close_icon)
+        close_btn.get_style_context().add_class("likx-close-btn")
+        close_btn.connect("clicked", lambda w: self._on_delete_event(w, None))
+        top_bar.pack_start(close_btn, False, False, 0)
+
+        # Primary capture buttons (2x2 grid)
+        grid = Gtk.Grid()
+        grid.set_row_spacing(6)
+        grid.set_column_spacing(6)
+        grid.set_halign(Gtk.Align.CENTER)
+        grid.set_margin_top(10)
+        grid.set_margin_bottom(6)
+        grid.set_margin_start(12)
+        grid.set_margin_end(12)
+        main_box.pack_start(grid, False, False, 0)
+
+        # Main capture buttons - 2x2 grid with symbolic icons
+        primary_buttons = [
+            (
+                "edit-select-all-symbolic",
+                _("Selection (Ctrl+Shift+R)"),
+                self._on_region,
+                0,
+                0,
+            ),
+            (
+                "view-fullscreen-symbolic",
+                _("Fullscreen (Ctrl+Shift+F)"),
+                self._on_fullscreen,
+                1,
+                0,
+            ),
+            ("window-new-symbolic", _("Window (Ctrl+Shift+W)"), self._on_window, 0, 1),
+            (
+                "media-record-symbolic",
+                _("Record GIF (Ctrl+Alt+G)"),
+                self._on_record_gif,
+                1,
+                1,
+            ),
+        ]
+
+        for icon_name, tip, callback, col, row in primary_buttons:
+            btn = Gtk.Button()
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.LARGE_TOOLBAR)
+            btn.set_image(icon)
+            btn.set_tooltip_text(tip)
+            btn.get_style_context().add_class("likx-capture-btn")
+            btn.connect("clicked", callback)
+            grid.attach(btn, col, row, 1, 1)
+
+        # Secondary actions row
+        secondary_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        secondary_box.set_halign(Gtk.Align.CENTER)
+        secondary_box.set_margin_bottom(10)
+        main_box.pack_start(secondary_box, False, False, 0)
+
+        secondary_buttons = [
+            ("go-down-symbolic", _("Scroll Capture")),
+            ("document-open-symbolic", _("Open Image")),
+            ("folder-pictures-symbolic", _("History")),
+        ]
+        secondary_callbacks = [
+            self._on_scroll_capture,
+            self._on_open_image,
+            self._on_history,
+        ]
+
+        for (icon_name, tip), callback in zip(secondary_buttons, secondary_callbacks):
+            btn = Gtk.Button()
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)
+            btn.set_image(icon)
+            btn.set_tooltip_text(tip)
+            btn.get_style_context().add_class("likx-secondary-btn")
+            btn.connect("clicked", callback)
+            secondary_box.pack_start(btn, False, False, 0)
+
+        # Initialize capture queue (hidden from UI but still functional)
         cfg = config.load_config()
         persist_dir = None
         if cfg.get("queue_persist", False):
             persist_dir = config.get_config_dir() / "queue"
         self.capture_queue = CaptureQueue(persist_dir)
-
-        # Track active editor window for tabbed captures
         self.active_editor: Optional["EditorWindow"] = None
 
-        # Content area
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        content.set_margin_start(9)
-        content.set_margin_end(9)
-        content.set_margin_top(9)
-        content.set_margin_bottom(9)
-
-        # Capture button grid (3x2)
-        grid = Gtk.Grid(column_spacing=8, row_spacing=8)
-        grid.set_halign(Gtk.Align.CENTER)
-        grid.set_valign(Gtk.Align.CENTER)
-
-        buttons = [
-            ("camera-photo-symbolic", "Fullscreen", self._on_fullscreen),
-            ("selection-mode-symbolic", "Region", self._on_region),
-            ("window-symbolic", "Window", self._on_window),
-            ("media-record-symbolic", "Record GIF", self._on_record_gif),
-            ("view-paged-symbolic", "Scroll", self._on_scroll_capture),
-            ("folder-pictures-symbolic", "Open", self._on_open_image),
-        ]
-        for i, (icon, label, cb) in enumerate(buttons):
-            btn = Gtk.Button()
-            btn.set_size_request(75, 53)
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-            img = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.DIALOG)
-            box.pack_start(img, False, False, 0)
-            box.pack_start(Gtk.Label(label=label), False, False, 0)
-            btn.add(box)
-            btn.connect("clicked", cb)
-            grid.attach(btn, i % 3, i // 3, 1, 1)
-
-        content.pack_start(grid, True, True, 0)
-
-        # Queue controls row
-        queue_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        queue_box.set_halign(Gtk.Align.CENTER)
-
-        self.queue_toggle = Gtk.ToggleButton(label="Queue Mode")
-        self.queue_toggle.set_tooltip_text(_("Queue Mode (capture without editing)"))
+        # Hidden queue UI elements (for API compatibility)
+        self.queue_toggle = Gtk.ToggleButton()
         self.queue_toggle.set_active(cfg.get("queue_mode_enabled", False))
-        self.queue_toggle.connect("toggled", self._on_queue_toggle)
-        queue_box.pack_start(self.queue_toggle, False, False, 0)
-
-        self.queue_edit_btn = Gtk.Button(label=f"Edit Queue ({self.capture_queue.count})")
-        self.queue_edit_btn.set_tooltip_text(_("Edit queued captures"))
-        self.queue_edit_btn.set_sensitive(not self.capture_queue.is_empty)
-        self.queue_edit_btn.connect("clicked", self._on_edit_queue)
-        queue_box.pack_start(self.queue_edit_btn, False, False, 0)
-
-        content.pack_start(queue_box, False, False, 0)
-        self.window.add(content)
-
-        # Apply window opacity
-        opacity = cfg.get("window_opacity", 1.0)
-        if opacity < 1.0:
-            self.window.set_opacity(opacity)
+        self.queue_edit_btn = Gtk.Button()
 
         self.window.show_all()
 
@@ -2693,6 +2947,7 @@ class MainWindow:
 
         # Initialize system tray
         self.tray = None
+        cfg = config.load_config()
         if cfg.get("tray_enabled", True) and SystemTray.is_available():
             self._init_tray()
 
@@ -2701,36 +2956,13 @@ class MainWindow:
             self.window.hide()
             self.tray.update_visibility(False)
 
-    def _create_menu_popover(self) -> Gtk.Popover:
-        """Create hamburger menu popover."""
-        popover = Gtk.Popover()
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.set_margin_start(8)
-        box.set_margin_end(8)
-        box.set_margin_top(8)
-        box.set_margin_bottom(8)
-
-        history_btn = Gtk.ModelButton(text="History")
-        history_btn.connect(
-            "clicked", lambda b: (self._on_history(b), popover.popdown())
-        )
-        box.pack_start(history_btn, False, False, 0)
-
-        settings_btn = Gtk.ModelButton(text="Preferences")
-        settings_btn.connect(
-            "clicked", lambda b: (self._on_settings(b), popover.popdown())
-        )
-        box.pack_start(settings_btn, False, False, 0)
-
-        box.pack_start(Gtk.Separator(), False, False, 4)
-
-        about_btn = Gtk.ModelButton(text="About LikX")
-        about_btn.connect("clicked", lambda b: self._show_about())
-        box.pack_start(about_btn, False, False, 0)
-
-        popover.add(box)
-        box.show_all()
-        return popover
+    def _on_frame_click(self, widget, event):
+        """Allow dragging the window."""
+        if event.button == 1:
+            self.window.begin_move_drag(
+                event.button, int(event.x_root), int(event.y_root), event.time
+            )
+        return False
 
     def _init_tray(self) -> None:
         """Initialize system tray icon."""
@@ -2779,6 +3011,94 @@ class MainWindow:
         """Actually quit the application."""
         self.hotkey_manager.unregister_all()
         Gtk.main_quit()
+
+    def _load_futuristic_css(self) -> None:
+        """Load sleek futuristic CSS styling."""
+        css = b"""
+        .likx-frame {
+            background: rgba(18, 18, 24, 0.95);
+            border-radius: 16px;
+            border: 1px solid rgba(80, 100, 160, 0.25);
+        }
+        .likx-topbar {
+            background: transparent;
+            padding: 6px 4px 2px 4px;
+        }
+        .likx-title {
+            color: rgba(120, 140, 200, 0.8);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+        .likx-icon-btn {
+            background: transparent;
+            border: none;
+            color: rgba(120, 140, 180, 0.6);
+            min-width: 20px;
+            min-height: 20px;
+            padding: 2px 5px;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+        .likx-icon-btn:hover {
+            color: rgba(160, 180, 240, 1);
+            background: rgba(60, 80, 140, 0.3);
+        }
+        .likx-close-btn {
+            background: transparent;
+            border: none;
+            color: rgba(180, 90, 90, 0.6);
+            min-width: 20px;
+            min-height: 20px;
+            padding: 2px 5px;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+        .likx-close-btn:hover {
+            color: rgba(255, 100, 100, 1);
+            background: rgba(180, 60, 60, 0.25);
+        }
+        .likx-capture-btn {
+            background: linear-gradient(180deg, rgba(50, 70, 120, 0.4) 0%, rgba(40, 55, 100, 0.3) 100%);
+            border: 1px solid rgba(80, 110, 180, 0.25);
+            border-radius: 10px;
+            color: rgba(170, 190, 255, 0.95);
+            min-width: 44px;
+            min-height: 44px;
+            padding: 6px;
+            font-size: 18px;
+        }
+        .likx-capture-btn:hover {
+            background: linear-gradient(180deg, rgba(70, 100, 180, 0.5) 0%, rgba(55, 80, 150, 0.4) 100%);
+            border-color: rgba(100, 140, 220, 0.5);
+            color: #ffffff;
+        }
+        .likx-capture-btn:active {
+            background: rgba(80, 120, 200, 0.6);
+        }
+        .likx-secondary-btn {
+            background: transparent;
+            border: 1px solid rgba(60, 80, 120, 0.2);
+            border-radius: 6px;
+            color: rgba(130, 150, 200, 0.7);
+            min-width: 28px;
+            min-height: 28px;
+            padding: 4px;
+            font-size: 12px;
+        }
+        .likx-secondary-btn:hover {
+            background: rgba(50, 70, 120, 0.3);
+            border-color: rgba(80, 110, 160, 0.4);
+            color: rgba(180, 200, 255, 1);
+        }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
 
     def _load_css(self) -> None:
         """Load custom CSS styling."""
@@ -2877,7 +3197,7 @@ class MainWindow:
     def _handle_capture_result(
         self, result: CaptureResult, mode: CaptureMode = CaptureMode.REGION
     ) -> None:
-        """Handle capture result - queue or edit based on mode."""
+        """Handle capture result - queue, quick toolbar, or edit based on mode."""
         if not result.success:
             show_notification(_("Capture Failed"), result.error, icon="dialog-error")
             return
@@ -2894,19 +3214,51 @@ class MainWindow:
                 icon="dialog-information",
             )
         elif cfg.get("editor_enabled", True):
-            # Add to existing editor as tab, or create new editor
-            if self.active_editor and self.active_editor.window.get_visible():
-                self.active_editor.add_tab(result)
-                self.active_editor.window.present()
-            else:
-                self.active_editor = EditorWindow(result)
-                self.active_editor.window.connect(
-                    "destroy", lambda w: setattr(self, "active_editor", None)
-                )
+            self._open_editor(result)
         else:
-            filepath = save_capture(result)
-            if filepath.success and cfg.get("show_notification", True):
-                show_screenshot_saved(str(filepath.filepath))
+            self._quick_save(result)
+
+    def _quick_save(self, result: CaptureResult) -> None:
+        """Save capture directly."""
+        filepath = save_capture(result)
+        cfg = config.load_config()
+        if filepath.success and cfg.get("show_notification", True):
+            show_screenshot_saved(str(filepath.filepath))
+
+    def _quick_copy(self, result: CaptureResult) -> None:
+        """Copy capture to clipboard."""
+        if copy_to_clipboard(result):
+            show_notification(_("Copied"), _("Screenshot copied to clipboard"))
+        else:
+            show_notification(
+                _("Error"), _("Failed to copy to clipboard"), icon="dialog-error"
+            )
+
+    def _quick_edit(self, result: CaptureResult) -> None:
+        """Open capture in editor."""
+        self._open_editor(result)
+
+    def _quick_upload(self, result: CaptureResult) -> None:
+        """Upload capture to cloud."""
+        cfg = config.load_config()
+        uploader = Uploader()
+        upload_result = uploader.upload(result, cfg.get("upload_service", "imgur"))
+        if upload_result.get("success"):
+            url = upload_result.get("url", "")
+            show_upload_success(url)
+        else:
+            show_upload_error(upload_result.get("error", _("Upload failed")))
+
+    def _open_editor(self, result: CaptureResult) -> None:
+        """Open capture in editor window."""
+        if self.active_editor and self.active_editor.window.get_visible():
+            self.active_editor.add_tab(result)
+            self.active_editor.window.present()
+        else:
+            self.active_editor = EditorWindow(result)
+            self.active_editor.window.connect(
+                "destroy", lambda w: setattr(self, "active_editor", None)
+            )
 
     def _register_global_hotkeys(self) -> None:
         """Register global keyboard shortcuts."""
@@ -3323,58 +3675,6 @@ class MainWindow:
         dialog.run()
         dialog.destroy()
 
-    def _show_about(self) -> None:
-        """Show about dialog (wrapper for menu)."""
-        self._on_about(None)
-
-    def _on_open_image(self, button: Gtk.Button) -> None:
-        """Open file chooser to select and edit an existing image."""
-        dialog = Gtk.FileChooserDialog(
-            title="Open Image",
-            parent=self.window,
-            action=Gtk.FileChooserAction.OPEN,
-        )
-        dialog.add_buttons(
-            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OPEN, Gtk.ResponseType.OK,
-        )
-
-        # Add image file filter
-        img_filter = Gtk.FileFilter()
-        img_filter.set_name("Image files")
-        img_filter.add_mime_type("image/png")
-        img_filter.add_mime_type("image/jpeg")
-        img_filter.add_mime_type("image/gif")
-        img_filter.add_mime_type("image/bmp")
-        img_filter.add_mime_type("image/webp")
-        dialog.add_filter(img_filter)
-
-        response = dialog.run()
-        filepath = dialog.get_filename()
-        dialog.destroy()
-
-        if response == Gtk.ResponseType.OK and filepath:
-            try:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file(filepath)
-                from .capture import CaptureResult
-                result = CaptureResult(
-                    success=True,
-                    pixbuf=pixbuf,
-                    width=pixbuf.get_width(),
-                    height=pixbuf.get_height(),
-                )
-                EditorWindow(result)
-            except Exception as e:
-                error_dialog = Gtk.MessageDialog(
-                    transient_for=self.window,
-                    message_type=Gtk.MessageType.ERROR,
-                    buttons=Gtk.ButtonsType.OK,
-                    text="Error Opening Image",
-                    secondary_text=str(e),
-                )
-                error_dialog.run()
-                error_dialog.destroy()
-
     def _on_quit(self, widget: Gtk.Widget) -> None:
         """Handle application quit from menu."""
         self._quit_application()
@@ -3509,7 +3809,9 @@ class HotkeyEntry(Gtk.Button):
 class SettingsDialog:
     """Settings dialog window with all options."""
 
-    def __init__(self, parent: Gtk.Window, on_hotkeys_changed: Optional[Callable] = None):
+    def __init__(
+        self, parent: Gtk.Window, on_hotkeys_changed: Optional[Callable] = None
+    ):
         self.on_hotkeys_changed = on_hotkeys_changed
         self.dialog = Gtk.Dialog(
             title=_("Settings"), parent=parent, flags=Gtk.DialogFlags.MODAL
@@ -3625,22 +3927,6 @@ class SettingsDialog:
         self.editor_check = Gtk.CheckButton(label=_("Open editor after capture"))
         self.editor_check.set_active(self.cfg.get("editor_enabled", True))
         box.pack_start(self.editor_check, False, False, 0)
-
-        box.pack_start(Gtk.Separator(), False, False, 5)
-
-        # Window transparency slider
-        opacity_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        opacity_label = Gtk.Label(label=_("Window opacity:"), xalign=0)
-        opacity_label.set_size_request(150, -1)
-        self.opacity_scale = Gtk.Scale.new_with_range(
-            Gtk.Orientation.HORIZONTAL, 0.3, 1.0, 0.05
-        )
-        self.opacity_scale.set_value(self.cfg.get("window_opacity", 1.0))
-        self.opacity_scale.set_size_request(200, -1)
-        self.opacity_scale.set_value_pos(Gtk.PositionType.RIGHT)
-        opacity_box.pack_start(opacity_label, False, False, 0)
-        opacity_box.pack_start(self.opacity_scale, True, True, 0)
-        box.pack_start(opacity_box, False, False, 0)
 
         return box
 
@@ -4201,7 +4487,6 @@ class SettingsDialog:
         self.cfg["copy_to_clipboard"] = self.clipboard_check.get_active()
         self.cfg["show_notification"] = self.notification_check.get_active()
         self.cfg["editor_enabled"] = self.editor_check.get_active()
-        self.cfg["window_opacity"] = self.opacity_scale.get_value()
         self.cfg["delay_seconds"] = int(self.delay_spin.get_value())
         self.cfg["include_cursor"] = self.cursor_check.get_active()
         self.cfg["upload_service"] = self.service_combo.get_active_text() or "imgur"
