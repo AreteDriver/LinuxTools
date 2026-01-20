@@ -1,5 +1,7 @@
 """Enhanced user interface module for LikX with full features."""
 
+from __future__ import annotations
+
 import sys
 from dataclasses import dataclass
 from pathlib import Path
