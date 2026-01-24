@@ -3,6 +3,8 @@
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+import pytest
+
 
 class TestScrollCaptureModuleImport:
     """Test scroll capture module imports."""
@@ -108,6 +110,7 @@ class TestIsAvailable:
         else:
             assert error is None
 
+    @pytest.mark.requires_gtk
     def test_is_available_x11_with_xdotool(self):
         """Test availability on X11 with xdotool."""
         from src.scroll_capture import ScrollCaptureManager, OPENCV_AVAILABLE
@@ -122,6 +125,7 @@ class TestIsAvailable:
             assert available is True
             assert error is None
 
+    @pytest.mark.requires_gtk
     def test_is_available_x11_without_xdotool(self):
         """Test availability on X11 without xdotool."""
         from src.scroll_capture import ScrollCaptureManager, OPENCV_AVAILABLE
@@ -136,6 +140,7 @@ class TestIsAvailable:
             assert available is False
             assert "xdotool" in error.lower()
 
+    @pytest.mark.requires_gtk
     def test_is_available_wayland_with_ydotool(self):
         """Test availability on Wayland with ydotool."""
         from src.scroll_capture import ScrollCaptureManager, OPENCV_AVAILABLE
@@ -151,6 +156,7 @@ class TestIsAvailable:
             assert available is True
             assert error is None
 
+    @pytest.mark.requires_gtk
     def test_is_available_wayland_with_wtype(self):
         """Test availability on Wayland with wtype."""
         from src.scroll_capture import ScrollCaptureManager, OPENCV_AVAILABLE
@@ -166,6 +172,7 @@ class TestIsAvailable:
             assert available is True
             assert error is None
 
+    @pytest.mark.requires_gtk
     def test_is_available_wayland_without_tools(self):
         """Test availability on Wayland without scroll tools."""
         from src.scroll_capture import ScrollCaptureManager, OPENCV_AVAILABLE

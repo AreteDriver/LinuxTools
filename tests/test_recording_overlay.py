@@ -26,6 +26,7 @@ class TestRecordingOverlayInit:
             with pytest.raises(RuntimeError, match="GTK not available"):
                 recording_overlay.RecordingOverlay(on_stop=lambda: None)
 
+    @pytest.mark.requires_gtk
     def test_init_stores_callbacks(self):
         """RecordingOverlay stores callback and region."""
         from src import recording_overlay
@@ -65,6 +66,7 @@ class TestRecordingOverlayInit:
         assert overlay.region == region
         assert overlay.elapsed_seconds == 0
 
+    @pytest.mark.requires_gtk
     def test_init_without_region(self):
         """RecordingOverlay initializes without region."""
         from src import recording_overlay
@@ -100,6 +102,7 @@ class TestRecordingOverlayInit:
         assert overlay.border_window is None
 
 
+@pytest.mark.requires_gtk
 class TestRecordingOverlayMethods:
     """Tests for RecordingOverlay methods."""
 
@@ -226,6 +229,7 @@ class TestRecordingOverlayMethods:
         mock_border.destroy.assert_called_once()
 
 
+@pytest.mark.requires_gtk
 class TestRecordingOverlayCSS:
     """Tests for CSS loading."""
 
@@ -265,6 +269,7 @@ class TestRecordingOverlayCSS:
         mock_gtk.StyleContext.add_provider_for_screen.assert_called()
 
 
+@pytest.mark.requires_gtk
 class TestRecordingOverlayRegionBorder:
     """Tests for region border creation."""
 
@@ -305,6 +310,7 @@ class TestRecordingOverlayRegionBorder:
         mock_border_window.show_all.assert_called()
 
 
+@pytest.mark.requires_gtk
 class TestDrawBorder:
     """Tests for border drawing."""
 

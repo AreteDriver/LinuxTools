@@ -4,7 +4,14 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+
+# All tests in this file require GTK as they import from src.command_palette
+# which has a class that inherits from Gtk.Window
+pytestmark = pytest.mark.requires_gtk
 
 
 class TestCommandPaletteModuleAvailability:
