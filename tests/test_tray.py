@@ -53,6 +53,7 @@ class TestSystemTrayInit:
                     on_quit=lambda: None,
                 )
 
+    @pytest.mark.requires_gtk
     def test_init_stores_callbacks(self):
         """SystemTray stores callback functions."""
         from src import tray
@@ -97,6 +98,7 @@ class TestSystemTrayInit:
         assert st._on_edit_queue == callbacks["edit_queue"]
 
 
+@pytest.mark.requires_gtk
 class TestSystemTrayMethods:
     """Tests for SystemTray methods with mocked GTK."""
 
@@ -215,6 +217,7 @@ class TestSystemTrayMethods:
         mock_tray.set_active(True)
 
 
+@pytest.mark.requires_gtk
 class TestGetIconPath:
     """Tests for _get_icon_path method."""
 
@@ -277,6 +280,7 @@ class TestGetIconPath:
         assert result is None
 
 
+@pytest.mark.requires_gtk
 class TestCreateMenu:
     """Tests for _create_menu method."""
 

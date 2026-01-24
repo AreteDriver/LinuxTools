@@ -4,6 +4,7 @@ import os
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 
+import pytest
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -632,6 +633,7 @@ class TestGetMonitors:
         result = get_monitors()
         assert result == []
 
+    @pytest.mark.requires_gtk
     @patch("src.capture.GTK_AVAILABLE", True)
     @patch("src.capture.Gdk.Display.get_default")
     def test_get_monitors_no_display(self, mock_get_default):
@@ -643,6 +645,7 @@ class TestGetMonitors:
         result = get_monitors()
         assert result == []
 
+    @pytest.mark.requires_gtk
     @patch("src.capture.GTK_AVAILABLE", True)
     @patch("src.capture.Gdk.Display.get_default")
     def test_get_monitors_single_monitor(self, mock_get_default):
@@ -673,6 +676,7 @@ class TestGetMonitors:
         assert monitors[0].width == 1920
         assert monitors[0].is_primary is True
 
+    @pytest.mark.requires_gtk
     @patch("src.capture.GTK_AVAILABLE", True)
     @patch("src.capture.Gdk.Display.get_default")
     def test_get_monitors_multiple_monitors(self, mock_get_default):
@@ -705,6 +709,7 @@ class TestGetMonitors:
         assert monitors[1].is_primary is False
         assert monitors[1].scale_factor == 2
 
+    @pytest.mark.requires_gtk
     @patch("src.capture.GTK_AVAILABLE", True)
     @patch("src.capture.Gdk.Display.get_default")
     def test_get_monitors_null_monitor(self, mock_get_default):

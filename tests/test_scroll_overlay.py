@@ -26,6 +26,7 @@ class TestScrollCaptureOverlayInit:
             with pytest.raises(RuntimeError, match="GTK not available"):
                 scroll_overlay.ScrollCaptureOverlay(on_stop=lambda: None)
 
+    @pytest.mark.requires_gtk
     def test_init_stores_callbacks(self):
         """ScrollCaptureOverlay stores callback and region."""
         from src import scroll_overlay
@@ -64,6 +65,7 @@ class TestScrollCaptureOverlayInit:
         assert overlay.frame_count == 0
         assert overlay.estimated_height == 0
 
+    @pytest.mark.requires_gtk
     def test_init_without_region(self):
         """ScrollCaptureOverlay initializes without region."""
         from src import scroll_overlay
@@ -95,6 +97,7 @@ class TestScrollCaptureOverlayInit:
         assert overlay.border_window is None
 
 
+@pytest.mark.requires_gtk
 class TestScrollCaptureOverlayMethods:
     """Tests for ScrollCaptureOverlay methods."""
 
@@ -188,6 +191,7 @@ class TestScrollCaptureOverlayMethods:
         mock_overlay.window.destroy.assert_called_once()
 
 
+@pytest.mark.requires_gtk
 class TestScrollCaptureOverlayCSS:
     """Tests for CSS loading."""
 
@@ -225,6 +229,7 @@ class TestScrollCaptureOverlayCSS:
         mock_gtk.StyleContext.add_provider_for_screen.assert_called()
 
 
+@pytest.mark.requires_gtk
 class TestScrollCaptureOverlayRegionBorder:
     """Tests for region border creation."""
 
@@ -263,6 +268,7 @@ class TestScrollCaptureOverlayRegionBorder:
         mock_border_window.show_all.assert_called()
 
 
+@pytest.mark.requires_gtk
 class TestScrollDrawBorder:
     """Tests for border drawing."""
 

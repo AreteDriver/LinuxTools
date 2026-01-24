@@ -9,6 +9,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+@pytest.mark.requires_gtk
 class TestUIModuleAvailability:
     """Test UI module can be imported and basic attributes exist."""
 
@@ -47,6 +48,7 @@ class TestUIModuleAvailability:
 class TestUIConfigIntegration:
     """Test UI integration with config module."""
 
+    @pytest.mark.requires_gtk
     def test_config_module_imported(self):
         from src import ui, config
 
@@ -107,6 +109,7 @@ class TestEditorStateSettings:
         assert state.grid_size == 50
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowSettings:
     """Test EditorWindow applies settings method."""
 
@@ -121,6 +124,7 @@ class TestEditorWindowSettings:
         assert callable(getattr(EditorWindow, "_apply_editor_settings", None))
 
 
+@pytest.mark.requires_gtk
 class TestToolTypeEnum:
     """Test ToolType enum is accessible from ui module."""
 
@@ -150,6 +154,7 @@ class TestToolTypeEnum:
         assert hasattr(ToolType, "MEASURE")
 
 
+@pytest.mark.requires_gtk
 class TestColorClass:
     """Test Color class is accessible from ui module."""
 
@@ -179,6 +184,7 @@ class TestColorClass:
         assert c1.a == 0.4
 
 
+@pytest.mark.requires_gtk
 class TestArrowStyleEnum:
     """Test ArrowStyle enum is accessible."""
 
@@ -203,6 +209,7 @@ class TestArrowStyleEnum:
         assert hasattr(ArrowStyle, "DOUBLE")
 
 
+@pytest.mark.requires_gtk
 class TestRegionSelectorClass:
     """Test RegionSelector class."""
 
@@ -254,6 +261,7 @@ class TestRegionSelectorClass:
         assert hasattr(RegionSelector, "_on_motion")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowClass:
     """Test EditorWindow class structure."""
 
@@ -368,6 +376,7 @@ class TestEditorWindowClass:
         assert hasattr(EditorWindow, "_on_scroll")
 
 
+@pytest.mark.requires_gtk
 class TestMainWindowClass:
     """Test MainWindow class structure."""
 
@@ -452,6 +461,7 @@ class TestMainWindowClass:
         assert hasattr(MainWindow, "_on_history")
 
 
+@pytest.mark.requires_gtk
 class TestSettingsDialogClass:
     """Test SettingsDialog class structure."""
 
@@ -506,6 +516,7 @@ class TestSettingsDialogClass:
         assert hasattr(SettingsDialog, "_on_grid_size_changed")
 
 
+@pytest.mark.requires_gtk
 class TestRunAppFunction:
     """Test run_app function."""
 
@@ -515,6 +526,7 @@ class TestRunAppFunction:
         assert callable(run_app)
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowDrawingMethods:
     """Test EditorWindow drawing methods exist."""
 
@@ -549,6 +561,7 @@ class TestEditorWindowDrawingMethods:
         assert hasattr(EditorWindow, "_draw_lock_indicator")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowEffectMethods:
     """Test EditorWindow effect application methods."""
 
@@ -578,6 +591,7 @@ class TestEditorWindowEffectMethods:
         assert hasattr(EditorWindow, "_show_callout_dialog")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowCoordinateMethods:
     """Test EditorWindow coordinate transformation methods."""
 
@@ -597,6 +611,7 @@ class TestEditorWindowCoordinateMethods:
         assert hasattr(EditorWindow, "_update_zoom_label")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowToolbarMethods:
     """Test EditorWindow toolbar creation methods."""
 
@@ -621,6 +636,7 @@ class TestEditorWindowToolbarMethods:
         assert hasattr(EditorWindow, "_on_stamp_selected")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowColorMethods:
     """Test EditorWindow color handling methods."""
 
@@ -645,6 +661,7 @@ class TestEditorWindowColorMethods:
         assert hasattr(EditorWindow, "_update_recent_colors")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowToggleMethods:
     """Test EditorWindow toggle handler methods."""
 
@@ -689,6 +706,7 @@ class TestEditorWindowToggleMethods:
         assert hasattr(EditorWindow, "_on_size_changed")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowSaveMethods:
     """Test EditorWindow save methods."""
 
@@ -703,6 +721,7 @@ class TestEditorWindowSaveMethods:
         assert hasattr(EditorWindow, "_on_destroy")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowRadialMenuIntegration:
     """Test EditorWindow radial menu integration."""
 
@@ -712,6 +731,7 @@ class TestEditorWindowRadialMenuIntegration:
         assert hasattr(EditorWindow, "_on_radial_select")
 
 
+@pytest.mark.requires_gtk
 class TestSettingsDialogFormatHotkey:
     """Test SettingsDialog._format_hotkey functionality."""
 
@@ -909,7 +929,7 @@ class TestToolTypeEnumValues:
             "ZOOM",
             "CALLOUT",
             "CROP",
-            "EYEDROPPER",
+            "COLORPICKER",
         ]
         for tool in expected_tools:
             assert hasattr(ToolType, tool), f"Missing tool: {tool}"
@@ -943,6 +963,7 @@ class TestArrowStyleEnumValues:
         assert ArrowStyle.DOUBLE.value == "double"
 
 
+@pytest.mark.requires_gtk
 class TestRegionSelectorMethods:
     """Test RegionSelector method existence and basic functionality."""
 
@@ -965,6 +986,7 @@ class TestRegionSelectorMethods:
         assert hasattr(RegionSelector, "_on_scroll")
 
 
+@pytest.mark.requires_gtk
 class TestMainWindowMethods:
     """Test MainWindow method existence."""
 
@@ -1011,6 +1033,7 @@ class TestMainWindowMethods:
         assert hasattr(MainWindow, "_apply_hotkey_changes")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowTabMethods:
     """Test EditorWindow tab management methods."""
 
@@ -1051,6 +1074,7 @@ class TestEditorWindowTabMethods:
         assert hasattr(EditorWindow, "_sync_toolbar_to_state")
 
 
+@pytest.mark.requires_gtk
 class TestEditorWindowHexPickerMethods:
     """Test EditorWindow hex color picker methods."""
 
