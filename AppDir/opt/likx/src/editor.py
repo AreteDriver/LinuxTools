@@ -74,11 +74,33 @@ class Color:
         """Create a copy of this color."""
         return Color(self.r, self.g, self.b, self.a)
 
+    def to_hex(self) -> str:
+        """Convert to hex string (e.g., '#FF0000')."""
+        r = round(self.r * 255)
+        g = round(self.g * 255)
+        b = round(self.b * 255)
+        return f"#{r:02X}{g:02X}{b:02X}"
+
+    def to_rgb_tuple(self) -> Tuple[float, float, float]:
+        """Convert to tuple of RGB float values (without alpha)."""
+        return (self.r, self.g, self.b)
+
+    @classmethod
+    def from_rgb_int(cls, r: int, g: int, b: int, a: int = 255) -> "Color":
+        """Create a Color from RGB integer values (0-255)."""
+        return cls(r / 255.0, g / 255.0, b / 255.0, a / 255.0)
+
     @classmethod
     def from_hex(cls, hex_color: str) -> "Color":
-        """Create a Color from hex string (e.g., '#FF0000')."""
+        """Create a Color from hex string (e.g., '#FF0000' or '#F00')."""
         hex_color = hex_color.lstrip("#")
-        if len(hex_color) == 6:
+        if len(hex_color) == 3:
+            # Short form like #F80 -> #FF8800
+            r = int(hex_color[0] * 2, 16) / 255.0
+            g = int(hex_color[1] * 2, 16) / 255.0
+            b = int(hex_color[2] * 2, 16) / 255.0
+            return cls(r, g, b, 1.0)
+        elif len(hex_color) == 6:
             r = int(hex_color[0:2], 16) / 255.0
             g = int(hex_color[2:4], 16) / 255.0
             b = int(hex_color[4:6], 16) / 255.0
