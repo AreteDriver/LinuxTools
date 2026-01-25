@@ -23,6 +23,9 @@ from .i18n import _
 if TYPE_CHECKING:
     pass  # Types imported for documentation only
 
+# Module-level flag to prevent CSS provider accumulation
+_css_applied = False
+
 
 def get_action_name(elements_before: List, elements_after: List) -> str:
     """Determine a descriptive name for the action based on element changes.
@@ -122,14 +125,14 @@ class UndoRedoButtons:
 
         # Undo button with dropdown
         self.undo_box = Gtk.Box(spacing=0)
-        self.undo_btn = Gtk.Button(label="\u21B6")  # ↶
+        self.undo_btn = Gtk.Button(label="\u21b6")  # ↶
         self.undo_btn.set_tooltip_text(_("Undo (Ctrl+Z)"))
         self.undo_btn.get_style_context().add_class("undo-btn")
         self.undo_btn.connect("clicked", lambda b: self.on_undo())
         self.undo_box.pack_start(self.undo_btn, False, False, 0)
 
         self.undo_dropdown = Gtk.MenuButton()
-        self.undo_dropdown.set_label("\u25BE")  # ▾
+        self.undo_dropdown.set_label("\u25be")  # ▾
         self.undo_dropdown.get_style_context().add_class("undo-dropdown")
         self.undo_dropdown.connect("toggled", self._on_undo_dropdown_toggled)
         self.undo_box.pack_start(self.undo_dropdown, False, False, 0)
@@ -138,14 +141,14 @@ class UndoRedoButtons:
 
         # Redo button with dropdown
         self.redo_box = Gtk.Box(spacing=0)
-        self.redo_btn = Gtk.Button(label="\u21B7")  # ↷
+        self.redo_btn = Gtk.Button(label="\u21b7")  # ↷
         self.redo_btn.set_tooltip_text(_("Redo (Ctrl+Y)"))
         self.redo_btn.get_style_context().add_class("redo-btn")
         self.redo_btn.connect("clicked", lambda b: self.on_redo())
         self.redo_box.pack_start(self.redo_btn, False, False, 0)
 
         self.redo_dropdown = Gtk.MenuButton()
-        self.redo_dropdown.set_label("\u25BE")  # ▾
+        self.redo_dropdown.set_label("\u25be")  # ▾
         self.redo_dropdown.get_style_context().add_class("redo-dropdown")
         self.redo_dropdown.connect("toggled", self._on_redo_dropdown_toggled)
         self.redo_box.pack_start(self.redo_dropdown, False, False, 0)
@@ -157,7 +160,12 @@ class UndoRedoButtons:
         self._create_redo_popover()
 
     def _apply_styles(self) -> None:
-        """Apply CSS styles."""
+        """Apply CSS styles (only once per process)."""
+        global _css_applied
+        if _css_applied:
+            return
+        _css_applied = True
+
         css = b"""
         .undo-btn, .redo-btn {
             min-width: 28px;

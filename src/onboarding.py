@@ -21,6 +21,9 @@ except (ImportError, ValueError):
 from . import config
 from .i18n import _
 
+# Module-level flag to prevent CSS provider accumulation
+_css_applied = False
+
 
 class OnboardingStep:
     """Represents a single onboarding tooltip step."""
@@ -99,7 +102,12 @@ class OnboardingTooltip:
         button_box.pack_start(self.next_btn, False, False, 0)
 
     def _apply_styles(self) -> None:
-        """Apply CSS styles."""
+        """Apply CSS styles (only once per process)."""
+        global _css_applied
+        if _css_applied:
+            return
+        _css_applied = True
+
         css = b"""
         .onboarding-tooltip {
             background: linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%);
@@ -382,7 +390,7 @@ class OnboardingManager:
                     for btn in child.get_children():
                         if isinstance(btn, Gtk.Button):
                             label = btn.get_label()
-                            if label and "\U0001F4BE" in label:  # Save icon
+                            if label and "\U0001f4be" in label:  # Save icon
                                 return child
 
         return widget
@@ -398,7 +406,9 @@ class OnboardingManager:
 
         # Remove previous highlight
         if self._highlighted_widget:
-            self._highlighted_widget.get_style_context().remove_class("onboarding-highlight")
+            self._highlighted_widget.get_style_context().remove_class(
+                "onboarding-highlight"
+            )
             self._highlighted_widget = None
 
         # Add highlight to target
@@ -435,7 +445,9 @@ class OnboardingManager:
         """Finish the onboarding tutorial."""
         # Remove highlight
         if self._highlighted_widget:
-            self._highlighted_widget.get_style_context().remove_class("onboarding-highlight")
+            self._highlighted_widget.get_style_context().remove_class(
+                "onboarding-highlight"
+            )
             self._highlighted_widget = None
 
         self.tooltip.hide()

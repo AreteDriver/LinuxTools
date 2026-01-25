@@ -23,6 +23,9 @@ from .i18n import _
 if TYPE_CHECKING:
     pass  # Types imported for documentation only
 
+# Module-level flag to prevent CSS provider accumulation
+_css_applied = False
+
 
 class QuickAction:
     """Represents a quick action button."""
@@ -73,7 +76,12 @@ class QuickActionsPanel:
         self.popup.connect("enter-notify-event", self._on_enter)
 
     def _apply_styles(self) -> None:
-        """Apply CSS styles to the panel."""
+        """Apply CSS styles to the panel (only once per process)."""
+        global _css_applied
+        if _css_applied:
+            return
+        _css_applied = True
+
         css = b"""
         .quick-actions-panel {
             background: rgba(30, 30, 46, 0.95);
@@ -148,7 +156,12 @@ class QuickActionsPanel:
         self.hide()
         action.callback()
 
-    def show_at(self, x: int, y: int, element_bbox: Optional[Tuple[float, float, float, float]] = None) -> None:
+    def show_at(
+        self,
+        x: int,
+        y: int,
+        element_bbox: Optional[Tuple[float, float, float, float]] = None,
+    ) -> None:
         """Show the panel near the given position.
 
         Args:
@@ -220,7 +233,9 @@ class QuickActionsPanel:
         self.hide()
         return False  # Don't repeat
 
-    def update_position(self, bbox: Tuple[float, float, float, float], drawing_area: Gtk.Widget) -> None:
+    def update_position(
+        self, bbox: Tuple[float, float, float, float], drawing_area: Gtk.Widget
+    ) -> None:
         """Update panel position based on element bounding box.
 
         Args:
@@ -257,8 +272,11 @@ def create_selection_actions(editor_window) -> List[QuickAction]:
     Returns:
         List of QuickAction objects
     """
+
     def has_selection() -> bool:
-        return bool(editor_window.editor_state and editor_window.editor_state.selected_indices)
+        return bool(
+            editor_window.editor_state and editor_window.editor_state.selected_indices
+        )
 
     def is_unlocked() -> bool:
         if not editor_window.editor_state:
@@ -306,14 +324,14 @@ def create_selection_actions(editor_window) -> List[QuickAction]:
         ),
         # Lock/Unlock
         QuickAction(
-            icon="\U0001F512",  # 🔒
+            icon="\U0001f512",  # 🔒
             tooltip=_("Lock/Unlock (Ctrl+L)"),
             callback=lambda: editor_window._toggle_lock(),
             enabled_check=has_selection,
         ),
         # Group (only for multiple selection)
         QuickAction(
-            icon="\u25A3",  # ▣
+            icon="\u25a3",  # ▣
             tooltip=_("Group (Ctrl+G)"),
             callback=lambda: editor_window._group_selected(),
             enabled_check=has_multiple,
