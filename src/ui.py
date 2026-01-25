@@ -1914,10 +1914,13 @@ class EditorWindow:
 
     def _upload(self) -> None:
         """Upload the screenshot to cloud service."""
-        # Save to temp file first
+        # Save to temp file first (mkstemp for race-condition safety)
+        import os
         import tempfile
 
-        temp_file = Path(tempfile.mktemp(suffix=".png"))
+        fd, temp_path = tempfile.mkstemp(suffix=".png")
+        os.close(fd)
+        temp_file = Path(temp_path)
 
         if not self._save_with_annotations(temp_file):
             show_upload_error("Failed to prepare image for upload")

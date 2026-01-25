@@ -1,5 +1,6 @@
 """OCR (Optical Character Recognition) module for LikX."""
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -35,8 +36,10 @@ class OCREngine:
             )
 
         try:
-            # Save pixbuf to temporary file
-            temp_file = Path(tempfile.mktemp(suffix=".png"))
+            # Save pixbuf to temporary file (mkstemp for race-condition safety)
+            fd, temp_path = tempfile.mkstemp(suffix=".png")
+            os.close(fd)
+            temp_file = Path(temp_path)
             pixbuf.savev(str(temp_file), "png", [], [])
 
             # Run Tesseract
