@@ -22,10 +22,9 @@ import sys
 from pathlib import Path
 
 from src import __version__
-from src.config import load_config, get_save_path
-from src.capture import CaptureMode, capture, save_capture, copy_to_clipboard
-from src.notification import show_screenshot_saved, show_notification
-
+from src.capture import CaptureMode, capture, copy_to_clipboard, save_capture
+from src.config import get_save_path, load_config
+from src.notification import show_notification, show_screenshot_saved
 
 LOCK_FILE = Path.home() / ".cache" / "likx" / "likx.lock"
 
@@ -43,7 +42,7 @@ def acquire_single_instance_lock():
         lock_fd.write(str(os.getpid()))
         lock_fd.flush()
         return lock_fd
-    except (IOError, OSError):
+    except OSError:
         return None
 
 
@@ -60,12 +59,8 @@ def parse_args():
     mode_group.add_argument(
         "--fullscreen", "-f", action="store_true", help="Capture the entire screen"
     )
-    mode_group.add_argument(
-        "--region", "-r", action="store_true", help="Capture a selected region"
-    )
-    mode_group.add_argument(
-        "--window", "-w", action="store_true", help="Capture the active window"
-    )
+    mode_group.add_argument("--region", "-r", action="store_true", help="Capture a selected region")
+    mode_group.add_argument("--window", "-w", action="store_true", help="Capture the active window")
 
     parser.add_argument(
         "--delay",
@@ -84,9 +79,7 @@ def parse_args():
         help="Save to FILE instead of default location",
     )
 
-    parser.add_argument(
-        "--no-edit", action="store_true", help="Skip the editor and save directly"
-    )
+    parser.add_argument("--no-edit", action="store_true", help="Skip the editor and save directly")
 
     parser.add_argument(
         "--copy",
@@ -106,6 +99,7 @@ def _run_gui_mode():
         sys.exit(0)
     try:
         from src.ui import run_app
+
         run_app()
     except Exception as e:
         print(f"Error launching GUI: {e}", file=sys.stderr)
@@ -117,8 +111,10 @@ def _run_gui_mode():
 def _capture_region(delay):
     """Capture a selected region interactively."""
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
+
     from src.ui import RegionSelector
 
     region_result = [None]
@@ -162,9 +158,12 @@ def _open_editor(result, output_path):
     """Open the editor or fall back to direct save."""
     try:
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
+
         from src.ui import EditorWindow
+
         EditorWindow(result)
         Gtk.main()
     except Exception as e:
@@ -187,11 +186,18 @@ def main():
         _run_gui_mode()
         return
 
-    mode = CaptureMode.FULLSCREEN if args.fullscreen else (
-        CaptureMode.REGION if args.region else CaptureMode.WINDOW)
+    mode = (
+        CaptureMode.FULLSCREEN
+        if args.fullscreen
+        else (CaptureMode.REGION if args.region else CaptureMode.WINDOW)
+    )
 
     try:
-        result = _capture_region(args.delay) if mode == CaptureMode.REGION else capture(mode, delay=args.delay)
+        result = (
+            _capture_region(args.delay)
+            if mode == CaptureMode.REGION
+            else capture(mode, delay=args.delay)
+        )
     except Exception as e:
         print(f"Error during capture: {e}", file=sys.stderr)
         sys.exit(1)

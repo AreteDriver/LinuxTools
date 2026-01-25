@@ -111,8 +111,7 @@ class ScrollCaptureManager:
         if not _ensure_opencv():
             return (
                 False,
-                "OpenCV not installed. "
-                "Install with: pip install opencv-python-headless",
+                "OpenCV not installed. Install with: pip install opencv-python-headless",
             )
 
         # Check for scroll tool based on display server

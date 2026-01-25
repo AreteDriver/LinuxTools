@@ -164,9 +164,7 @@ class RecordingOverlay:
 
         # Size to fit around region with border
         border_width = 3
-        self.border_window.set_default_size(
-            width + border_width * 2, height + border_width * 2
-        )
+        self.border_window.set_default_size(width + border_width * 2, height + border_width * 2)
         self.border_window.move(x - border_width, y - border_width)
 
         # Draw border
@@ -176,9 +174,7 @@ class RecordingOverlay:
 
         self.border_window.show_all()
 
-    def _draw_border(
-        self, widget, cr, width: int, height: int, border_width: int
-    ) -> bool:
+    def _draw_border(self, widget, cr, width: int, height: int, border_width: int) -> bool:
         """Draw recording border around region."""
         # Transparent background
         cr.set_source_rgba(0, 0, 0, 0)

@@ -274,9 +274,7 @@ def create_selection_actions(editor_window) -> List[QuickAction]:
     """
 
     def has_selection() -> bool:
-        return bool(
-            editor_window.editor_state and editor_window.editor_state.selected_indices
-        )
+        return bool(editor_window.editor_state and editor_window.editor_state.selected_indices)
 
     def is_unlocked() -> bool:
         if not editor_window.editor_state:

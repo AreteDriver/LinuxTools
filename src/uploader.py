@@ -41,9 +41,7 @@ class Uploader:
         else:
             return False, None, f"Unknown upload service: {service}"
 
-    def upload_to_imgur(
-        self, filepath: Path
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    def upload_to_imgur(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload image to Imgur.
 
         Args:
@@ -93,9 +91,7 @@ class Uploader:
         except Exception as e:
             return False, None, str(e)
 
-    def upload_to_file_io(
-        self, filepath: Path
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    def upload_to_file_io(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload to file.io (temporary file sharing).
 
         Args:
@@ -204,14 +200,22 @@ class Uploader:
         """Upload file to Dropbox. Returns (success, error_message)."""
         result = subprocess.run(
             [
-                "curl", "-X", "POST",
+                "curl",
+                "-X",
+                "POST",
                 "https://content.dropboxapi.com/2/files/upload",
-                "-H", f"Authorization: Bearer {access_token}",
-                "-H", "Content-Type: application/octet-stream",
-                "-H", f'Dropbox-API-Arg: {{"path": "{dropbox_path}", "mode": "add"}}',
-                "--data-binary", f"@{filepath}",
+                "-H",
+                f"Authorization: Bearer {access_token}",
+                "-H",
+                "Content-Type: application/octet-stream",
+                "-H",
+                f'Dropbox-API-Arg: {{"path": "{dropbox_path}", "mode": "add"}}',
+                "--data-binary",
+                f"@{filepath}",
             ],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
         if result.returncode != 0:
             return False, "Dropbox upload request failed"
@@ -220,19 +224,24 @@ class Uploader:
             return False, response.get("error_summary", "Upload failed")
         return True, None
 
-    def _dropbox_create_share_link(
-        self, access_token: str, dropbox_path: str
-    ) -> Optional[str]:
+    def _dropbox_create_share_link(self, access_token: str, dropbox_path: str) -> Optional[str]:
         """Create Dropbox shared link. Returns URL or None."""
         result = subprocess.run(
             [
-                "curl", "-X", "POST",
+                "curl",
+                "-X",
+                "POST",
                 "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
-                "-H", f"Authorization: Bearer {access_token}",
-                "-H", "Content-Type: application/json",
-                "-d", json.dumps({"path": dropbox_path}),
+                "-H",
+                f"Authorization: Bearer {access_token}",
+                "-H",
+                "Content-Type: application/json",
+                "-d",
+                json.dumps({"path": dropbox_path}),
             ],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if result.returncode != 0:
             return None
@@ -250,16 +259,18 @@ class Uploader:
                 return existing.replace("dl=0", "dl=1")
         return None
 
-    def upload_to_dropbox(
-        self, filepath: Path
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    def upload_to_dropbox(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload image to Dropbox."""
         cfg = config.load_config()
         access_token = cfg.get("dropbox_token", "")
 
         if not access_token:
-            return (False, None, "Dropbox access token not configured. "
-                    "Get one from https://www.dropbox.com/developers/apps")
+            return (
+                False,
+                None,
+                "Dropbox access token not configured. "
+                "Get one from https://www.dropbox.com/developers/apps",
+            )
 
         try:
             dropbox_path = f"/Screenshots/{filepath.name}"
@@ -311,7 +322,9 @@ class Uploader:
         remote_path = f"{remote}:Screenshots/{filepath.name}"
         result = subprocess.run(
             ["rclone", "copyto", str(filepath), remote_path],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
 
         if result.returncode != 0:
@@ -319,15 +332,15 @@ class Uploader:
 
         link_result = subprocess.run(
             ["rclone", "link", remote_path],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if link_result.returncode == 0 and link_result.stdout.strip():
             return True, link_result.stdout.strip(), None
         return True, f"Uploaded to {remote_path}", None
 
-    def upload_to_gdrive(
-        self, filepath: Path
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    def upload_to_gdrive(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload image to Google Drive."""
         cfg = config.load_config()
         folder_id = cfg.get("gdrive_folder_id", "")
@@ -341,8 +354,12 @@ class Uploader:
             remote = cfg.get("gdrive_rclone_remote", "gdrive")
             return self._gdrive_upload_with_rclone(filepath, remote)
         except FileNotFoundError:
-            return (False, None, "Google Drive upload requires gdrive or rclone. "
-                    "Install gdrive: https://github.com/glotlabs/gdrive")
+            return (
+                False,
+                None,
+                "Google Drive upload requires gdrive or rclone. "
+                "Install gdrive: https://github.com/glotlabs/gdrive",
+            )
         except subprocess.TimeoutExpired:
             return False, None, "Upload timed out"
         except Exception as e:
@@ -359,18 +376,14 @@ class Uploader:
         """
         try:
             # Try xclip first
-            subprocess.run(
-                ["xclip", "-selection", "clipboard"], input=url.encode(), check=True
-            )
+            subprocess.run(["xclip", "-selection", "clipboard"], input=url.encode(), check=True)
             return True
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
         try:
             # Try xsel
-            subprocess.run(
-                ["xsel", "--clipboard", "--input"], input=url.encode(), check=True
-            )
+            subprocess.run(["xsel", "--clipboard", "--input"], input=url.encode(), check=True)
             return True
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass

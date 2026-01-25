@@ -40,6 +40,7 @@ from .effects import (
 from .history import HistoryManager
 from .hotkeys import HotkeyManager
 from .i18n import _
+from .minimap import MinimapNavigator
 from .notification import (
     show_notification,
     show_screenshot_copied,
@@ -48,20 +49,19 @@ from .notification import (
     show_upload_success,
 )
 from .ocr import OCREngine
+from .onboarding import OnboardingManager
 from .pinned import PinnedWindow
 from .queue import CaptureQueue
+
+# UX Enhancement modules
+from .quick_actions import QuickActionsPanel, create_selection_actions
 from .recorder import GifRecorder, RecordingState
 from .recording_overlay import RecordingOverlay
 from .scroll_capture import ScrollCaptureManager, ScrollCaptureResult
 from .scroll_overlay import ScrollCaptureOverlay
 from .tray import SystemTray
-from .uploader import Uploader
-
-# UX Enhancement modules
-from .quick_actions import QuickActionsPanel, create_selection_actions
-from .onboarding import OnboardingManager
-from .minimap import MinimapNavigator
 from .undo_history import UndoRedoButtons
+from .uploader import Uploader
 
 
 class RegionSelector:
@@ -447,9 +447,7 @@ class EditorWindow:
 
         # Create drawing area for this tab
         drawing_area = Gtk.DrawingArea()
-        drawing_area.set_size_request(
-            result.pixbuf.get_width(), result.pixbuf.get_height()
-        )
+        drawing_area.set_size_request(result.pixbuf.get_width(), result.pixbuf.get_height())
 
         drawing_area.connect("draw", self._on_draw)
         drawing_area.connect("button-press-event", self._on_button_press)
@@ -586,9 +584,7 @@ class EditorWindow:
                     child.set_text(f"Capture {i + 1}")
                     break
 
-    def _on_tab_switch(
-        self, notebook: Gtk.Notebook, page: Gtk.Widget, page_num: int
-    ) -> None:
+    def _on_tab_switch(self, notebook: Gtk.Notebook, page: Gtk.Widget, page_num: int) -> None:
         """Handle tab switching - sync UI with new tab's state."""
         if page_num >= len(self.tabs):
             return
@@ -648,9 +644,9 @@ class EditorWindow:
                 message_type=Gtk.MessageType.QUESTION,
                 buttons=Gtk.ButtonsType.YES_NO,
                 text=_("Unsaved Changes"),
-                secondary_text=_(
-                    "{} capture(s) have unsaved changes. Close anyway?"
-                ).format(len(unsaved)),
+                secondary_text=_("{} capture(s) have unsaved changes. Close anyway?").format(
+                    len(unsaved)
+                ),
             )
             response = dialog.run()
             dialog.destroy()
@@ -716,9 +712,7 @@ class EditorWindow:
             cr.stroke()
 
             pixbuf = Gdk.pixbuf_get_from_surface(surface, 0, 0, size, size)
-            self._crosshair_cursor = Gdk.Cursor.new_from_pixbuf(
-                display, pixbuf, center, center
-            )
+            self._crosshair_cursor = Gdk.Cursor.new_from_pixbuf(display, pixbuf, center, center)
         except ImportError:
             self._crosshair_cursor = Gdk.Cursor.new_from_name(display, "crosshair")
 
@@ -1195,9 +1189,7 @@ class EditorWindow:
         self.stamp_selector_btn = Gtk.Button(label="✓ ▾")
         self.stamp_selector_btn.set_tooltip_text(_("Select stamp"))
         self.stamp_selector_btn.get_style_context().add_class("ctx-btn")
-        self.stamp_selector_btn.connect(
-            "clicked", lambda b: self.stamp_popover.show_all()
-        )
+        self.stamp_selector_btn.connect("clicked", lambda b: self.stamp_popover.show_all())
         self.ctx_stamp_box.pack_start(self.stamp_selector_btn, False, False, 0)
         bar.pack_start(self.ctx_stamp_box, False, False, 0)
 
@@ -1327,6 +1319,7 @@ class EditorWindow:
     def _draw_hex_palette(self, widget, cr) -> bool:
         """Draw hexagonal color palette with selection indicator."""
         import math
+
         import cairo
 
         size = self._hex_size
@@ -1476,7 +1469,7 @@ class EditorWindow:
         spacing = 2
         x = 4
 
-        for i, color in enumerate(recent[:8]):
+        for _i, color in enumerate(recent[:8]):
             if x <= event.x <= x + swatch_size and 1 <= event.y <= 1 + swatch_size:
                 self._set_color_rgb(color.r, color.g, color.b)
                 self._selected_hex_idx = -1  # Deselect preset colors
@@ -1612,14 +1605,10 @@ class EditorWindow:
             da = Gtk.DrawingArea()
             da.set_size_request(16, 16)
             r, g, b = color.r, color.g, color.b
-            da.connect(
-                "draw", lambda w, cr, r=r, g=g, b=b: self._draw_color_dot(cr, r, g, b)
-            )
+            da.connect("draw", lambda w, cr, r=r, g=g, b=b: self._draw_color_dot(cr, r, g, b))
             btn.add(da)
             btn.set_tooltip_text(f"RGB({int(r * 255)},{int(g * 255)},{int(b * 255)})")
-            btn.connect(
-                "clicked", lambda b, r=r, g=g, bl=b: self._set_color_rgb(r, g, bl)
-            )
+            btn.connect("clicked", lambda b, r=r, g=g, bl=b: self._set_color_rgb(r, g, bl))
             self.recent_colors_box.pack_start(btn, False, False, 0)
 
         self.recent_colors_box.show_all()
@@ -1654,9 +1643,7 @@ class EditorWindow:
             # Ensure at least one stamp is always selected
             button.set_active(True)
 
-    def _on_arrow_style_toggled(
-        self, button: Gtk.ToggleButton, style: ArrowStyle
-    ) -> None:
+    def _on_arrow_style_toggled(self, button: Gtk.ToggleButton, style: ArrowStyle) -> None:
         """Handle arrow style selection toggle."""
         if button.get_active():
             # Deactivate other arrow style buttons
@@ -2163,9 +2150,7 @@ class EditorWindow:
         handle_size = 8
         cr.set_source_rgba(1, 1, 1, 1)
         for hx, hy in [(left, top), (right, top), (left, bottom), (right, bottom)]:
-            cr.rectangle(
-                hx - handle_size / 2, hy - handle_size / 2, handle_size, handle_size
-            )
+            cr.rectangle(hx - handle_size / 2, hy - handle_size / 2, handle_size, handle_size)
             cr.fill()
 
         # Draw dimension text
@@ -2180,9 +2165,7 @@ class EditorWindow:
 
         # Background for text
         cr.set_source_rgba(0, 0, 0, 0.7)
-        cr.rectangle(
-            tx - 4, ty - extents.height - 2, extents.width + 8, extents.height + 6
-        )
+        cr.rectangle(tx - 4, ty - extents.height - 2, extents.width + 8, extents.height + 6)
         cr.fill()
 
         # Text
@@ -2346,9 +2329,7 @@ class EditorWindow:
 
         # Minimum crop size
         if width < 10 or height < 10:
-            self.statusbar.push(
-                self.statusbar_context, "Crop area too small (min 10×10)"
-            )
+            self.statusbar.push(self.statusbar_context, "Crop area too small (min 10×10)")
             # Clean up
             if hasattr(self, "_crop_start"):
                 del self._crop_start
@@ -2403,17 +2384,13 @@ class EditorWindow:
 
         handle = self.editor_state._hit_test_handles(img_x, img_y)
         if handle and handle in handle_cursors:
-            cursor = Gdk.Cursor.new_for_display(
-                self.window.get_display(), handle_cursors[handle]
-            )
+            cursor = Gdk.Cursor.new_for_display(self.window.get_display(), handle_cursors[handle])
             self.drawing_area.get_window().set_cursor(cursor)
         elif self.editor_state.get_selected():
             # Hovering over selected element - show move cursor
             elem = self.editor_state.get_selected()
             if self.editor_state._hit_test_element(elem, img_x, img_y):
-                cursor = Gdk.Cursor.new_for_display(
-                    self.window.get_display(), Gdk.CursorType.FLEUR
-                )
+                cursor = Gdk.Cursor.new_for_display(self.window.get_display(), Gdk.CursorType.FLEUR)
                 self.drawing_area.get_window().set_cursor(cursor)
             else:
                 self.drawing_area.get_window().set_cursor(None)
@@ -2430,9 +2407,7 @@ class EditorWindow:
                 # Try to select an element at this position
                 # Shift+click adds to selection (multi-select)
                 shift_held = event.state & Gdk.ModifierType.SHIFT_MASK
-                self.editor_state.select_at(
-                    img_x, img_y, add_to_selection=bool(shift_held)
-                )
+                self.editor_state.select_at(img_x, img_y, add_to_selection=bool(shift_held))
                 self.drawing_area.queue_draw()
                 # Show quick actions panel if something was selected
                 if self.editor_state.selected_indices:
@@ -2890,8 +2865,10 @@ class EditorWindow:
         """Handle arrow key nudging."""
         nudge = 10 if shift else 1
         offsets = {
-            Gdk.KEY_Up: (0, -nudge), Gdk.KEY_Down: (0, nudge),
-            Gdk.KEY_Left: (-nudge, 0), Gdk.KEY_Right: (nudge, 0),
+            Gdk.KEY_Up: (0, -nudge),
+            Gdk.KEY_Down: (0, nudge),
+            Gdk.KEY_Left: (-nudge, 0),
+            Gdk.KEY_Right: (nudge, 0),
         }
         if key not in offsets:
             return False
@@ -2990,7 +2967,7 @@ class QuickToolbar:
 
     def __init__(
         self,
-        result: "CaptureResult",
+        result: CaptureResult,
         on_save: Callable,
         on_copy: Callable,
         on_edit: Callable,
@@ -3166,9 +3143,7 @@ class MainWindow:
 
         # Settings button
         settings_btn = Gtk.Button()
-        settings_icon = Gtk.Image.new_from_icon_name(
-            "emblem-system-symbolic", Gtk.IconSize.MENU
-        )
+        settings_icon = Gtk.Image.new_from_icon_name("emblem-system-symbolic", Gtk.IconSize.MENU)
         settings_btn.set_image(settings_icon)
         settings_btn.set_tooltip_text(_("Settings"))
         settings_btn.get_style_context().add_class("likx-icon-btn")
@@ -3177,9 +3152,7 @@ class MainWindow:
 
         # Close button
         close_btn = Gtk.Button()
-        close_icon = Gtk.Image.new_from_icon_name(
-            "window-close-symbolic", Gtk.IconSize.MENU
-        )
+        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
         close_btn.set_image(close_icon)
         close_btn.get_style_context().add_class("likx-close-btn")
         close_btn.connect("clicked", lambda w: self._on_delete_event(w, None))
@@ -3263,7 +3236,7 @@ class MainWindow:
         if cfg.get("queue_persist", False):
             persist_dir = config.get_config_dir() / "queue"
         self.capture_queue = CaptureQueue(persist_dir)
-        self.active_editor: Optional["EditorWindow"] = None
+        self.active_editor: Optional[EditorWindow] = None
 
         # Hidden queue UI elements (for API compatibility)
         self.queue_toggle = Gtk.ToggleButton()
@@ -3463,9 +3436,7 @@ class MainWindow:
         import subprocess
 
         cfg = config.load_config()
-        folder = Path(
-            cfg.get("save_directory", str(Path.home() / "Pictures" / "Screenshots"))
-        )
+        folder = Path(cfg.get("save_directory", str(Path.home() / "Pictures" / "Screenshots")))
         folder.mkdir(parents=True, exist_ok=True)
         try:
             subprocess.Popen(["xdg-open", str(folder)])
@@ -3516,9 +3487,7 @@ class MainWindow:
         if count == 0:
             self.queue_edit_btn.set_tooltip_text(_("Edit queued captures"))
         else:
-            self.queue_edit_btn.set_tooltip_text(
-                _("Edit {} queued capture(s)").format(count)
-            )
+            self.queue_edit_btn.set_tooltip_text(_("Edit {} queued capture(s)").format(count))
 
         # Update tray queue count
         if self.tray:
@@ -3560,9 +3529,7 @@ class MainWindow:
         if copy_to_clipboard(result):
             show_notification(_("Copied"), _("Screenshot copied to clipboard"))
         else:
-            show_notification(
-                _("Error"), _("Failed to copy to clipboard"), icon="dialog-error"
-            )
+            show_notification(_("Error"), _("Failed to copy to clipboard"), icon="dialog-error")
 
     def _quick_edit(self, result: CaptureResult) -> None:
         """Open capture in editor."""
@@ -3675,7 +3642,9 @@ class MainWindow:
         # Individual monitor buttons
         for monitor in monitors:
             primary = " " + _("(Primary)") if monitor.is_primary else ""
-            btn_label = f"{monitor.index + 1}: {monitor.name} - {monitor.width}x{monitor.height}{primary}"
+            btn_label = (
+                f"{monitor.index + 1}: {monitor.name} - {monitor.width}x{monitor.height}{primary}"
+            )
             btn = Gtk.Button(label=btn_label)
             btn.connect("clicked", self._on_monitor_selected, dialog, monitor)
             button_box.pack_start(btn, False, False, 0)
@@ -3797,9 +3766,7 @@ class MainWindow:
     def _on_recording_state_change(self, state: RecordingState) -> None:
         """Handle recording state changes."""
         if state == RecordingState.ENCODING:
-            show_notification(
-                _("Processing"), _("Encoding GIF..."), icon="emblem-synchronizing"
-            )
+            show_notification(_("Processing"), _("Encoding GIF..."), icon="emblem-synchronizing")
 
     def _on_recording_stop(self) -> None:
         """Handle recording stop."""
@@ -3833,9 +3800,7 @@ class MainWindow:
         available, error = self.scroll_manager.is_available()
 
         if not available:
-            show_notification(
-                _("Scroll Capture Unavailable"), error, icon="dialog-error"
-            )
+            show_notification(_("Scroll Capture Unavailable"), error, icon="dialog-error")
             return
 
         self.window.iconify()
@@ -3850,9 +3815,7 @@ class MainWindow:
             self.window.present()
         return False
 
-    def _on_scroll_region_selected(
-        self, x: int, y: int, width: int, height: int
-    ) -> None:
+    def _on_scroll_region_selected(self, x: int, y: int, width: int, height: int) -> None:
         """Handle region selection for scroll capture."""
         success, error = self.scroll_manager.start_capture(
             x,
@@ -3929,8 +3892,7 @@ class MainWindow:
             if cfg.get("show_notification", True):
                 show_notification(
                     "Scroll Capture Complete",
-                    f"Captured {result.frame_count} frames\n"
-                    f"Total height: {result.total_height}px",
+                    f"Captured {result.frame_count} frames\nTotal height: {result.total_height}px",
                     icon="image-x-generic",
                 )
 
@@ -3948,9 +3910,7 @@ class MainWindow:
                 if saved.success:
                     show_screenshot_saved(str(saved.filepath))
         else:
-            show_notification(
-                "Scroll Capture Failed", result.error, icon="dialog-error"
-            )
+            show_notification("Scroll Capture Failed", result.error, icon="dialog-error")
 
         self.window.present()
         self.scroll_manager = None
@@ -3990,9 +3950,7 @@ class MainWindow:
         dialog = Gtk.AboutDialog(transient_for=self.window)
         dialog.set_program_name("LikX")
         dialog.set_version(__version__)
-        dialog.set_comments(
-            "A powerful screenshot capture and annotation tool for Linux"
-        )
+        dialog.set_comments("A powerful screenshot capture and annotation tool for Linux")
         dialog.set_website("https://github.com/AreteDriver/LikX")
         dialog.set_license_type(Gtk.License.MIT_X11)
         dialog.set_authors(["LikX Contributors"])
@@ -4139,13 +4097,9 @@ class HotkeyEntry(Gtk.Button):
 class SettingsDialog:
     """Settings dialog window with all options."""
 
-    def __init__(
-        self, parent: Gtk.Window, on_hotkeys_changed: Optional[Callable] = None
-    ):
+    def __init__(self, parent: Gtk.Window, on_hotkeys_changed: Optional[Callable] = None):
         self.on_hotkeys_changed = on_hotkeys_changed
-        self.dialog = Gtk.Dialog(
-            title=_("Settings"), parent=parent, flags=Gtk.DialogFlags.MODAL
-        )
+        self.dialog = Gtk.Dialog(title=_("Settings"), parent=parent, flags=Gtk.DialogFlags.MODAL)
         self.dialog.add_buttons(
             Gtk.STOCK_CANCEL,
             Gtk.ResponseType.CANCEL,
@@ -4238,15 +4192,11 @@ class SettingsDialog:
         box.pack_start(Gtk.Separator(), False, False, 5)
 
         # Checkboxes
-        self.auto_save_check = Gtk.CheckButton(
-            label=_("Auto-save screenshots (skip editor)")
-        )
+        self.auto_save_check = Gtk.CheckButton(label=_("Auto-save screenshots (skip editor)"))
         self.auto_save_check.set_active(self.cfg.get("auto_save", False))
         box.pack_start(self.auto_save_check, False, False, 0)
 
-        self.clipboard_check = Gtk.CheckButton(
-            label=_("Copy to clipboard automatically")
-        )
+        self.clipboard_check = Gtk.CheckButton(label=_("Copy to clipboard automatically"))
         self.clipboard_check.set_active(self.cfg.get("copy_to_clipboard", True))
         box.pack_start(self.clipboard_check, False, False, 0)
 
@@ -4279,9 +4229,7 @@ class SettingsDialog:
 
         box.pack_start(Gtk.Separator(), False, False, 5)
 
-        self.cursor_check = Gtk.CheckButton(
-            label=_("Include mouse cursor in screenshots")
-        )
+        self.cursor_check = Gtk.CheckButton(label=_("Include mouse cursor in screenshots"))
         self.cursor_check.set_active(self.cfg.get("include_cursor", False))
         box.pack_start(self.cursor_check, False, False, 0)
 
@@ -4432,9 +4380,7 @@ class SettingsDialog:
 
         box.pack_start(Gtk.Separator(), False, False, 5)
 
-        self.auto_upload_check = Gtk.CheckButton(
-            label=_("Automatically upload after save")
-        )
+        self.auto_upload_check = Gtk.CheckButton(label=_("Automatically upload after save"))
         self.auto_upload_check.set_active(self.cfg.get("auto_upload", False))
         box.pack_start(self.auto_upload_check, False, False, 0)
 
@@ -4514,9 +4460,7 @@ class SettingsDialog:
         gdrive_box.pack_start(gdrive_folder_box, False, False, 0)
 
         gdrive_help = Gtk.Label(xalign=0)
-        gdrive_help.set_markup(
-            "<small>Requires: <b>gdrive</b> CLI or <b>rclone</b></small>"
-        )
+        gdrive_help.set_markup("<small>Requires: <b>gdrive</b> CLI or <b>rclone</b></small>")
         gdrive_box.pack_start(gdrive_help, False, False, 0)
 
         self.gdrive_frame.add(gdrive_box)
@@ -4595,9 +4539,7 @@ class SettingsDialog:
         self.grid_size_value.set_size_request(50, -1)
 
         # Slider for grid size (5-100 pixels)
-        self.grid_size_scale = Gtk.Scale.new_with_range(
-            Gtk.Orientation.HORIZONTAL, 5, 100, 5
-        )
+        self.grid_size_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 5, 100, 5)
         self.grid_size_scale.set_value(self.cfg.get("grid_size", 20))
         self.grid_size_scale.set_draw_value(False)  # We use our own label
         self.grid_size_scale.set_hexpand(True)
@@ -4683,9 +4625,7 @@ class SettingsDialog:
 
             # Reset button for this hotkey
             reset_btn = Gtk.Button(label=_("Reset"))
-            reset_btn.set_tooltip_text(
-                f"Reset to default: {self._format_hotkey(default)}"
-            )
+            reset_btn.set_tooltip_text(f"Reset to default: {self._format_hotkey(default)}")
             reset_btn.connect("clicked", self._on_reset_hotkey, key, default)
             grid.attach(reset_btn, 2, row, 1, 1)
 
@@ -4836,9 +4776,7 @@ class SettingsDialog:
         self.cfg["gif_quality"] = self.gif_quality_combo.get_active_id() or "medium"
         self.cfg["gif_fps"] = int(self.gif_fps_spin.get_value())
         self.cfg["gif_colors"] = int(self.gif_colors_combo.get_active_id() or "256")
-        self.cfg["gif_scale_factor"] = float(
-            self.gif_scale_combo.get_active_id() or "1.0"
-        )
+        self.cfg["gif_scale_factor"] = float(self.gif_scale_combo.get_active_id() or "1.0")
         self.cfg["gif_dither"] = self.gif_dither_combo.get_active_id() or "bayer"
         self.cfg["gif_loop"] = int(self.gif_loop_combo.get_active_id() or "0")
         self.cfg["gif_optimize"] = self.gif_optimize_check.get_active()
@@ -4943,9 +4881,7 @@ def _EditorWindow_init_enhanced(self, result):
     for label, callback in effects_items:
         row = Gtk.Button(label=label)
         row.set_relief(Gtk.ReliefStyle.NONE)
-        row.connect(
-            "clicked", lambda b, cb=callback, p=effects_popover: (cb(), p.popdown())
-        )
+        row.connect("clicked", lambda b, cb=callback, p=effects_popover: (cb(), p.popdown()))
         effects_grid.pack_start(row, False, False, 0)
 
     effects_popover.add(effects_grid)
@@ -5000,9 +4936,7 @@ def _extract_text(self):
         response = dialog.run()
         if response == 1:
             if self.ocr_engine.copy_text_to_clipboard(text):
-                show_notification(
-                    "Text Copied", f"Copied {len(text)} characters to clipboard"
-                )
+                show_notification("Text Copied", f"Copied {len(text)} characters to clipboard")
             else:
                 show_notification(
                     "Copy Failed", "Could not copy to clipboard", icon="dialog-warning"
@@ -5074,9 +5008,7 @@ def _apply_shadow(self):
 
 def _apply_border(self):
     """Apply border effect."""
-    dialog = Gtk.ColorChooserDialog(
-        title="Choose Border Color", transient_for=self.window
-    )
+    dialog = Gtk.ColorChooserDialog(title="Choose Border Color", transient_for=self.window)
     dialog.set_rgba(Gdk.RGBA(0, 0, 0, 1))
     response = dialog.run()
 
@@ -5096,18 +5028,14 @@ def _apply_border(self):
 
 def _apply_background(self):
     """Apply background effect."""
-    dialog = Gtk.ColorChooserDialog(
-        title="Choose Background Color", transient_for=self.window
-    )
+    dialog = Gtk.ColorChooserDialog(title="Choose Background Color", transient_for=self.window)
     dialog.set_rgba(Gdk.RGBA(1, 1, 1, 1))
     response = dialog.run()
 
     if response == Gtk.ResponseType.OK:
         rgba = dialog.get_rgba()
         color = (rgba.red, rgba.green, rgba.blue, rgba.alpha)
-        self.result.pixbuf = add_background(
-            self.result.pixbuf, bg_color=color, padding=25
-        )
+        self.result.pixbuf = add_background(self.result.pixbuf, bg_color=color, padding=25)
         self.editor_state.set_pixbuf(self.result.pixbuf)
         self.drawing_area.set_size_request(
             self.result.pixbuf.get_width(), self.result.pixbuf.get_height()
@@ -5150,16 +5078,12 @@ def _on_history(self, button):
     import subprocess
 
     cfg = config.load_config()
-    folder = Path(
-        cfg.get("save_directory", str(Path.home() / "Pictures" / "Screenshots"))
-    )
+    folder = Path(cfg.get("save_directory", str(Path.home() / "Pictures" / "Screenshots")))
     folder.mkdir(parents=True, exist_ok=True)
     try:
         subprocess.Popen(["xdg-open", str(folder)])
     except Exception as e:
-        show_notification(
-            _("Error"), _("Could not open folder:") + f" {e}", icon="dialog-error"
-        )
+        show_notification(_("Error"), _("Could not open folder:") + f" {e}", icon="dialog-error")
 
 
 def _on_quick_actions(self, button):
@@ -5207,9 +5131,7 @@ def _show_adjust_dialog(self):
     brightness_label = Gtk.Label(label=_("Brightness:"))
     brightness_label.set_size_request(100, -1)
     brightness_label.set_xalign(0)
-    brightness_scale = Gtk.Scale.new_with_range(
-        Gtk.Orientation.HORIZONTAL, -100, 100, 5
-    )
+    brightness_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, -100, 100, 5)
     brightness_scale.set_value(0)
     brightness_scale.set_hexpand(True)
     brightness_box.pack_start(brightness_label, False, False, 0)

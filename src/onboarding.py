@@ -406,9 +406,7 @@ class OnboardingManager:
 
         # Remove previous highlight
         if self._highlighted_widget:
-            self._highlighted_widget.get_style_context().remove_class(
-                "onboarding-highlight"
-            )
+            self._highlighted_widget.get_style_context().remove_class("onboarding-highlight")
             self._highlighted_widget = None
 
         # Add highlight to target
@@ -445,9 +443,7 @@ class OnboardingManager:
         """Finish the onboarding tutorial."""
         # Remove highlight
         if self._highlighted_widget:
-            self._highlighted_widget.get_style_context().remove_class(
-                "onboarding-highlight"
-            )
+            self._highlighted_widget.get_style_context().remove_class("onboarding-highlight")
             self._highlighted_widget = None
 
         self.tooltip.hide()

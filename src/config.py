@@ -145,9 +145,7 @@ def validate_format(format_str: str) -> bool:
     return format_str.lower() in [fmt.lower() for fmt in supported]
 
 
-def get_save_path(
-    filename: Optional[str] = None, format_str: Optional[str] = None
-) -> Path:
+def get_save_path(filename: Optional[str] = None, format_str: Optional[str] = None) -> Path:
     """Generate a save path for a screenshot."""
     config = load_config()
     save_dir = Path(config.get("save_directory", DEFAULT_CONFIG["save_directory"]))

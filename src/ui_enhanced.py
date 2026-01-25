@@ -128,9 +128,7 @@ class EditorWindowEnhancements:
                 show_notification("Text Copied", "Extracted text copied to clipboard")
 
             dialog.destroy()
-            self.statusbar.push(
-                self.statusbar_context, f"Extracted {len(text)} characters"
-            )
+            self.statusbar.push(self.statusbar_context, f"Extracted {len(text)} characters")
         else:
             self.statusbar.push(self.statusbar_context, f"OCR failed: {error}")
             show_notification("OCR Failed", error, icon="dialog-error")
@@ -190,17 +188,13 @@ class EditorWindowEnhancements:
     def _apply_border(self):
         """Apply border effect."""
         # Show color chooser
-        dialog = Gtk.ColorChooserDialog(
-            title="Choose Border Color", transient_for=self.window
-        )
+        dialog = Gtk.ColorChooserDialog(title="Choose Border Color", transient_for=self.window)
         response = dialog.run()
 
         if response == Gtk.ResponseType.OK:
             rgba = dialog.get_rgba()
             color = (rgba.red, rgba.green, rgba.blue, rgba.alpha)
-            self.result.pixbuf = add_border(
-                self.result.pixbuf, border_width=5, color=color
-            )
+            self.result.pixbuf = add_border(self.result.pixbuf, border_width=5, color=color)
             self.editor_state.set_pixbuf(self.result.pixbuf)
             self.drawing_area.set_size_request(
                 self.result.pixbuf.get_width(), self.result.pixbuf.get_height()
@@ -212,9 +206,7 @@ class EditorWindowEnhancements:
 
     def _apply_background(self):
         """Apply background effect."""
-        dialog = Gtk.ColorChooserDialog(
-            title="Choose Background Color", transient_for=self.window
-        )
+        dialog = Gtk.ColorChooserDialog(title="Choose Background Color", transient_for=self.window)
         response = dialog.run()
 
         if response == Gtk.ResponseType.OK:
@@ -343,9 +335,7 @@ class QuickActionsDialog:
 
     def _screenshot_upload(self):
         """Screenshot then upload workflow."""
-        show_notification(
-            "Screenshot + Upload", "Capture, then click the ☁️ Upload button"
-        )
+        show_notification("Screenshot + Upload", "Capture, then click the ☁️ Upload button")
 
     def _screenshot_pin(self):
         """Screenshot then pin workflow."""
