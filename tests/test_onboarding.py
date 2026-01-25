@@ -1253,3 +1253,202 @@ class TestOnboardingManagerFunctional:
                 mock_save.assert_called()
                 saved_config = mock_save.call_args[0][0]
                 assert saved_config["onboarding_completed"] is True
+
+    def test_manager_start_empty_steps(self, gtk_setup):
+        """Test start() returns early with no steps."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            manager.steps = []  # Empty steps
+
+            # Should return without error
+            manager.start()
+            assert manager.current_step == 0
+
+    def test_manager_start_with_steps(self, gtk_setup):
+        """Test start() initializes step and schedules timer."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            with patch("src.onboarding.GLib.timeout_add") as mock_timeout:
+                manager = OnboardingManager(mock_editor)
+                manager.start()
+
+                assert manager.current_step == 0
+                mock_timeout.assert_called_once()
+                # First arg is delay, second is callback
+                assert mock_timeout.call_args[0][0] == 500
+
+    def test_manager_get_target_widget_sidebar(self, gtk_setup):
+        """Test _get_target_widget returns sidebar."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+        mock_sidebar = MagicMock()
+        mock_editor.sidebar = mock_sidebar
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            result = manager._get_target_widget("sidebar")
+
+            assert result == mock_sidebar
+
+    def test_manager_get_target_widget_context_bar(self, gtk_setup):
+        """Test _get_target_widget returns context_bar."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+        mock_context_bar = MagicMock()
+        mock_editor.context_bar = mock_context_bar
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            result = manager._get_target_widget("context_bar")
+
+            assert result == mock_context_bar
+
+    def test_manager_get_target_widget_command_palette(self, gtk_setup):
+        """Test _get_target_widget returns None for command_palette."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            result = manager._get_target_widget("command_palette")
+
+            assert result is None
+
+    def test_manager_get_target_widget_unknown(self, gtk_setup):
+        """Test _get_target_widget returns None for unknown ID."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            result = manager._get_target_widget("nonexistent_widget")
+
+            assert result is None
+
+    def test_manager_show_current_step_past_end(self, gtk_setup):
+        """Test _show_current_step finishes when past end."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            with patch("src.onboarding.config.save_config"):
+                manager = OnboardingManager(mock_editor)
+                manager.current_step = 100  # Past end
+
+                result = manager._show_current_step()
+
+                assert result is False
+
+    def test_manager_next_step_not_at_end(self, gtk_setup):
+        """Test _next_step shows next step when not at end."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            manager.current_step = 0
+
+            with patch.object(manager, "_show_current_step") as mock_show:
+                manager._next_step()
+
+                assert manager.current_step == 1
+                mock_show.assert_called_once()
+
+
+class TestOnboardingTooltipPositioning:
+    """Test tooltip positioning methods."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.onboarding import GTK_AVAILABLE
+
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        window = Gtk.Window()
+        return {"Gtk": Gtk, "window": window}
+
+    def test_position_center(self, gtk_setup):
+        """Test _position_center positions in parent center."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        # Should not raise
+        tooltip._position_center()
+
+    def test_position_near_widget_no_window(self, gtk_setup):
+        """Test _position_near_widget falls back when widget has no window."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        mock_widget = MagicMock()
+        mock_widget.get_window.return_value = None
+
+        with patch.object(tooltip, "_position_center") as mock_center:
+            tooltip._position_near_widget(mock_widget, "bottom")
+            mock_center.assert_called_once()
+
+    def test_position_near_widget_origin_fail(self, gtk_setup):
+        """Test _position_near_widget falls back when origin fails."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        mock_widget = MagicMock()
+        mock_window = MagicMock()
+        mock_window.get_origin.return_value = (False, 0, 0)  # Failed
+        mock_widget.get_window.return_value = mock_window
+
+        with patch.object(tooltip, "_position_center") as mock_center:
+            tooltip._position_near_widget(mock_widget, "bottom")
+            mock_center.assert_called_once()
+
+    def test_show_disconnects_old_handlers(self, gtk_setup):
+        """Test show disconnects old handlers gracefully."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        # Set up fake handler IDs that will fail to disconnect
+        tooltip._handler_ids = [(999, 998)]
+
+        # Should not raise even when disconnect fails
+        tooltip.show(
+            title="Test",
+            message="Test message",
+            step_num=1,
+            total_steps=3,
+            target_widget=None,
+            position="bottom",
+            on_next=lambda: None,
+            on_skip=lambda: None,
+        )

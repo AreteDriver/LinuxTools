@@ -1285,3 +1285,163 @@ class TestQuickActionsPanelFunctional:
         buttons = [c for c in children if hasattr(c, "get_sensitive")]
         if buttons:
             assert buttons[0].get_sensitive() is True
+
+    def test_panel_show_at_fallback_position(self, gtk_setup):
+        """Test show_at uses fallback position when panel_y < 10."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel.set_actions([QuickAction(icon="X", tooltip="Test", callback=lambda: None)])
+
+        # Show at position where y would be < 10
+        panel.show_at(100, 5)
+
+        assert panel.visible is True
+
+    def test_panel_hide_clears_timer(self, gtk_setup):
+        """Test hide() clears pending timer."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel._hide_timer_id = 12345  # Fake timer ID
+
+        with patch("src.quick_actions.GLib.source_remove") as mock_remove:
+            panel.hide()
+
+            mock_remove.assert_called_once_with(12345)
+            assert panel._hide_timer_id is None
+            assert panel.visible is False
+
+    def test_panel_show_at_cancels_timer(self, gtk_setup):
+        """Test show_at() cancels pending hide timer."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel.set_actions([QuickAction(icon="X", tooltip="Test", callback=lambda: None)])
+        panel._hide_timer_id = 12345
+
+        with patch("src.quick_actions.GLib.source_remove") as mock_remove:
+            panel.show_at(100, 100)
+
+            mock_remove.assert_called_once_with(12345)
+            assert panel._hide_timer_id is None
+
+    def test_panel_on_leave_starts_hide_timer(self, gtk_setup):
+        """Test _on_leave starts hide timer."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        mock_event = MagicMock()
+        mock_event.detail = None  # Not INFERIOR
+
+        with patch("src.quick_actions.GLib.timeout_add") as mock_timeout:
+            mock_timeout.return_value = 999
+            panel._on_leave(panel.popup, mock_event)
+
+            mock_timeout.assert_called_once()
+            assert panel._hide_timer_id == 999
+
+    def test_panel_on_leave_ignores_inferior(self, gtk_setup):
+        """Test _on_leave ignores INFERIOR events."""
+        from src.quick_actions import QuickActionsPanel
+        import gi
+
+        gi.require_version("Gdk", "3.0")
+        from gi.repository import Gdk
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        mock_event = MagicMock()
+        mock_event.detail = Gdk.NotifyType.INFERIOR
+
+        with patch("src.quick_actions.GLib.timeout_add") as mock_timeout:
+            result = panel._on_leave(panel.popup, mock_event)
+
+            assert result is False
+            mock_timeout.assert_not_called()
+
+    def test_panel_on_enter_cancels_timer(self, gtk_setup):
+        """Test _on_enter cancels hide timer."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel._hide_timer_id = 12345
+
+        mock_event = MagicMock()
+
+        with patch("src.quick_actions.GLib.source_remove") as mock_remove:
+            result = panel._on_enter(panel.popup, mock_event)
+
+            mock_remove.assert_called_once_with(12345)
+            assert panel._hide_timer_id is None
+            assert result is False
+
+    def test_panel_delayed_hide(self, gtk_setup):
+        """Test _delayed_hide hides panel."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel.visible = True
+
+        result = panel._delayed_hide()
+
+        assert panel.visible is False
+        assert result is False  # Don't repeat timer
+
+    def test_panel_update_position_not_visible(self, gtk_setup):
+        """Test update_position does nothing when not visible."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel.visible = False
+
+        # Should return early without error
+        panel.update_position((0, 0, 100, 100), MagicMock())
+
+    def test_panel_update_position_no_window(self, gtk_setup):
+        """Test update_position handles missing window."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel.visible = True
+
+        mock_drawing_area = MagicMock()
+        mock_drawing_area.get_window.return_value = None
+
+        # Should return early without error
+        panel.update_position((0, 0, 100, 100), mock_drawing_area)
+
+    def test_panel_update_position_origin_fails(self, gtk_setup):
+        """Test update_position handles failed origin lookup."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+        panel.visible = True
+
+        mock_window = MagicMock()
+        mock_window.get_origin.return_value = (False, 0, 0)
+
+        mock_drawing_area = MagicMock()
+        mock_drawing_area.get_window.return_value = mock_window
+
+        # Should return early without error
+        panel.update_position((0, 0, 100, 100), mock_drawing_area)
+
+
+class TestCreateSelectionActionsEdgeCases:
+    """Test edge cases in create_selection_actions."""
+
+    def test_is_unlocked_no_editor_state(self):
+        """Test is_unlocked returns False when no editor_state."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = None
+
+        actions = create_selection_actions(mock_editor)
+
+        # Find an action that uses is_unlocked
+        lock_action = next((a for a in actions if "Lock" in a.tooltip), None)
+        if lock_action and lock_action.enabled_check:
+            assert lock_action.enabled_check() is False
