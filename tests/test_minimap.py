@@ -1010,3 +1010,209 @@ class TestCreateMinimapOverlayFunctional:
 
         # Should still return a MinimapNavigator
         assert isinstance(minimap, MinimapNavigator)
+
+
+class TestMinimapEventHandlers:
+    """Test minimap event handler methods."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.minimap import GTK_AVAILABLE
+
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import Gdk, GdkPixbuf, Gtk
+
+        parent = Gtk.DrawingArea()
+        return {"Gtk": Gtk, "Gdk": Gdk, "GdkPixbuf": GdkPixbuf, "parent": parent}
+
+    def test_button_press_starts_dragging(self, gtk_setup):
+        """Test _on_button_press sets dragging flag."""
+        from src.minimap import MinimapNavigator
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        navigate_calls = []
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: navigate_calls.append((x, y)))
+
+        # Set image so navigation works
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 80)
+        minimap.set_image(pixbuf)
+
+        # Create mock button event
+        mock_event = MagicMock()
+        mock_event.button = 1
+        mock_event.x = 50.0
+        mock_event.y = 40.0
+
+        minimap._on_button_press(minimap.drawing_area, mock_event)
+
+        assert minimap._dragging is True
+        assert len(navigate_calls) > 0
+
+    def test_button_release_stops_dragging(self, gtk_setup):
+        """Test _on_button_release clears dragging flag."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+        minimap._dragging = True
+
+        mock_event = MagicMock()
+        mock_event.button = 1
+
+        minimap._on_button_release(minimap.drawing_area, mock_event)
+
+        assert minimap._dragging is False
+
+    def test_motion_while_dragging(self, gtk_setup):
+        """Test _on_motion navigates while dragging."""
+        from src.minimap import MinimapNavigator
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        navigate_calls = []
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: navigate_calls.append((x, y)))
+
+        # Set image
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 80)
+        minimap.set_image(pixbuf)
+
+        # Start dragging
+        minimap._dragging = True
+
+        mock_event = MagicMock()
+        mock_event.x = 30.0
+        mock_event.y = 25.0
+
+        minimap._on_motion(minimap.drawing_area, mock_event)
+
+        assert len(navigate_calls) > 0
+
+    def test_motion_without_dragging(self, gtk_setup):
+        """Test _on_motion does nothing when not dragging."""
+        from src.minimap import MinimapNavigator
+
+        navigate_calls = []
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: navigate_calls.append((x, y)))
+        minimap._dragging = False
+
+        mock_event = MagicMock()
+        mock_event.x = 30.0
+        mock_event.y = 25.0
+
+        minimap._on_motion(minimap.drawing_area, mock_event)
+
+        assert len(navigate_calls) == 0
+
+    def test_button_press_wrong_button(self, gtk_setup):
+        """Test _on_button_press ignores non-left-click."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        mock_event = MagicMock()
+        mock_event.button = 3  # Right-click
+        mock_event.x = 50.0
+        mock_event.y = 40.0
+
+        minimap._on_button_press(minimap.drawing_area, mock_event)
+
+        # Should not start dragging
+        assert minimap._dragging is False
+
+
+class TestMinimapDrawWithAnnotations:
+    """Test minimap drawing with annotations."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.minimap import GTK_AVAILABLE
+
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf, Gtk
+
+        parent = Gtk.DrawingArea()
+        return {"Gtk": Gtk, "GdkPixbuf": GdkPixbuf, "parent": parent}
+
+    def test_set_annotations_stores_positions(self, gtk_setup):
+        """Test set_annotations stores annotation positions."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Create mock drawing elements with points
+        point1 = MagicMock()
+        point1.x = 10.0
+        point1.y = 20.0
+        point2 = MagicMock()
+        point2.x = 30.0
+        point2.y = 40.0
+
+        elem1 = MagicMock()
+        elem1.points = [point1, point2]
+
+        annotations = [elem1]
+        minimap.set_annotations(annotations)
+
+        assert len(minimap._annotation_positions) == 1
+        # Center of (10, 30) and (20, 40) is (20, 30)
+        assert minimap._annotation_positions[0] == (20.0, 30.0)
+
+    def test_set_annotations_empty_points(self, gtk_setup):
+        """Test set_annotations handles elements with no points."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        elem1 = MagicMock()
+        elem1.points = []  # Empty points
+
+        minimap.set_annotations([elem1])
+
+        # Should have no annotations stored
+        assert len(minimap._annotation_positions) == 0
+
+    def test_draw_state_with_viewport_and_annotations(self, gtk_setup):
+        """Test that draw state is properly set with viewport and annotations."""
+        from src.minimap import MinimapNavigator
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Set image
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 200, 150)
+        minimap.set_image(pixbuf)
+
+        # Set viewport
+        minimap.set_viewport(20, 30, 100, 80)
+
+        # Create mock annotations
+        point = MagicMock()
+        point.x = 50.0
+        point.y = 60.0
+        elem = MagicMock()
+        elem.points = [point]
+
+        minimap.set_annotations([elem])
+
+        # Verify all state is set
+        assert minimap._scaled_pixbuf is not None
+        assert minimap._viewport_x == 20
+        assert minimap._viewport_y == 30
+        assert minimap._viewport_w == 100
+        assert minimap._viewport_h == 80
+        assert len(minimap._annotation_positions) == 1
