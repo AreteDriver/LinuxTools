@@ -5,6 +5,7 @@ A small semi-transparent minimap showing the full image with viewport indicator.
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Callable, Optional, Tuple
 
 try:
@@ -214,7 +215,7 @@ class MinimapNavigator:
                 # Convert to minimap coordinates
                 mx = 4 + ax * self._scale
                 my = 4 + ay * self._scale
-                cr.arc(mx, my, 3, 0, 2 * 3.14159)
+                cr.arc(mx, my, 3, 0, 2 * math.pi)
                 cr.fill()
 
         # Draw viewport rectangle
