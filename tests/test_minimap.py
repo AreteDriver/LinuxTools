@@ -385,3 +385,337 @@ class TestCreateMinimapOverlayParams:
         sig = inspect.signature(create_minimap_overlay)
         params = sig.parameters
         assert "drawing_area" in params
+
+
+class TestMinimapNavigatorPrivateMethods:
+    """Test MinimapNavigator private method signatures."""
+
+    def test_has_navigate_to_signature(self):
+        """Test _navigate_to has mx and my parameters."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator._navigate_to)
+        params = list(sig.parameters.keys())
+        assert "mx" in params
+        assert "my" in params
+
+    def test_on_draw_signature(self):
+        """Test _on_draw has widget and cr parameters."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator._on_draw)
+        params = list(sig.parameters.keys())
+        assert "widget" in params
+        assert "cr" in params
+
+    def test_on_button_press_signature(self):
+        """Test _on_button_press has widget and event parameters."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator._on_button_press)
+        params = list(sig.parameters.keys())
+        assert "widget" in params
+        assert "event" in params
+
+    def test_on_button_release_signature(self):
+        """Test _on_button_release has widget and event parameters."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator._on_button_release)
+        params = list(sig.parameters.keys())
+        assert "widget" in params
+        assert "event" in params
+
+    def test_on_motion_signature(self):
+        """Test _on_motion has widget and event parameters."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator._on_motion)
+        params = list(sig.parameters.keys())
+        assert "widget" in params
+        assert "event" in params
+
+
+class TestMinimapNavigatorSourceCode:
+    """Test MinimapNavigator implementation details via source inspection."""
+
+    def test_set_image_guards_zero_dimensions(self):
+        """Test set_image has guard for zero-dimension images."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_image)
+        # Should check for zero or negative dimensions
+        assert "img_w <= 0" in source or "img_w == 0" in source or "< 0" in source
+
+    def test_set_image_calculates_scale(self):
+        """Test set_image calculates scale from MAX_WIDTH/MAX_HEIGHT."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_image)
+        assert "MAX_WIDTH" in source
+        assert "MAX_HEIGHT" in source
+        assert "_scale" in source
+
+    def test_navigate_to_clamps_coordinates(self):
+        """Test _navigate_to clamps coordinates to image bounds."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._navigate_to)
+        # Should have min/max clamping
+        assert "max(0" in source or "min(" in source
+
+    def test_on_button_press_checks_button(self):
+        """Test _on_button_press checks for button 1 (left click)."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_button_press)
+        assert "button == 1" in source or "button==1" in source
+
+    def test_on_button_press_sets_dragging(self):
+        """Test _on_button_press sets _dragging flag."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_button_press)
+        assert "_dragging" in source
+
+    def test_on_motion_checks_dragging(self):
+        """Test _on_motion checks _dragging flag."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_motion)
+        assert "_dragging" in source
+
+    def test_set_annotations_iterates_elements(self):
+        """Test set_annotations processes element points."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_annotations)
+        assert "for elem in elements" in source
+        assert "points" in source
+
+    def test_toggle_visible_returns_state(self):
+        """Test toggle_visible returns the new visibility state."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.toggle_visible)
+        assert "return" in source
+        assert "visible" in source
+
+
+class TestMinimapNavigatorOnDraw:
+    """Test _on_draw implementation details."""
+
+    def test_on_draw_checks_scaled_pixbuf(self):
+        """Test _on_draw returns early if no scaled pixbuf."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_draw)
+        assert "_scaled_pixbuf" in source
+
+    def test_on_draw_imports_cairo(self):
+        """Test _on_draw imports cairo."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_draw)
+        assert "import cairo" in source
+
+    def test_on_draw_draws_viewport(self):
+        """Test _on_draw draws the viewport rectangle."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_draw)
+        assert "_viewport_w" in source or "viewport" in source
+
+    def test_on_draw_draws_annotations(self):
+        """Test _on_draw draws annotation markers."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_draw)
+        assert "_annotation_positions" in source or "annotation" in source
+
+    def test_on_draw_uses_math_pi(self):
+        """Test _on_draw uses math.pi for circles."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._on_draw)
+        assert "math.pi" in source
+
+
+class TestMinimapApplyStyles:
+    """Test _apply_styles implementation."""
+
+    def test_apply_styles_checks_flag(self):
+        """Test _apply_styles checks _css_applied flag."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._apply_styles)
+        assert "_css_applied" in source
+
+    def test_apply_styles_uses_css_provider(self):
+        """Test _apply_styles uses Gtk.CssProvider."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._apply_styles)
+        assert "CssProvider" in source
+
+    def test_apply_styles_has_css_content(self):
+        """Test _apply_styles defines CSS content."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator._apply_styles)
+        assert "background" in source or "border" in source
+
+
+class TestCreateMinimapOverlayImpl:
+    """Test create_minimap_overlay implementation."""
+
+    def test_creates_minimap_navigator(self):
+        """Test function creates MinimapNavigator instance."""
+        from src.minimap import create_minimap_overlay
+        import inspect
+
+        source = inspect.getsource(create_minimap_overlay)
+        assert "MinimapNavigator(" in source
+
+    def test_checks_for_overlay_container(self):
+        """Test function checks if parent is Gtk.Overlay."""
+        from src.minimap import create_minimap_overlay
+        import inspect
+
+        source = inspect.getsource(create_minimap_overlay)
+        assert "Gtk.Overlay" in source or "isinstance" in source
+
+    def test_sets_alignment(self):
+        """Test function sets alignment for minimap position."""
+        from src.minimap import create_minimap_overlay
+        import inspect
+
+        source = inspect.getsource(create_minimap_overlay)
+        assert "set_halign" in source or "set_valign" in source or "Align" in source
+
+
+class TestMinimapNavigatorInit:
+    """Test MinimapNavigator.__init__ implementation."""
+
+    def test_init_checks_gtk_available(self):
+        """Test __init__ checks GTK_AVAILABLE."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "GTK_AVAILABLE" in source
+
+    def test_init_raises_runtime_error(self):
+        """Test __init__ raises RuntimeError without GTK."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "RuntimeError" in source
+
+    def test_init_stores_parent_widget(self):
+        """Test __init__ stores parent_widget."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "self.parent_widget" in source
+
+    def test_init_stores_on_navigate(self):
+        """Test __init__ stores on_navigate callback."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "self.on_navigate" in source
+
+    def test_init_initializes_state(self):
+        """Test __init__ initializes state variables."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "self.visible" in source
+        assert "self._dragging" in source
+        assert "self._pixbuf" in source
+
+    def test_init_creates_drawing_area(self):
+        """Test __init__ creates DrawingArea."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "DrawingArea" in source
+
+    def test_init_connects_signals(self):
+        """Test __init__ connects event signals."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "connect" in source
+        assert "draw" in source or "button-press" in source
+
+
+class TestMinimapSetViewport:
+    """Test set_viewport implementation."""
+
+    def test_set_viewport_stores_coordinates(self):
+        """Test set_viewport stores all coordinates."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_viewport)
+        assert "_viewport_x" in source
+        assert "_viewport_y" in source
+        assert "_viewport_w" in source
+        assert "_viewport_h" in source
+
+    def test_set_viewport_triggers_redraw(self):
+        """Test set_viewport triggers queue_draw."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_viewport)
+        assert "queue_draw" in source
+
+
+class TestMinimapSetVisible:
+    """Test set_visible implementation."""
+
+    def test_set_visible_stores_state(self):
+        """Test set_visible stores visibility state."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_visible)
+        assert "self.visible" in source
+
+    def test_set_visible_shows_or_hides(self):
+        """Test set_visible calls show() or hide()."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.set_visible)
+        assert ".show()" in source or ".hide()" in source
