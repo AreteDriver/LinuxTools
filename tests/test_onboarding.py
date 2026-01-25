@@ -91,6 +91,38 @@ class TestOnboardingStep:
 
         assert step.highlight is False
 
+    def test_step_all_attributes(self):
+        """Test OnboardingStep with all attributes set."""
+        from src.onboarding import OnboardingStep
+
+        step = OnboardingStep(
+            target_id="my_widget",
+            title="My Title",
+            message="My detailed message here",
+            position="left",
+            highlight=False,
+        )
+
+        assert step.target_id == "my_widget"
+        assert step.title == "My Title"
+        assert step.message == "My detailed message here"
+        assert step.position == "left"
+        assert step.highlight is False
+
+    def test_step_multiline_message(self):
+        """Test OnboardingStep with multiline message."""
+        from src.onboarding import OnboardingStep
+
+        message = "Line 1\nLine 2\nLine 3"
+        step = OnboardingStep(
+            target_id="test",
+            title="Test",
+            message=message,
+        )
+
+        assert step.message == message
+        assert "\n" in step.message
+
 
 class TestOnboardingTooltipClass:
     """Test OnboardingTooltip class structure."""

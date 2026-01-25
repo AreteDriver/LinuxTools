@@ -56,6 +56,77 @@ class TestGetActionName:
         result = get_action_name(before, after)
         assert "3" in result or "added" in result.lower()
 
+    def test_multiple_deleted(self):
+        """Test detection of multiple deleted elements."""
+        from src.undo_history import get_action_name
+
+        before = [MagicMock(), MagicMock(), MagicMock()]
+        after = []
+
+        result = get_action_name(before, after)
+        assert "3" in result or "delete" in result.lower()
+
+    def test_none_before_list(self):
+        """Test with None as before list."""
+        from src.undo_history import get_action_name
+
+        after = [MagicMock()]
+        after[0].tool.value = "pen"
+
+        result = get_action_name(None, after)
+        assert "drew" in result.lower() or "line" in result.lower() or "added" in result.lower()
+
+    def test_none_after_list(self):
+        """Test with None as after list."""
+        from src.undo_history import get_action_name
+
+        before = [MagicMock()]
+
+        result = get_action_name(before, None)
+        assert "delete" in result.lower()
+
+    def test_all_tool_types(self):
+        """Test all supported tool types."""
+        from src.undo_history import get_action_name
+
+        tool_types = [
+            ("pen", ["drew", "line"]),
+            ("highlighter", ["highlight"]),
+            ("line", ["drew", "line"]),
+            ("arrow", ["arrow"]),
+            ("rectangle", ["rectangle", "drew"]),
+            ("ellipse", ["ellipse", "drew"]),
+            ("text", ["text"]),
+            ("blur", ["blur"]),
+            ("pixelate", ["pixelate"]),
+            ("number", ["number"]),
+            ("stamp", ["stamp"]),
+            ("callout", ["callout"]),
+        ]
+
+        for tool_value, expected_keywords in tool_types:
+            after = [MagicMock()]
+            after[0].tool.value = tool_value
+            result = get_action_name([], after).lower()
+            assert any(kw in result for kw in expected_keywords), f"Tool {tool_value} should match one of {expected_keywords}, got: {result}"
+
+    def test_unknown_tool_type(self):
+        """Test unknown tool type fallback."""
+        from src.undo_history import get_action_name
+
+        after = [MagicMock()]
+        after[0].tool.value = "unknown_tool"
+
+        result = get_action_name([], after)
+        assert "added" in result.lower() or "element" in result.lower()
+
+    def test_empty_lists(self):
+        """Test with both empty lists."""
+        from src.undo_history import get_action_name
+
+        result = get_action_name([], [])
+        assert "modif" in result.lower()
+
 
 class TestUndoHistoryEntry:
     """Test UndoHistoryEntry class."""
