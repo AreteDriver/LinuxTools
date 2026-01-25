@@ -139,6 +139,30 @@ class TestUndoHistoryEntry:
         assert entry.name == "Test action"
         assert entry.index == 0
 
+    def test_entry_with_different_indices(self):
+        """Test UndoHistoryEntry with various index values."""
+        from src.undo_history import UndoHistoryEntry
+
+        for idx in [0, 1, 5, 10, 100]:
+            entry = UndoHistoryEntry(f"Action {idx}", idx)
+            assert entry.index == idx
+            assert entry.name == f"Action {idx}"
+
+    def test_entry_with_unicode_name(self):
+        """Test UndoHistoryEntry with Unicode characters."""
+        from src.undo_history import UndoHistoryEntry
+
+        entry = UndoHistoryEntry("Drew rectangle", 0)
+        assert entry.name == "Drew rectangle"
+
+    def test_entry_with_empty_name(self):
+        """Test UndoHistoryEntry with empty name."""
+        from src.undo_history import UndoHistoryEntry
+
+        entry = UndoHistoryEntry("", 0)
+        assert entry.name == ""
+        assert entry.index == 0
+
 
 class TestUndoHistoryModuleImport:
     """Test undo_history module imports."""

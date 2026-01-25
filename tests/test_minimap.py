@@ -155,3 +155,53 @@ class TestMinimapMathImport:
 
         # Check that 3.14159 is not used
         assert "3.14159" not in source, "Should use math.pi instead of magic number"
+
+
+class TestMinimapConstants:
+    """Test minimap constants are reasonable values."""
+
+    def test_max_width_reasonable(self):
+        """Test MAX_WIDTH is reasonable (100-300 pixels)."""
+        from src.minimap import MinimapNavigator
+
+        assert 100 <= MinimapNavigator.MAX_WIDTH <= 300
+
+    def test_max_height_reasonable(self):
+        """Test MAX_HEIGHT is reasonable (80-200 pixels)."""
+        from src.minimap import MinimapNavigator
+
+        assert 80 <= MinimapNavigator.MAX_HEIGHT <= 200
+
+    def test_margin_reasonable(self):
+        """Test MARGIN is reasonable (5-30 pixels)."""
+        from src.minimap import MinimapNavigator
+
+        assert 5 <= MinimapNavigator.MARGIN <= 30
+
+    def test_opacity_not_zero(self):
+        """Test OPACITY is not zero (would be invisible)."""
+        from src.minimap import MinimapNavigator
+
+        assert MinimapNavigator.OPACITY > 0
+
+    def test_opacity_not_fully_opaque(self):
+        """Test OPACITY is less than 1 (semi-transparent)."""
+        from src.minimap import MinimapNavigator
+
+        assert MinimapNavigator.OPACITY < 1.0
+
+
+class TestMinimapCssApplied:
+    """Test CSS provider deduplication flag."""
+
+    def test_css_applied_exists(self):
+        """Test _css_applied module variable exists."""
+        from src import minimap
+
+        assert hasattr(minimap, "_css_applied")
+
+    def test_css_applied_is_bool(self):
+        """Test _css_applied is boolean."""
+        from src.minimap import _css_applied
+
+        assert isinstance(_css_applied, bool)

@@ -220,3 +220,39 @@ class TestOnboardingConfigIntegration:
         # Check return type in source
         source = inspect.getsource(method)
         assert "-> bool" in source
+
+    def test_should_show_true_when_not_completed(self):
+        """Test should_show returns True when onboarding not completed."""
+        from src.onboarding import OnboardingManager
+
+        with patch("src.onboarding.config.load_config") as mock_load:
+            mock_load.return_value = {}  # No onboarding_completed key
+
+            with patch("src.onboarding.GTK_AVAILABLE", True):
+                with patch("src.onboarding.OnboardingTooltip"):
+                    mock_editor = MagicMock()
+                    mock_editor.window = MagicMock()
+                    manager = OnboardingManager(mock_editor)
+
+                    assert manager.should_show() is True
+
+    def test_should_show_false_when_completed(self):
+        """Test should_show returns False when onboarding completed."""
+        from src.onboarding import OnboardingManager
+
+        with patch("src.onboarding.config.load_config") as mock_load:
+            mock_load.return_value = {"onboarding_completed": True}
+
+            with patch("src.onboarding.GTK_AVAILABLE", True):
+                with patch("src.onboarding.OnboardingTooltip"):
+                    mock_editor = MagicMock()
+                    mock_editor.window = MagicMock()
+                    manager = OnboardingManager(mock_editor)
+
+                    assert manager.should_show() is False
+
+    def test_config_key_constant(self):
+        """Test that CONFIG_KEY is used correctly."""
+        from src.onboarding import OnboardingManager
+
+        assert OnboardingManager.CONFIG_KEY == "onboarding_completed"

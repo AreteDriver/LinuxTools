@@ -338,3 +338,85 @@ class TestCreateSelectionActionsEnabledChecks:
         for action in actions:
             assert isinstance(action.tooltip, str)
             assert len(action.tooltip) > 0
+
+
+class TestQuickActionEdgeCases:
+    """Test edge cases for QuickAction class."""
+
+    def test_action_with_lambda_callback(self):
+        """Test QuickAction with lambda callback."""
+        from src.quick_actions import QuickAction
+
+        result = []
+        action = QuickAction(
+            icon="X",
+            tooltip="Test",
+            callback=lambda: result.append("called"),
+        )
+
+        action.callback()
+        assert result == ["called"]
+
+    def test_action_enabled_check_with_complex_logic(self):
+        """Test QuickAction with complex enabled_check."""
+        from src.quick_actions import QuickAction
+
+        state = {"count": 0}
+
+        def complex_check():
+            return state["count"] > 5
+
+        action = QuickAction(
+            icon="X",
+            tooltip="Test",
+            callback=MagicMock(),
+            enabled_check=complex_check,
+        )
+
+        assert action.enabled_check() is False
+        state["count"] = 10
+        assert action.enabled_check() is True
+
+    def test_action_with_unicode_icon(self):
+        """Test QuickAction with various Unicode icons."""
+        from src.quick_actions import QuickAction
+
+        icons = ["\u2715", "\u2750", "\u2398", "\u2191", "\u2193", "\U0001f512", "\u25a3"]
+
+        for icon in icons:
+            action = QuickAction(
+                icon=icon,
+                tooltip="Test",
+                callback=MagicMock(),
+            )
+            assert action.icon == icon
+            assert len(action.icon) >= 1
+
+    def test_action_with_long_tooltip(self):
+        """Test QuickAction with long tooltip."""
+        from src.quick_actions import QuickAction
+
+        long_tooltip = "This is a very long tooltip " * 10
+        action = QuickAction(
+            icon="X",
+            tooltip=long_tooltip,
+            callback=MagicMock(),
+        )
+
+        assert action.tooltip == long_tooltip
+
+
+class TestQuickActionsCssApplied:
+    """Test CSS provider deduplication flag."""
+
+    def test_css_applied_exists(self):
+        """Test _css_applied module variable exists."""
+        from src import quick_actions
+
+        assert hasattr(quick_actions, "_css_applied")
+
+    def test_css_applied_is_bool(self):
+        """Test _css_applied is boolean."""
+        from src.quick_actions import _css_applied
+
+        assert isinstance(_css_applied, bool)
