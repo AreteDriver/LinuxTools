@@ -108,9 +108,7 @@ class PinnedWindow:
         opacity_item = Gtk.ToolItem()
         opacity_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         opacity_label = Gtk.Label(label="Opacity:")
-        self.opacity_scale = Gtk.Scale.new_with_range(
-            Gtk.Orientation.HORIZONTAL, 0.1, 1.0, 0.1
-        )
+        self.opacity_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0.1, 1.0, 0.1)
         self.opacity_scale.set_value(1.0)
         self.opacity_scale.set_size_request(100, -1)
         self.opacity_scale.connect("value-changed", self._on_opacity_changed)
@@ -137,9 +135,7 @@ class PinnedWindow:
         new_width = int(self.pixbuf.get_width() * self.scale)
         new_height = int(self.pixbuf.get_height() * self.scale)
 
-        scaled = self.pixbuf.scale_simple(
-            new_width, new_height, GdkPixbuf.InterpType.BILINEAR
-        )
+        scaled = self.pixbuf.scale_simple(new_width, new_height, GdkPixbuf.InterpType.BILINEAR)
         self.image.set_from_pixbuf(scaled)
 
     def _reset_zoom(self):

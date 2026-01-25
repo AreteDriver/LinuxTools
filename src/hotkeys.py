@@ -63,9 +63,7 @@ class HotkeyManager:
 
         return False
 
-    def _register_gnome_hotkey(
-        self, key_combo: str, command: str, hotkey_id: str
-    ) -> bool:
+    def _register_gnome_hotkey(self, key_combo: str, command: str, hotkey_id: str) -> bool:
         """Register hotkey in GNOME with unique path per hotkey."""
         try:
             # Create unique path for this hotkey
@@ -104,9 +102,7 @@ class HotkeyManager:
 
                 subprocess.run(["gsettings", "set", binding_schema, "name", name])
                 subprocess.run(["gsettings", "set", binding_schema, "command", command])
-                subprocess.run(
-                    ["gsettings", "set", binding_schema, "binding", key_combo]
-                )
+                subprocess.run(["gsettings", "set", binding_schema, "binding", key_combo])
 
                 if custom_path not in self._registered_paths:
                     self._registered_paths.append(custom_path)
@@ -117,9 +113,7 @@ class HotkeyManager:
 
         return False
 
-    def _register_kde_hotkey(
-        self, key_combo: str, command: str, hotkey_id: str
-    ) -> bool:
+    def _register_kde_hotkey(self, key_combo: str, command: str, hotkey_id: str) -> bool:
         """Register hotkey in KDE."""
         # KDE uses kglobalaccel, more complex to implement
         # Would require D-Bus integration

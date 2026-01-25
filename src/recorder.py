@@ -89,8 +89,7 @@ class GifRecorder:
                 return True, None
             return (
                 False,
-                "wf-recorder or ffmpeg not installed. "
-                "Install with: sudo apt install wf-recorder",
+                "wf-recorder or ffmpeg not installed. Install with: sudo apt install wf-recorder",
             )
 
         return False, "Unknown display server"
@@ -235,9 +234,7 @@ class GifRecorder:
             stdin=subprocess.PIPE,
         )
 
-    def stop_recording(
-        self, output_format: OutputFormat = OutputFormat.GIF
-    ) -> RecordingResult:
+    def stop_recording(self, output_format: OutputFormat = OutputFormat.GIF) -> RecordingResult:
         """Stop recording and encode to specified format.
 
         Args:

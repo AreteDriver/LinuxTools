@@ -325,9 +325,7 @@ def capture_region_wayland(
     # Try grim with geometry
     try:
         geometry = f"{x},{y} {width}x{height}"
-        result = subprocess.run(
-            ["grim", "-g", geometry, temp_file], capture_output=True, timeout=5
-        )
+        result = subprocess.run(["grim", "-g", geometry, temp_file], capture_output=True, timeout=5)
         if result.returncode == 0 and os.path.exists(temp_file):
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
             os.unlink(temp_file)
@@ -339,9 +337,7 @@ def capture_region_wayland(
     full_result = capture_fullscreen_wayland(0)
     if full_result.success and full_result.pixbuf:
         try:
-            cropped = GdkPixbuf.Pixbuf.new(
-                GdkPixbuf.Colorspace.RGB, True, 8, width, height
-            )
+            cropped = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
             full_result.pixbuf.copy_area(x, y, width, height, cropped, 0, 0)
             return CaptureResult(True, pixbuf=cropped)
         except Exception as e:
@@ -353,9 +349,7 @@ def capture_region_wayland(
     return CaptureResult(False, error="Region capture failed on Wayland")
 
 
-def capture_region(
-    x: int, y: int, width: int, height: int, delay: int = 0
-) -> CaptureResult:
+def capture_region(x: int, y: int, width: int, height: int, delay: int = 0) -> CaptureResult:
     """Capture a specific region of the screen.
 
     Args:
