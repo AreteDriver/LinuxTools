@@ -257,3 +257,392 @@ class TestGifRecorderIsAvailable:
 
                 assert available is False
                 assert "ffmpeg" in error.lower()
+
+    def test_is_available_with_wf_recorder_on_wayland(self):
+        """Test is_available returns True with wf-recorder on Wayland."""
+        from src.recorder import GifRecorder
+        from src.capture import DisplayServer
+
+        with patch("src.recorder.detect_display_server", return_value=DisplayServer.WAYLAND):
+            with patch("src.recorder.config.check_tool_available", return_value=True):
+                recorder = GifRecorder()
+
+                available, error = recorder.is_available()
+
+                assert available is True
+                assert error is None
+
+    def test_is_available_with_ffmpeg_on_wayland(self):
+        """Test is_available returns True with ffmpeg on Wayland (no wf-recorder)."""
+        from src.recorder import GifRecorder
+        from src.capture import DisplayServer
+
+        def mock_check(cmd):
+            # wf-recorder not available, but ffmpeg is
+            if "wf-recorder" in cmd:
+                return False
+            return True
+
+        with patch("src.recorder.detect_display_server", return_value=DisplayServer.WAYLAND):
+            with patch("src.recorder.config.check_tool_available", side_effect=mock_check):
+                recorder = GifRecorder()
+
+                available, error = recorder.is_available()
+
+                assert available is True
+
+    def test_is_available_without_tools_on_wayland(self):
+        """Test is_available returns False without tools on Wayland."""
+        from src.recorder import GifRecorder
+        from src.capture import DisplayServer
+
+        with patch("src.recorder.detect_display_server", return_value=DisplayServer.WAYLAND):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                available, error = recorder.is_available()
+
+                assert available is False
+                assert "wf-recorder" in error.lower()
+
+    def test_is_available_unknown_display_server(self):
+        """Test is_available returns False for unknown display server."""
+        from src.recorder import GifRecorder
+
+        with patch("src.recorder.detect_display_server", return_value=None):
+            with patch("src.recorder.config.check_tool_available", return_value=True):
+                recorder = GifRecorder()
+
+                available, error = recorder.is_available()
+
+                assert available is False
+                assert "unknown" in error.lower()
+
+
+class TestGifRecorderStartRecording:
+    """Test GifRecorder.start_recording method."""
+
+    def test_start_recording_already_recording(self):
+        """Test start_recording fails when already recording."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=True):
+                recorder = GifRecorder()
+                recorder.state = RecordingState.RECORDING
+
+                success, error = recorder.start_recording(0, 0, 100, 100)
+
+                assert success is False
+                assert "already recording" in error.lower()
+
+    def test_start_recording_not_available(self):
+        """Test start_recording fails when tools not available."""
+        from src.recorder import GifRecorder
+        from src.capture import DisplayServer
+
+        with patch("src.recorder.detect_display_server", return_value=DisplayServer.X11):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                success, error = recorder.start_recording(0, 0, 100, 100)
+
+                assert success is False
+                assert "ffmpeg" in error.lower()
+
+    def test_start_recording_region_too_small(self):
+        """Test start_recording fails with region too small."""
+        from src.recorder import GifRecorder
+        from src.capture import DisplayServer
+
+        with patch("src.recorder.detect_display_server", return_value=DisplayServer.X11):
+            with patch("src.recorder.config.check_tool_available", return_value=True):
+                recorder = GifRecorder()
+
+                # Width too small
+                success, error = recorder.start_recording(0, 0, 30, 100)
+                assert success is False
+                assert "too small" in error.lower()
+
+                # Height too small
+                success, error = recorder.start_recording(0, 0, 100, 30)
+                assert success is False
+                assert "too small" in error.lower()
+
+
+class TestGifRecorderStopRecording:
+    """Test GifRecorder.stop_recording method."""
+
+    def test_stop_recording_not_recording(self):
+        """Test stop_recording fails when not recording."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                result = recorder.stop_recording()
+
+                assert result.success is False
+                assert "not currently recording" in result.error.lower()
+
+    def test_stop_recording_no_process(self):
+        """Test stop_recording handles no process gracefully."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+                recorder.state = RecordingState.RECORDING
+                recorder.process = None
+
+                result = recorder.stop_recording()
+
+                assert result.success is False
+
+
+class TestGifRecorderCancel:
+    """Test GifRecorder.cancel method."""
+
+    def test_cancel_with_no_process(self):
+        """Test cancel with no active process."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                # Should not raise
+                recorder.cancel()
+
+                assert recorder.state == RecordingState.IDLE
+
+    def test_cancel_kills_process(self):
+        """Test cancel kills the process."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                mock_process = MagicMock()
+                recorder.process = mock_process
+                recorder.state = RecordingState.RECORDING
+
+                recorder.cancel()
+
+                mock_process.kill.assert_called_once()
+                assert recorder.state == RecordingState.IDLE
+
+    def test_cancel_handles_process_exception(self):
+        """Test cancel handles exception when killing process."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                mock_process = MagicMock()
+                mock_process.kill.side_effect = Exception("Process error")
+                recorder.process = mock_process
+                recorder.state = RecordingState.RECORDING
+
+                # Should not raise
+                recorder.cancel()
+
+                assert recorder.state == RecordingState.IDLE
+
+    def test_cancel_cleans_up_temp_file(self):
+        """Test cancel removes temp video file."""
+        import tempfile
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                # Create a real temp file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as f:
+                    temp_path = Path(f.name)
+
+                recorder.temp_video = temp_path
+                assert temp_path.exists()
+
+                recorder.cancel()
+
+                assert not temp_path.exists()
+
+
+class TestGifRecorderGetElapsedTime:
+    """Test GifRecorder.get_elapsed_time method."""
+
+    def test_get_elapsed_time_not_recording(self):
+        """Test get_elapsed_time returns 0 when not recording."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+                recorder.state = RecordingState.IDLE
+
+                elapsed = recorder.get_elapsed_time()
+
+                assert elapsed == 0.0
+
+    def test_get_elapsed_time_while_recording(self):
+        """Test get_elapsed_time returns elapsed time when recording."""
+        import time
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+                recorder.state = RecordingState.RECORDING
+                recorder.start_time = time.time() - 5.0  # Started 5 seconds ago
+
+                elapsed = recorder.get_elapsed_time()
+
+                assert elapsed >= 5.0
+                assert elapsed < 6.0  # Allow some tolerance
+
+
+class TestGifRecorderGetDitherOptions:
+    """Test GifRecorder._get_dither_options method."""
+
+    def test_dither_none(self):
+        """Test _get_dither_options returns correct string for none."""
+        from src.recorder import GifRecorder
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                result = recorder._get_dither_options("none")
+                assert result == "dither=none"
+
+    def test_dither_bayer(self):
+        """Test _get_dither_options returns correct string for bayer."""
+        from src.recorder import GifRecorder
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                result = recorder._get_dither_options("bayer")
+                assert result == "dither=bayer:bayer_scale=5"
+
+    def test_dither_floyd_steinberg(self):
+        """Test _get_dither_options returns correct string for floyd_steinberg."""
+        from src.recorder import GifRecorder
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                result = recorder._get_dither_options("floyd_steinberg")
+                assert result == "dither=floyd_steinberg"
+
+    def test_dither_unknown_defaults_to_bayer(self):
+        """Test _get_dither_options returns bayer for unknown option."""
+        from src.recorder import GifRecorder
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                result = recorder._get_dither_options("unknown_dither")
+                assert result == "dither=bayer:bayer_scale=5"
+
+
+class TestGifRecorderNotifyStateChange:
+    """Test GifRecorder._notify_state_change method."""
+
+    def test_notify_state_change_calls_callback(self):
+        """Test _notify_state_change calls the callback."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                callback = MagicMock()
+                recorder._on_state_change = callback
+                recorder.state = RecordingState.RECORDING
+
+                recorder._notify_state_change()
+
+                callback.assert_called_once_with(RecordingState.RECORDING)
+
+    def test_notify_state_change_no_callback(self):
+        """Test _notify_state_change does nothing without callback."""
+        from src.recorder import GifRecorder
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+                recorder._on_state_change = None
+
+                # Should not raise
+                recorder._notify_state_change()
+
+    def test_notify_state_change_handles_callback_exception(self):
+        """Test _notify_state_change handles exception in callback."""
+        from src.recorder import GifRecorder, RecordingState
+
+        with patch("src.recorder.detect_display_server"):
+            with patch("src.recorder.config.check_tool_available", return_value=False):
+                recorder = GifRecorder()
+
+                callback = MagicMock()
+                callback.side_effect = Exception("Callback error")
+                recorder._on_state_change = callback
+                recorder.state = RecordingState.RECORDING
+
+                # Should not raise
+                recorder._notify_state_change()
+
+
+class TestGifRecorderClassMethods:
+    """Test GifRecorder class has all expected methods."""
+
+    def test_has_cancel_method(self):
+        """Test GifRecorder has cancel method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "cancel")
+
+    def test_has_get_elapsed_time_method(self):
+        """Test GifRecorder has get_elapsed_time method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "get_elapsed_time")
+
+    def test_has_start_x11_recording_method(self):
+        """Test GifRecorder has _start_x11_recording method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "_start_x11_recording")
+
+    def test_has_start_wayland_recording_method(self):
+        """Test GifRecorder has _start_wayland_recording method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "_start_wayland_recording")
+
+    def test_has_encode_to_gif_method(self):
+        """Test GifRecorder has _encode_to_gif method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "_encode_to_gif")
+
+    def test_has_finalize_video_method(self):
+        """Test GifRecorder has _finalize_video method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "_finalize_video")
+
+    def test_has_optimize_gif_method(self):
+        """Test GifRecorder has _optimize_gif method."""
+        from src.recorder import GifRecorder
+
+        assert hasattr(GifRecorder, "_optimize_gif")
