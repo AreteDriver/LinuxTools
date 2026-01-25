@@ -559,3 +559,122 @@ class TestQuickActionsPanelMethods:
         from src.quick_actions import QuickActionsPanel
 
         assert hasattr(QuickActionsPanel, "_delayed_hide")
+
+
+class TestCreateSelectionActionsCount:
+    """Test create_selection_actions returns correct number of actions."""
+
+    def test_returns_exactly_seven_actions(self):
+        """Test that exactly 7 actions are returned."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = []
+
+        actions = create_selection_actions(mock_editor)
+
+        assert len(actions) == 7
+
+    def test_action_order_is_consistent(self):
+        """Test that actions are in consistent order."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = []
+
+        actions = create_selection_actions(mock_editor)
+
+        # Delete should be first
+        assert "Delete" in actions[0].tooltip or "Del" in actions[0].tooltip
+        # Group should be last
+        assert "Group" in actions[-1].tooltip
+
+
+class TestQuickActionEquality:
+    """Test QuickAction object behavior."""
+
+    def test_actions_are_independent(self):
+        """Test that QuickAction objects are independent."""
+        from src.quick_actions import QuickAction
+
+        action1 = QuickAction(
+            icon="A",
+            tooltip="Action A",
+            callback=MagicMock(),
+        )
+        action2 = QuickAction(
+            icon="B",
+            tooltip="Action B",
+            callback=MagicMock(),
+        )
+
+        assert action1.icon != action2.icon
+        assert action1.tooltip != action2.tooltip
+        assert action1.callback != action2.callback
+
+    def test_action_callback_can_be_called_multiple_times(self):
+        """Test callback can be invoked multiple times."""
+        from src.quick_actions import QuickAction
+
+        counter = [0]
+        action = QuickAction(
+            icon="X",
+            tooltip="Test",
+            callback=lambda: counter.__setitem__(0, counter[0] + 1),
+        )
+
+        action.callback()
+        action.callback()
+        action.callback()
+
+        assert counter[0] == 3
+
+
+class TestEnabledCheckInteraction:
+    """Test enabled_check with various editor states."""
+
+    def test_delete_disabled_when_locked(self):
+        """Test delete action disabled when selection is locked."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0, 1]
+        mock_editor.editor_state.is_selection_locked.return_value = True
+
+        actions = create_selection_actions(mock_editor)
+        delete_action = next(a for a in actions if "Delete" in a.tooltip or "Del" in a.tooltip)
+
+        assert delete_action.enabled_check() is False
+
+    def test_copy_enabled_when_locked(self):
+        """Test copy action still enabled when selection is locked."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0, 1]
+        mock_editor.editor_state.is_selection_locked.return_value = True
+
+        actions = create_selection_actions(mock_editor)
+        copy_action = next(a for a in actions if "Copy" in a.tooltip)
+
+        # Copy should still be enabled (doesn't modify)
+        assert copy_action.enabled_check() is True
+
+    def test_bring_to_front_enabled_when_locked(self):
+        """Test bring to front enabled when locked."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+        mock_editor.editor_state.is_selection_locked.return_value = True
+
+        actions = create_selection_actions(mock_editor)
+        front_action = next(a for a in actions if "Front" in a.tooltip)
+
+        # Should be enabled (just changes order)
+        assert front_action.enabled_check() is True

@@ -290,3 +290,98 @@ class TestCreateMinimapOverlayReturnType:
         assert "return" in annotations
         # Return type should be MinimapNavigator
         assert "MinimapNavigator" in str(annotations["return"])
+
+
+class TestMinimapNavigatorToggle:
+    """Test toggle_visible method behavior."""
+
+    def test_toggle_visible_method_exists(self):
+        """Test toggle_visible method exists."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "toggle_visible")
+        assert callable(getattr(MinimapNavigator, "toggle_visible"))
+
+    def test_toggle_visible_returns_bool(self):
+        """Test toggle_visible return type annotation."""
+        from src.minimap import MinimapNavigator
+
+        annotations = MinimapNavigator.toggle_visible.__annotations__
+        # Return annotation may be string 'bool' or type bool depending on context
+        return_type = annotations.get("return")
+        assert return_type == bool or return_type == "bool"
+
+
+class TestMinimapNavigatorSetMethods:
+    """Test set_* method signatures."""
+
+    def test_set_image_accepts_pixbuf(self):
+        """Test set_image has pixbuf parameter."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator.set_image)
+        params = list(sig.parameters.keys())
+        assert "pixbuf" in params
+
+    def test_set_annotations_accepts_elements(self):
+        """Test set_annotations has elements parameter."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator.set_annotations)
+        params = list(sig.parameters.keys())
+        assert "elements" in params
+
+    def test_set_visible_accepts_bool(self):
+        """Test set_visible has visible parameter."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator.set_visible)
+        params = list(sig.parameters.keys())
+        assert "visible" in params
+
+
+class TestMinimapNavigatorDrawing:
+    """Test drawing-related methods."""
+
+    def test_on_draw_exists(self):
+        """Test _on_draw method exists."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_on_draw")
+
+    def test_on_button_press_exists(self):
+        """Test _on_button_press method exists."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_on_button_press")
+
+    def test_on_motion_exists(self):
+        """Test _on_motion method exists."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_on_motion")
+
+
+class TestCreateMinimapOverlayParams:
+    """Test create_minimap_overlay parameter types."""
+
+    def test_function_has_on_navigate_param(self):
+        """Test on_navigate parameter exists."""
+        from src.minimap import create_minimap_overlay
+        import inspect
+
+        sig = inspect.signature(create_minimap_overlay)
+        params = sig.parameters
+        assert "on_navigate" in params
+
+    def test_function_has_drawing_area_param(self):
+        """Test drawing_area parameter exists."""
+        from src.minimap import create_minimap_overlay
+        import inspect
+
+        sig = inspect.signature(create_minimap_overlay)
+        params = sig.parameters
+        assert "drawing_area" in params
