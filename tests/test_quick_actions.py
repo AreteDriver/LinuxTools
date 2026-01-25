@@ -1104,3 +1104,184 @@ class TestQuickActionsI18nIntegration:
         source = inspect.getsource(create_selection_actions)
         # Tooltips should be wrapped in _()
         assert '_("Delete' in source or "_(" in source
+
+
+# =============================================================================
+# Functional GTK Tests (require xvfb or display)
+# =============================================================================
+
+
+class TestQuickActionsPanelFunctional:
+    """Functional tests that create real GTK widgets."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.quick_actions import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        window = Gtk.Window()
+        return {"Gtk": Gtk, "window": window}
+
+    def test_create_panel(self, gtk_setup):
+        """Test creating a QuickActionsPanel instance."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        assert panel is not None
+        assert panel.visible is False
+        assert panel.popup is not None
+        assert panel.container is not None
+
+    def test_panel_set_actions(self, gtk_setup):
+        """Test setting actions on panel."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        actions = [
+            QuickAction(icon="X", tooltip="Delete", callback=lambda: None),
+            QuickAction(icon="C", tooltip="Copy", callback=lambda: None),
+        ]
+
+        panel.set_actions(actions)
+
+        assert panel._actions == actions
+
+    def test_panel_show_at(self, gtk_setup):
+        """Test showing panel at coordinates."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        actions = [
+            QuickAction(icon="X", tooltip="Delete", callback=lambda: None),
+        ]
+        panel.set_actions(actions)
+
+        panel.show_at(100, 200)
+
+        assert panel.visible is True
+
+    def test_panel_show_at_empty_actions(self, gtk_setup):
+        """Test show_at with no actions returns early."""
+        from src.quick_actions import QuickActionsPanel
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        # No actions set
+        panel.show_at(100, 200)
+
+        assert panel.visible is False
+
+    def test_panel_hide(self, gtk_setup):
+        """Test hiding panel."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        actions = [
+            QuickAction(icon="X", tooltip="Delete", callback=lambda: None),
+        ]
+        panel.set_actions(actions)
+
+        panel.show_at(100, 200)
+        assert panel.visible is True
+
+        panel.hide()
+        assert panel.visible is False
+
+    def test_panel_show_at_with_bbox(self, gtk_setup):
+        """Test showing panel with element bounding box."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        actions = [
+            QuickAction(icon="X", tooltip="Delete", callback=lambda: None),
+        ]
+        panel.set_actions(actions)
+
+        bbox = (50.0, 100.0, 150.0, 200.0)
+        panel.show_at(100, 150, element_bbox=bbox)
+
+        assert panel.visible is True
+
+    def test_panel_rebuild_buttons(self, gtk_setup):
+        """Test _rebuild_buttons creates buttons."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+        Gtk = gtk_setup["Gtk"]
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        actions = [
+            QuickAction(icon="A", tooltip="Action A", callback=lambda: None),
+            QuickAction(icon="B", tooltip="Action B", callback=lambda: None),
+            QuickAction(icon="C", tooltip="Action C", callback=lambda: None),
+        ]
+        panel.set_actions(actions)
+
+        # Force rebuild
+        panel._rebuild_buttons()
+
+        # Should have buttons in container
+        children = panel.container.get_children()
+        assert len(children) > 0
+
+    def test_panel_action_clicked(self, gtk_setup):
+        """Test action callback is called on click."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        clicked = []
+
+        def on_click():
+            clicked.append(True)
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        action = QuickAction(icon="X", tooltip="Test", callback=on_click)
+        panel.set_actions([action])
+
+        # Simulate action click
+        panel._on_action_clicked(action)
+
+        assert len(clicked) == 1
+        assert panel.visible is False
+
+    def test_panel_enabled_check(self, gtk_setup):
+        """Test action with enabled_check."""
+        from src.quick_actions import QuickActionsPanel, QuickAction
+
+        enabled = [False]
+
+        panel = QuickActionsPanel(gtk_setup["window"])
+
+        action = QuickAction(
+            icon="X",
+            tooltip="Test",
+            callback=lambda: None,
+            enabled_check=lambda: enabled[0],
+        )
+        panel.set_actions([action])
+
+        # Initially disabled
+        panel._rebuild_buttons()
+        children = panel.container.get_children()
+        # Find buttons (not separators)
+        buttons = [c for c in children if hasattr(c, "get_sensitive")]
+        if buttons:
+            assert buttons[0].get_sensitive() is False
+
+        # Now enable
+        enabled[0] = True
+        panel._rebuild_buttons()
+        children = panel.container.get_children()
+        buttons = [c for c in children if hasattr(c, "get_sensitive")]
+        if buttons:
+            assert buttons[0].get_sensitive() is True

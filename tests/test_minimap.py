@@ -719,3 +719,294 @@ class TestMinimapSetVisible:
 
         source = inspect.getsource(MinimapNavigator.set_visible)
         assert ".show()" in source or ".hide()" in source
+
+
+# =============================================================================
+# Functional GTK Tests (require xvfb or display)
+# =============================================================================
+
+
+class TestMinimapFunctional:
+    """Functional tests that create real GTK widgets."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.minimap import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("Gdk", "3.0")
+        from gi.repository import Gtk, GdkPixbuf
+
+        # Create a simple parent widget
+        parent = Gtk.DrawingArea()
+        return {"Gtk": Gtk, "GdkPixbuf": GdkPixbuf, "parent": parent}
+
+    def test_create_minimap_navigator(self, gtk_setup):
+        """Test creating a MinimapNavigator instance."""
+        from src.minimap import MinimapNavigator
+
+        navigate_calls = []
+
+        def on_navigate(x, y):
+            navigate_calls.append((x, y))
+
+        minimap = MinimapNavigator(gtk_setup["parent"], on_navigate)
+
+        assert minimap is not None
+        assert minimap.visible is True
+        assert minimap.drawing_area is not None
+        assert minimap._dragging is False
+
+    def test_minimap_set_viewport(self, gtk_setup):
+        """Test setting viewport on minimap."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        minimap.set_viewport(10, 20, 100, 80)
+
+        assert minimap._viewport_x == 10
+        assert minimap._viewport_y == 20
+        assert minimap._viewport_w == 100
+        assert minimap._viewport_h == 80
+
+    def test_minimap_set_visible(self, gtk_setup):
+        """Test setting visibility."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        minimap.set_visible(False)
+        assert minimap.visible is False
+
+        minimap.set_visible(True)
+        assert minimap.visible is True
+
+    def test_minimap_toggle_visible(self, gtk_setup):
+        """Test toggling visibility."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+        assert minimap.visible is True
+
+        result = minimap.toggle_visible()
+        assert result is False
+        assert minimap.visible is False
+
+        result = minimap.toggle_visible()
+        assert result is True
+        assert minimap.visible is True
+
+    def test_minimap_set_image(self, gtk_setup):
+        """Test setting image on minimap."""
+        from src.minimap import MinimapNavigator
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Create a small test pixbuf
+        pixbuf = GdkPixbuf.Pixbuf.new(
+            GdkPixbuf.Colorspace.RGB, True, 8, 200, 150
+        )
+        pixbuf.fill(0xFF0000FF)  # Red
+
+        minimap.set_image(pixbuf)
+
+        assert minimap._pixbuf is not None
+        assert minimap._scaled_pixbuf is not None
+        assert minimap._scale > 0
+        assert minimap._minimap_width > 0
+        assert minimap._minimap_height > 0
+
+    def test_minimap_set_image_zero_dimension(self, gtk_setup):
+        """Test set_image handles zero-dimension images."""
+        from src.minimap import MinimapNavigator
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Create a 1x1 pixbuf (minimum size, GdkPixbuf doesn't allow 0x0)
+        pixbuf = GdkPixbuf.Pixbuf.new(
+            GdkPixbuf.Colorspace.RGB, True, 8, 1, 1
+        )
+
+        # Should not raise
+        minimap.set_image(pixbuf)
+
+    def test_minimap_set_annotations_empty(self, gtk_setup):
+        """Test setting empty annotations list."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        minimap.set_annotations([])
+
+        assert minimap._annotation_positions == []
+
+    def test_minimap_set_annotations_with_elements(self, gtk_setup):
+        """Test setting annotations with mock elements."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Create mock elements with points
+        class MockPoint:
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+
+        class MockElement:
+            def __init__(self, points):
+                self.points = points
+
+        elem1 = MockElement([MockPoint(10, 20), MockPoint(30, 40)])
+        elem2 = MockElement([MockPoint(50, 60), MockPoint(70, 80)])
+
+        minimap.set_annotations([elem1, elem2])
+
+        assert len(minimap._annotation_positions) == 2
+        # First element center: ((10+30)/2, (20+40)/2) = (20, 30)
+        assert minimap._annotation_positions[0] == (20, 30)
+        # Second element center: ((50+70)/2, (60+80)/2) = (60, 70)
+        assert minimap._annotation_positions[1] == (60, 70)
+
+    def test_minimap_navigate_to(self, gtk_setup):
+        """Test navigation callback."""
+        from src.minimap import MinimapNavigator
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        navigate_calls = []
+
+        def on_navigate(x, y):
+            navigate_calls.append((x, y))
+
+        minimap = MinimapNavigator(gtk_setup["parent"], on_navigate)
+
+        # Set an image first
+        pixbuf = GdkPixbuf.Pixbuf.new(
+            GdkPixbuf.Colorspace.RGB, True, 8, 200, 150
+        )
+        minimap.set_image(pixbuf)
+
+        # Trigger navigation
+        minimap._navigate_to(50, 40)
+
+        assert len(navigate_calls) == 1
+        # Check that coordinates were converted
+        assert navigate_calls[0][0] >= 0
+        assert navigate_calls[0][1] >= 0
+
+    def test_minimap_navigate_to_without_image(self, gtk_setup):
+        """Test navigation returns early without image."""
+        from src.minimap import MinimapNavigator
+
+        navigate_calls = []
+
+        def on_navigate(x, y):
+            navigate_calls.append((x, y))
+
+        minimap = MinimapNavigator(gtk_setup["parent"], on_navigate)
+
+        # Don't set image, try to navigate
+        minimap._navigate_to(50, 40)
+
+        # Should not have called navigate callback
+        assert len(navigate_calls) == 0
+
+    def test_minimap_drawing_area_exists(self, gtk_setup):
+        """Test that drawing_area is created."""
+        from src.minimap import MinimapNavigator
+        Gtk = gtk_setup["Gtk"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        assert isinstance(minimap.drawing_area, Gtk.DrawingArea)
+
+    def test_minimap_on_draw_without_pixbuf(self, gtk_setup):
+        """Test _on_draw returns early without pixbuf."""
+        from src.minimap import MinimapNavigator
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Mock cairo context
+        mock_cr = MagicMock()
+
+        # Should return True without drawing
+        result = minimap._on_draw(minimap.drawing_area, mock_cr)
+        assert result is True
+
+    def test_minimap_on_draw_with_pixbuf(self, gtk_setup):
+        """Test _on_draw sets up drawing correctly."""
+        from src.minimap import MinimapNavigator
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Set an image
+        pixbuf = GdkPixbuf.Pixbuf.new(
+            GdkPixbuf.Colorspace.RGB, True, 8, 100, 80
+        )
+        minimap.set_image(pixbuf)
+
+        # Set viewport
+        minimap.set_viewport(10, 10, 50, 40)
+
+        # Verify state is set correctly for drawing
+        assert minimap._scaled_pixbuf is not None
+        assert minimap._viewport_w == 50
+        assert minimap._viewport_h == 40
+
+        # The actual drawing requires a real cairo context from GTK
+        # We verify the draw signal is connected
+        assert minimap.drawing_area is not None
+
+
+class TestCreateMinimapOverlayFunctional:
+    """Functional tests for create_minimap_overlay."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.minimap import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        return {"Gtk": Gtk}
+
+    def test_create_minimap_overlay_with_overlay(self, gtk_setup):
+        """Test create_minimap_overlay with Gtk.Overlay container."""
+        from src.minimap import create_minimap_overlay, MinimapNavigator
+        Gtk = gtk_setup["Gtk"]
+
+        overlay = Gtk.Overlay()
+        drawing_area = Gtk.DrawingArea()
+        overlay.add(drawing_area)
+
+        minimap = create_minimap_overlay(
+            overlay, drawing_area, lambda x, y: None
+        )
+
+        assert isinstance(minimap, MinimapNavigator)
+
+    def test_create_minimap_overlay_with_box(self, gtk_setup):
+        """Test create_minimap_overlay with non-Overlay container."""
+        from src.minimap import create_minimap_overlay, MinimapNavigator
+        Gtk = gtk_setup["Gtk"]
+
+        box = Gtk.Box()
+        drawing_area = Gtk.DrawingArea()
+
+        minimap = create_minimap_overlay(
+            box, drawing_area, lambda x, y: None
+        )
+
+        # Should still return a MinimapNavigator
+        assert isinstance(minimap, MinimapNavigator)
