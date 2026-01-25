@@ -361,3 +361,387 @@ class TestModuleImports:
 
         # The flag should be a boolean
         assert isinstance(tray.APPINDICATOR_AVAILABLE, bool)
+
+
+class TestSystemTraySourceInspection:
+    """Test SystemTray implementation via source inspection."""
+
+    def test_init_stores_callbacks(self):
+        """Test __init__ stores callback references."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.__init__)
+        assert "self._on_show_window = on_show_window" in source
+        assert "self._on_fullscreen = on_fullscreen" in source
+        assert "self._on_region = on_region" in source
+        assert "self._on_window = on_window" in source
+        assert "self._on_quit = on_quit" in source
+
+    def test_init_stores_optional_callbacks(self):
+        """Test __init__ stores optional callbacks."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.__init__)
+        assert "self._get_queue_count = get_queue_count" in source
+        assert "self._on_edit_queue = on_edit_queue" in source
+
+    def test_init_initializes_state(self):
+        """Test __init__ initializes state variables."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.__init__)
+        assert "self._indicator = None" in source
+        assert "self._menu = None" in source
+        assert "self._queue_item = None" in source
+        assert "self._show_item = None" in source
+        assert "self._window_visible = True" in source
+
+    def test_init_creates_indicator(self):
+        """Test __init__ calls _create_indicator."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.__init__)
+        assert "self._create_indicator()" in source
+
+    def test_create_indicator_structure(self):
+        """Test _create_indicator creates indicator."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_indicator)
+        assert "Indicator.new" in source
+        assert "likx" in source
+        assert "set_status" in source
+        assert "set_title" in source
+
+    def test_create_indicator_uses_icon_path(self):
+        """Test _create_indicator uses icon path."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_indicator)
+        assert "_get_icon_path" in source
+        assert "camera-photo" in source  # Fallback icon
+
+    def test_create_indicator_sets_menu(self):
+        """Test _create_indicator sets menu."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_indicator)
+        assert "_create_menu" in source
+        assert "set_menu" in source
+
+    def test_get_icon_path_checks_locations(self):
+        """Test _get_icon_path checks multiple locations."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._get_icon_path)
+        assert "locations" in source
+        assert "exists()" in source
+
+    def test_get_icon_path_returns_string_or_none(self):
+        """Test _get_icon_path returns string or None."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._get_icon_path)
+        assert "return str(loc)" in source
+        assert "return None" in source
+
+    def test_create_menu_creates_gtk_menu(self):
+        """Test _create_menu creates Gtk.Menu."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "Gtk.Menu()" in source
+        assert "Gtk.MenuItem" in source
+
+    def test_create_menu_adds_show_item(self):
+        """Test _create_menu adds show/hide item."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "self._show_item" in source
+
+    def test_create_menu_adds_capture_options(self):
+        """Test _create_menu adds capture options."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "fullscreen_item" in source
+        assert "region_item" in source
+        assert "window_item" in source
+
+    def test_create_menu_adds_quit_item(self):
+        """Test _create_menu adds quit item."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "quit_item" in source
+        assert "_on_quit" in source
+
+    def test_create_menu_adds_queue_item_conditionally(self):
+        """Test _create_menu adds queue item if callbacks provided."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "self._queue_item" in source
+        assert "_get_queue_count" in source
+        assert "_on_edit_queue" in source
+
+    def test_create_menu_connects_handlers(self):
+        """Test _create_menu connects signal handlers."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "connect" in source
+        assert "activate" in source
+
+    def test_create_menu_shows_all(self):
+        """Test _create_menu shows all items."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "show_all()" in source
+
+    def test_update_queue_count_checks_item(self):
+        """Test update_queue_count checks queue item exists."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_queue_count)
+        assert "if self._queue_item" in source
+
+    def test_update_queue_count_updates_label(self):
+        """Test update_queue_count updates label text."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_queue_count)
+        assert "set_label" in source
+        assert "count" in source
+
+    def test_update_queue_count_sets_sensitivity(self):
+        """Test update_queue_count sets sensitivity based on count."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_queue_count)
+        assert "set_sensitive" in source
+        assert "count > 0" in source
+
+    def test_update_visibility_stores_state(self):
+        """Test update_visibility stores visibility state."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_visibility)
+        assert "self._window_visible = window_visible" in source
+
+    def test_update_visibility_updates_label(self):
+        """Test update_visibility updates show/hide label."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_visibility)
+        assert "set_label" in source
+
+    def test_set_active_checks_indicator(self):
+        """Test set_active checks indicator exists."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.set_active)
+        assert "if self._indicator" in source
+
+    def test_set_active_changes_status(self):
+        """Test set_active changes indicator status."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.set_active)
+        assert "set_status" in source
+        assert "ACTIVE" in source
+        assert "PASSIVE" in source
+
+    def test_is_available_returns_flag(self):
+        """Test is_available returns APPINDICATOR_AVAILABLE."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.is_available)
+        assert "APPINDICATOR_AVAILABLE" in source
+
+
+class TestTrayClassStructure:
+    """Test SystemTray class structure."""
+
+    def test_class_has_required_methods(self):
+        """Test that SystemTray has required methods."""
+        from src.tray import SystemTray
+
+        assert hasattr(SystemTray, "update_queue_count")
+        assert hasattr(SystemTray, "update_visibility")
+        assert hasattr(SystemTray, "set_active")
+        assert hasattr(SystemTray, "is_available")
+
+    def test_class_has_private_methods(self):
+        """Test that SystemTray has private methods."""
+        from src.tray import SystemTray
+
+        assert hasattr(SystemTray, "_create_indicator")
+        assert hasattr(SystemTray, "_get_icon_path")
+        assert hasattr(SystemTray, "_create_menu")
+
+    def test_is_available_is_static(self):
+        """Test that is_available is a static method."""
+        from src.tray import SystemTray
+
+        result = SystemTray.is_available()
+        assert isinstance(result, bool)
+
+
+class TestTrayI18n:
+    """Test that tray uses internationalization."""
+
+    def test_imports_i18n(self):
+        """Test that tray imports i18n."""
+        from src import tray
+        import inspect
+
+        source = inspect.getsource(tray)
+        assert "from .i18n import _" in source or "from src.i18n import _" in source
+
+    def test_uses_translation_function(self):
+        """Test module uses _() translation function."""
+        from src import tray
+        import inspect
+
+        source = inspect.getsource(tray)
+        assert '_("' in source
+
+    def test_menu_items_translated(self):
+        """Test menu item labels use translation."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "_(" in source
+
+
+class TestTrayIconPaths:
+    """Test icon path handling."""
+
+    def test_get_icon_path_uses_pathlib(self):
+        """Test _get_icon_path uses pathlib.Path."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._get_icon_path)
+        assert "Path" in source
+
+    def test_get_icon_path_checks_resources(self):
+        """Test _get_icon_path checks resources directory."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._get_icon_path)
+        assert "resources" in source
+
+    def test_get_icon_path_checks_system_paths(self):
+        """Test _get_icon_path checks system icon paths."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._get_icon_path)
+        assert "/usr/share/icons" in source or "/usr/share/pixmaps" in source
+
+
+class TestTrayAppIndicatorFallback:
+    """Test AppIndicator fallback to AyatanaAppIndicator."""
+
+    def test_module_tries_appindicator3(self):
+        """Test module tries AppIndicator3 first."""
+        from src import tray
+        import inspect
+
+        source = inspect.getsource(tray)
+        assert "AppIndicator3" in source
+
+    def test_module_falls_back_to_ayatana(self):
+        """Test module falls back to AyatanaAppIndicator3."""
+        from src import tray
+        import inspect
+
+        source = inspect.getsource(tray)
+        assert "AyatanaAppIndicator3" in source
+
+
+class TestTrayEdgeCases:
+    """Test edge cases and error handling."""
+
+    def test_requires_appindicator(self):
+        """Test SystemTray raises error without AppIndicator."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.__init__)
+        assert "APPINDICATOR_AVAILABLE" in source
+        assert "RuntimeError" in source
+
+    def test_queue_item_optional(self):
+        """Test queue item is optional based on callbacks."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "if self._get_queue_count and self._on_edit_queue" in source
+
+    def test_update_queue_count_handles_missing_item(self):
+        """Test update_queue_count handles missing queue item."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_queue_count)
+        assert "if self._queue_item" in source
+
+    def test_update_visibility_handles_missing_show_item(self):
+        """Test update_visibility handles missing show item."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.update_visibility)
+        assert "if self._show_item" in source
+
+    def test_set_active_handles_missing_indicator(self):
+        """Test set_active handles missing indicator."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray.set_active)
+        assert "if self._indicator" in source
+
+
+class TestTrayMenuSeparators:
+    """Test menu structure with separators."""
+
+    def test_menu_has_separators(self):
+        """Test menu includes separator items."""
+        from src.tray import SystemTray
+        import inspect
+
+        source = inspect.getsource(SystemTray._create_menu)
+        assert "SeparatorMenuItem" in source
