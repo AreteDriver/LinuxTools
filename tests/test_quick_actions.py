@@ -225,3 +225,116 @@ class TestQuickActionsIcons:
         for action in actions:
             assert isinstance(action.icon, str)
             assert len(action.icon) > 0
+
+
+class TestCreateSelectionActionsEnabledChecks:
+    """Test enabled_check functions in create_selection_actions."""
+
+    def test_has_selection_with_selection(self):
+        """Test actions enabled when selection exists."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0, 1]
+        mock_editor.editor_state.is_selection_locked.return_value = False
+
+        actions = create_selection_actions(mock_editor)
+
+        # Find the copy action (should be enabled with selection)
+        copy_action = next((a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip), None)
+        assert copy_action is not None
+        assert copy_action.enabled_check() is True
+
+    def test_has_selection_without_selection(self):
+        """Test actions disabled when no selection."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = []
+
+        actions = create_selection_actions(mock_editor)
+
+        # Find the copy action (should be disabled without selection)
+        copy_action = next((a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip), None)
+        assert copy_action is not None
+        assert copy_action.enabled_check() is False
+
+    def test_has_selection_with_none_editor_state(self):
+        """Test actions when editor_state is None."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = None
+
+        actions = create_selection_actions(mock_editor)
+
+        # Actions should be disabled when editor_state is None
+        for action in actions:
+            # All actions require selection, so all should be disabled
+            assert action.enabled_check() is False
+
+    def test_is_unlocked_check(self):
+        """Test is_unlocked enabled check."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+        mock_editor.editor_state.is_selection_locked.return_value = True
+
+        actions = create_selection_actions(mock_editor)
+
+        # Find delete action (requires unlocked)
+        delete_action = next((a for a in actions if "Delete" in a.tooltip or "Del" in a.tooltip), None)
+        assert delete_action is not None
+        # Should be disabled because selection is locked
+        assert delete_action.enabled_check() is False
+
+    def test_has_multiple_check(self):
+        """Test has_multiple enabled check for group action."""
+        from src.quick_actions import create_selection_actions
+
+        # Single selection
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+
+        actions = create_selection_actions(mock_editor)
+        group_action = next((a for a in actions if "Group" in a.tooltip or "Ctrl+G" in a.tooltip), None)
+        assert group_action is not None
+        assert group_action.enabled_check() is False  # Single item can't be grouped
+
+        # Multiple selection
+        mock_editor.editor_state.selected_indices = [0, 1, 2]
+        actions = create_selection_actions(mock_editor)
+        group_action = next((a for a in actions if "Group" in a.tooltip or "Ctrl+G" in a.tooltip), None)
+        assert group_action.enabled_check() is True
+
+    def test_action_callbacks_are_callable(self):
+        """Test that all action callbacks are callable."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+
+        actions = create_selection_actions(mock_editor)
+
+        for action in actions:
+            assert callable(action.callback)
+
+    def test_action_tooltips_are_strings(self):
+        """Test that all action tooltips are non-empty strings."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = []
+
+        actions = create_selection_actions(mock_editor)
+
+        for action in actions:
+            assert isinstance(action.tooltip, str)
+            assert len(action.tooltip) > 0
