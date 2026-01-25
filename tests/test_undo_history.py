@@ -315,3 +315,96 @@ class TestUndoHistoryModuleStructure:
         from src.undo_history import _css_applied
 
         assert isinstance(_css_applied, bool)
+
+
+class TestUndoRedoButtonsMethods:
+    """Test UndoRedoButtons method structure."""
+
+    def test_has_apply_styles_method(self):
+        """Test UndoRedoButtons has _apply_styles method."""
+        from src.undo_history import UndoRedoButtons
+
+        assert hasattr(UndoRedoButtons, "_apply_styles")
+
+    def test_has_create_undo_popover_method(self):
+        """Test UndoRedoButtons has _create_undo_popover method."""
+        from src.undo_history import UndoRedoButtons
+
+        assert hasattr(UndoRedoButtons, "_create_undo_popover")
+
+    def test_has_create_redo_popover_method(self):
+        """Test UndoRedoButtons has _create_redo_popover method."""
+        from src.undo_history import UndoRedoButtons
+
+        assert hasattr(UndoRedoButtons, "_create_redo_popover")
+
+    def test_has_update_sensitivity_method(self):
+        """Test UndoRedoButtons has update_sensitivity method."""
+        from src.undo_history import UndoRedoButtons
+
+        assert hasattr(UndoRedoButtons, "update_sensitivity")
+
+    def test_has_on_undo_dropdown_toggled_method(self):
+        """Test UndoRedoButtons has _on_undo_dropdown_toggled method."""
+        from src.undo_history import UndoRedoButtons
+
+        assert hasattr(UndoRedoButtons, "_on_undo_dropdown_toggled")
+
+    def test_has_on_redo_dropdown_toggled_method(self):
+        """Test UndoRedoButtons has _on_redo_dropdown_toggled method."""
+        from src.undo_history import UndoRedoButtons
+
+        assert hasattr(UndoRedoButtons, "_on_redo_dropdown_toggled")
+
+
+class TestUndoHistoryEntryComparison:
+    """Test UndoHistoryEntry edge cases."""
+
+    def test_entries_are_independent(self):
+        """Test that entries are independent objects."""
+        from src.undo_history import UndoHistoryEntry
+
+        entry1 = UndoHistoryEntry("Action A", 0)
+        entry2 = UndoHistoryEntry("Action B", 1)
+
+        assert entry1.name != entry2.name
+        assert entry1.index != entry2.index
+
+    def test_entry_with_negative_index(self):
+        """Test UndoHistoryEntry with negative index (edge case)."""
+        from src.undo_history import UndoHistoryEntry
+
+        entry = UndoHistoryEntry("Action", -1)
+        assert entry.index == -1
+
+    def test_entry_with_large_index(self):
+        """Test UndoHistoryEntry with large index."""
+        from src.undo_history import UndoHistoryEntry
+
+        entry = UndoHistoryEntry("Action", 999999)
+        assert entry.index == 999999
+
+
+class TestGetActionNameReturnType:
+    """Test get_action_name return type consistency."""
+
+    def test_always_returns_string(self):
+        """Test that get_action_name always returns a string."""
+        from src.undo_history import get_action_name
+
+        test_cases = [
+            ([], []),
+            (None, None),
+            ([MagicMock()], []),
+            ([], [MagicMock()]),
+            ([MagicMock()], [MagicMock()]),
+        ]
+
+        for before, after in test_cases:
+            if after and len(after) > 0:
+                for elem in after:
+                    elem.tool = MagicMock()
+                    elem.tool.value = "pen"
+            result = get_action_name(before, after)
+            assert isinstance(result, str), f"Failed for {before}, {after}"
+            assert len(result) > 0, f"Empty result for {before}, {after}"

@@ -41,6 +41,33 @@ class TestOnboardingStep:
         assert step.title == "Test Title"
         assert step.message == "Test message"
 
+    def test_step_with_empty_strings(self):
+        """Test OnboardingStep with empty strings."""
+        from src.onboarding import OnboardingStep
+
+        step = OnboardingStep(
+            target_id="",
+            title="",
+            message="",
+        )
+
+        assert step.target_id == ""
+        assert step.title == ""
+        assert step.message == ""
+
+    def test_step_with_special_characters(self):
+        """Test OnboardingStep with special characters."""
+        from src.onboarding import OnboardingStep
+
+        step = OnboardingStep(
+            target_id="widget_id_123",
+            title="Title with 'quotes' and \"double\"",
+            message="Message with <html> & special chars",
+        )
+
+        assert "'" in step.title
+        assert "<html>" in step.message
+
     def test_step_default_position(self):
         """Test that OnboardingStep has default position."""
         from src.onboarding import OnboardingStep
@@ -301,3 +328,73 @@ class TestOnboardingConfigIntegration:
                         saved_cfg = mock_save.call_args[0][0]
                         assert saved_cfg["other_setting"] == "value"
                         assert saved_cfg["another"] == 42
+
+
+class TestOnboardingManagerStructure:
+    """Test OnboardingManager structure and methods."""
+
+    def test_has_create_steps_method(self):
+        """Test OnboardingManager has _create_steps method."""
+        from src.onboarding import OnboardingManager
+
+        assert hasattr(OnboardingManager, "_create_steps")
+
+    def test_has_get_target_widget_method(self):
+        """Test OnboardingManager has _get_target_widget method."""
+        from src.onboarding import OnboardingManager
+
+        assert hasattr(OnboardingManager, "_get_target_widget")
+
+    def test_has_show_current_step_method(self):
+        """Test OnboardingManager has _show_current_step method."""
+        from src.onboarding import OnboardingManager
+
+        assert hasattr(OnboardingManager, "_show_current_step")
+
+    def test_has_finish_method(self):
+        """Test OnboardingManager has _finish method."""
+        from src.onboarding import OnboardingManager
+
+        assert hasattr(OnboardingManager, "_finish")
+
+    def test_start_method_exists(self):
+        """Test that start method exists and is callable."""
+        from src.onboarding import OnboardingManager
+
+        assert callable(getattr(OnboardingManager, "start"))
+
+
+class TestOnboardingTooltipStructure:
+    """Test OnboardingTooltip structure."""
+
+    def test_has_position_near_widget_method(self):
+        """Test OnboardingTooltip has _position_near_widget method."""
+        from src.onboarding import OnboardingTooltip
+
+        assert hasattr(OnboardingTooltip, "_position_near_widget")
+
+    def test_has_position_center_method(self):
+        """Test OnboardingTooltip has _position_center method."""
+        from src.onboarding import OnboardingTooltip
+
+        assert hasattr(OnboardingTooltip, "_position_center")
+
+    def test_has_apply_styles_method(self):
+        """Test OnboardingTooltip has _apply_styles method."""
+        from src.onboarding import OnboardingTooltip
+
+        assert hasattr(OnboardingTooltip, "_apply_styles")
+
+    def test_show_method_signature(self):
+        """Test show method has correct parameters."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        sig = inspect.signature(OnboardingTooltip.show)
+        params = list(sig.parameters.keys())
+        assert "title" in params
+        assert "message" in params
+        assert "step_num" in params
+        assert "total_steps" in params
+        assert "on_next" in params
+        assert "on_skip" in params
