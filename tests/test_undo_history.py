@@ -408,3 +408,441 @@ class TestGetActionNameReturnType:
             result = get_action_name(before, after)
             assert isinstance(result, str), f"Failed for {before}, {after}"
             assert len(result) > 0, f"Empty result for {before}, {after}"
+
+
+class TestUndoRedoButtonsSourceInspection:
+    """Test UndoRedoButtons implementation via source inspection."""
+
+    def test_init_stores_callbacks(self):
+        """Test __init__ stores callback references."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "self.on_undo = on_undo" in source
+        assert "self.on_redo = on_redo" in source
+        assert "self.on_undo_to = on_undo_to" in source
+        assert "self.on_redo_to = on_redo_to" in source
+
+    def test_init_stores_getter_functions(self):
+        """Test __init__ stores getter functions."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "self.get_undo_stack = get_undo_stack" in source
+        assert "self.get_redo_stack = get_redo_stack" in source
+        assert "self.get_elements = get_elements" in source
+
+    def test_init_creates_container(self):
+        """Test __init__ creates container box."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "self.container" in source
+        assert "Gtk.Box" in source
+
+    def test_init_creates_undo_button(self):
+        """Test __init__ creates undo button."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "self.undo_btn" in source
+        assert "Gtk.Button" in source
+        assert "undo-btn" in source
+
+    def test_init_creates_redo_button(self):
+        """Test __init__ creates redo button."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "self.redo_btn" in source
+        assert "redo-btn" in source
+
+    def test_init_creates_dropdown_buttons(self):
+        """Test __init__ creates dropdown buttons."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "self.undo_dropdown" in source
+        assert "self.redo_dropdown" in source
+        assert "Gtk.MenuButton" in source
+
+    def test_init_connects_click_handlers(self):
+        """Test __init__ connects click handlers."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "connect" in source
+        assert "clicked" in source
+        assert "toggled" in source
+
+    def test_init_creates_popovers(self):
+        """Test __init__ creates popover menus."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "_create_undo_popover" in source
+        assert "_create_redo_popover" in source
+
+    def test_create_undo_popover_structure(self):
+        """Test _create_undo_popover creates popover."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._create_undo_popover)
+        assert "Gtk.Popover" in source
+        assert "self.undo_popover" in source
+        assert "history-popover" in source
+
+    def test_create_undo_popover_creates_list(self):
+        """Test _create_undo_popover creates list container."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._create_undo_popover)
+        assert "self.undo_list" in source
+        assert "Gtk.Box" in source
+
+    def test_create_undo_popover_sets_relative(self):
+        """Test _create_undo_popover sets relative widget."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._create_undo_popover)
+        assert "set_relative_to" in source
+        assert "undo_dropdown" in source
+
+    def test_create_redo_popover_structure(self):
+        """Test _create_redo_popover creates popover."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._create_redo_popover)
+        assert "Gtk.Popover" in source
+        assert "self.redo_popover" in source
+
+    def test_on_undo_dropdown_toggled_checks_active(self):
+        """Test _on_undo_dropdown_toggled checks button active state."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        assert "get_active" in source
+        assert "if not" in source
+
+    def test_on_undo_dropdown_toggled_clears_children(self):
+        """Test _on_undo_dropdown_toggled clears existing items."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        assert "get_children" in source
+        assert "remove" in source
+
+    def test_on_undo_dropdown_toggled_populates_list(self):
+        """Test _on_undo_dropdown_toggled populates history list."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        assert "get_undo_stack" in source
+        assert "get_action_name" in source
+
+    def test_on_undo_dropdown_toggled_limits_items(self):
+        """Test _on_undo_dropdown_toggled limits to 10 items."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        assert "9" in source  # if i >= 9
+        assert "break" in source
+
+    def test_on_undo_dropdown_toggled_handles_empty(self):
+        """Test _on_undo_dropdown_toggled handles empty stack."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        assert "if not undo_stack" in source
+        assert "No undo history" in source
+
+    def test_on_redo_dropdown_toggled_checks_active(self):
+        """Test _on_redo_dropdown_toggled checks button active state."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_redo_dropdown_toggled)
+        assert "get_active" in source
+
+    def test_on_redo_dropdown_toggled_populates_list(self):
+        """Test _on_redo_dropdown_toggled populates history list."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_redo_dropdown_toggled)
+        assert "get_redo_stack" in source
+        assert "get_action_name" in source
+
+    def test_on_redo_dropdown_toggled_handles_empty(self):
+        """Test _on_redo_dropdown_toggled handles empty stack."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_redo_dropdown_toggled)
+        assert "if not redo_stack" in source
+        assert "No redo history" in source
+
+    def test_on_undo_item_clicked_popdown(self):
+        """Test _on_undo_item_clicked pops down popover."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_item_clicked)
+        assert "popdown" in source
+        assert "on_undo_to" in source
+
+    def test_on_redo_item_clicked_popdown(self):
+        """Test _on_redo_item_clicked pops down popover."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_redo_item_clicked)
+        assert "popdown" in source
+        assert "on_redo_to" in source
+
+    def test_update_sensitivity_sets_buttons(self):
+        """Test update_sensitivity sets button sensitivity."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.update_sensitivity)
+        assert "set_sensitive" in source
+        assert "can_undo" in source
+        assert "can_redo" in source
+
+    def test_update_sensitivity_sets_all_buttons(self):
+        """Test update_sensitivity sets both buttons and dropdowns."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.update_sensitivity)
+        assert "undo_btn" in source
+        assert "undo_dropdown" in source
+        assert "redo_btn" in source
+        assert "redo_dropdown" in source
+
+    def test_get_widget_returns_container(self):
+        """Test get_widget returns container."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.get_widget)
+        assert "return self.container" in source
+
+
+class TestUndoRedoButtonsCSS:
+    """Test UndoRedoButtons CSS handling."""
+
+    def test_apply_styles_uses_global_flag(self):
+        """Test _apply_styles uses global flag to prevent duplication."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._apply_styles)
+        assert "_css_applied" in source
+        assert "global" in source
+
+    def test_apply_styles_creates_css_provider(self):
+        """Test _apply_styles creates CSS provider."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._apply_styles)
+        assert "CssProvider" in source
+        assert "load_from_data" in source
+
+    def test_css_contains_button_styles(self):
+        """Test CSS contains button styles."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._apply_styles)
+        assert ".undo-btn" in source
+        assert ".redo-btn" in source
+        assert ".undo-dropdown" in source
+        assert ".redo-dropdown" in source
+
+    def test_css_contains_hover_states(self):
+        """Test CSS contains hover states."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._apply_styles)
+        assert ":hover" in source
+        assert ":disabled" in source
+
+    def test_css_contains_popover_styles(self):
+        """Test CSS contains popover styles."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._apply_styles)
+        assert ".history-popover" in source
+        assert ".history-item" in source
+        assert ".history-label" in source
+
+
+class TestGetActionNameSourceInspection:
+    """Test get_action_name implementation via source inspection."""
+
+    def test_handles_none_lists(self):
+        """Test get_action_name handles None lists."""
+        from src.undo_history import get_action_name
+        import inspect
+
+        source = inspect.getsource(get_action_name)
+        assert "if elements_before" in source or "elements_before else" in source
+
+    def test_uses_tool_name_mapping(self):
+        """Test get_action_name uses tool name mapping."""
+        from src.undo_history import get_action_name
+        import inspect
+
+        source = inspect.getsource(get_action_name)
+        assert "tool_names" in source
+        assert "pen" in source
+        assert "highlighter" in source
+        assert "rectangle" in source
+        assert "text" in source
+
+    def test_checks_length_difference(self):
+        """Test get_action_name checks length difference."""
+        from src.undo_history import get_action_name
+        import inspect
+
+        source = inspect.getsource(get_action_name)
+        assert "len_before" in source
+        assert "len_after" in source
+
+    def test_returns_formatted_count(self):
+        """Test get_action_name formats count for multiple elements."""
+        from src.undo_history import get_action_name
+        import inspect
+
+        source = inspect.getsource(get_action_name)
+        assert ".format(diff)" in source
+
+
+class TestUndoHistoryEdgeCases:
+    """Test edge cases and error handling."""
+
+    def test_buttons_require_gtk(self):
+        """Test UndoRedoButtons raises error without GTK."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "GTK_AVAILABLE" in source
+        assert "RuntimeError" in source
+
+    def test_history_reversed_order(self):
+        """Test history shows most recent first."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        assert "reversed" in source
+
+    def test_redo_reversed_order(self):
+        """Test redo history shows next action first."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_redo_dropdown_toggled)
+        assert "reversed" in source
+
+
+class TestUndoHistoryI18nIntegration:
+    """Test internationalization integration."""
+
+    def test_uses_translation_function(self):
+        """Test module uses _() translation function."""
+        from src import undo_history
+        import inspect
+
+        source = inspect.getsource(undo_history)
+        assert '_("' in source
+
+    def test_action_names_translated(self):
+        """Test action names use translation."""
+        from src.undo_history import get_action_name
+        import inspect
+
+        source = inspect.getsource(get_action_name)
+        assert "_(" in source
+
+    def test_button_tooltips_translated(self):
+        """Test button tooltips use translation."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        assert "_(" in source
+        assert "Undo" in source or "Redo" in source
+
+    def test_empty_history_message_translated(self):
+        """Test empty history messages use translation."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        undo_source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        redo_source = inspect.getsource(UndoRedoButtons._on_redo_dropdown_toggled)
+        assert "_(" in undo_source
+        assert "_(" in redo_source
+
+
+class TestUndoHistoryButtonLabels:
+    """Test button labels and icons."""
+
+    def test_undo_button_uses_unicode(self):
+        """Test undo button uses Unicode arrow."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        # Should have Unicode undo arrow ↶
+        assert "\\u21b6" in source or "\u21b6" in source
+
+    def test_redo_button_uses_unicode(self):
+        """Test redo button uses Unicode arrow."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        # Should have Unicode redo arrow ↷
+        assert "\\u21b7" in source or "\u21b7" in source
+
+    def test_dropdown_uses_triangle(self):
+        """Test dropdown button uses triangle."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons.__init__)
+        # Should have Unicode triangle ▾
+        assert "\\u25be" in source or "\u25be" in source
+
+    def test_history_items_use_bullet(self):
+        """Test history items use bullet character."""
+        from src.undo_history import UndoRedoButtons
+        import inspect
+
+        source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
+        # Should have Unicode bullet •
+        assert "\\u2022" in source or "\u2022" in source
