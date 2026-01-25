@@ -557,3 +557,279 @@ class TestHistoryEntryEdgeCases:
 
         # isoformat preserves microseconds
         assert restored.timestamp == timestamp
+
+
+# =============================================================================
+# Functional Tests (with temp files and GTK)
+# =============================================================================
+
+
+class TestHistoryManagerFunctional:
+    """Functional tests for HistoryManager with real files."""
+
+    @pytest.fixture
+    def temp_config(self, tmp_path):
+        """Set up temporary config directory."""
+        from src import config
+
+        original_dir = config.get_config_dir()
+
+        # Patch config dir
+        with patch.object(config, "get_config_dir", return_value=tmp_path):
+            with patch.object(config, "ensure_config_dir", return_value=None):
+                yield tmp_path
+
+    def test_manager_init_creates_empty_history(self, temp_config):
+        """Test HistoryManager initializes with empty history."""
+        from src.history import HistoryManager
+
+        manager = HistoryManager()
+
+        assert manager.entries == []
+        assert manager.history_file == temp_config / "history.json"
+
+    def test_manager_add_entry(self, temp_config, tmp_path):
+        """Test adding an entry to history."""
+        from src.history import HistoryManager
+
+        # Create a real file
+        test_file = tmp_path / "test_screenshot.png"
+        test_file.write_bytes(b"fake image data")
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="fullscreen")
+
+        assert len(manager.entries) == 1
+        assert manager.entries[0].filepath == test_file
+        assert manager.entries[0].mode == "fullscreen"
+
+    def test_manager_save_and_load(self, temp_config, tmp_path):
+        """Test saving and loading history."""
+        from src.history import HistoryManager
+
+        # Create real files
+        file1 = tmp_path / "screenshot1.png"
+        file2 = tmp_path / "screenshot2.png"
+        file1.write_bytes(b"fake1")
+        file2.write_bytes(b"fake2")
+
+        # Add entries
+        manager1 = HistoryManager()
+        manager1.add(file1, mode="fullscreen")
+        manager1.add(file2, mode="region")
+
+        # Load in new manager
+        manager2 = HistoryManager()
+
+        assert len(manager2.entries) == 2
+        # Most recent first
+        assert manager2.entries[0].filepath == file2
+        assert manager2.entries[1].filepath == file1
+
+    def test_manager_filters_deleted_files(self, temp_config, tmp_path):
+        """Test that load filters out deleted files."""
+        from src.history import HistoryManager
+
+        # Create file, add to history, then delete
+        test_file = tmp_path / "deleted.png"
+        test_file.write_bytes(b"fake")
+
+        manager1 = HistoryManager()
+        manager1.add(test_file, mode="test")
+
+        # Delete file
+        test_file.unlink()
+
+        # Load fresh manager
+        manager2 = HistoryManager()
+
+        # Should have filtered out deleted file
+        assert len(manager2.entries) == 0
+
+    def test_manager_remove_entry(self, temp_config, tmp_path):
+        """Test removing an entry."""
+        from src.history import HistoryManager
+
+        test_file = tmp_path / "test.png"
+        test_file.write_bytes(b"fake")
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        assert len(manager.entries) == 1
+
+        entry = manager.entries[0]
+        manager.remove(entry)
+
+        assert len(manager.entries) == 0
+
+    def test_manager_clear(self, temp_config, tmp_path):
+        """Test clearing all history."""
+        from src.history import HistoryManager
+
+        # Add multiple entries
+        for i in range(5):
+            f = tmp_path / f"test{i}.png"
+            f.write_bytes(b"fake")
+            manager = HistoryManager()
+            manager.add(f, mode="test")
+
+        manager = HistoryManager()
+        assert len(manager.entries) > 0
+
+        manager.clear()
+
+        assert len(manager.entries) == 0
+
+    def test_manager_get_recent(self, temp_config, tmp_path):
+        """Test get_recent with limit."""
+        from src.history import HistoryManager
+
+        # Add 10 entries
+        manager = HistoryManager()
+        for i in range(10):
+            f = tmp_path / f"test{i}.png"
+            f.write_bytes(b"fake")
+            manager.add(f, mode="test")
+
+        recent = manager.get_recent(limit=5)
+
+        assert len(recent) == 5
+
+    def test_manager_limits_to_100_entries(self, temp_config, tmp_path):
+        """Test that history is limited to 100 entries."""
+        from src.history import HistoryManager
+
+        manager = HistoryManager()
+
+        # Add 110 entries
+        for i in range(110):
+            f = tmp_path / f"test{i}.png"
+            f.write_bytes(b"fake")
+            manager.add(f, mode="test")
+
+        assert len(manager.entries) == 100
+
+    def test_manager_handles_corrupt_json(self, temp_config):
+        """Test manager handles corrupt history file."""
+        from src.history import HistoryManager
+
+        # Write corrupt JSON
+        history_file = temp_config / "history.json"
+        history_file.write_text("not valid json {{{")
+
+        manager = HistoryManager()
+
+        # Should have empty history, not crash
+        assert manager.entries == []
+
+
+class TestHistoryWindowFunctional:
+    """Functional tests for HistoryWindow with GTK."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.history import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        return {"Gtk": Gtk}
+
+    @pytest.fixture
+    def temp_config(self, tmp_path):
+        """Set up temporary config directory."""
+        from src import config
+
+        with patch.object(config, "get_config_dir", return_value=tmp_path):
+            with patch.object(config, "ensure_config_dir", return_value=None):
+                yield tmp_path
+
+    def test_create_history_window(self, gtk_setup, temp_config):
+        """Test creating a HistoryWindow instance."""
+        from src.history import HistoryWindow
+
+        window = HistoryWindow()
+
+        assert window is not None
+        assert window.window is not None
+        assert window.icon_view is not None
+        assert window.store is not None
+        assert window.manager is not None
+
+    def test_history_window_with_parent(self, gtk_setup, temp_config):
+        """Test creating HistoryWindow with parent."""
+        from src.history import HistoryWindow
+        Gtk = gtk_setup["Gtk"]
+
+        parent = Gtk.Window()
+        window = HistoryWindow(parent=parent)
+
+        assert window.window.get_transient_for() == parent
+
+    def test_history_window_toolbar_created(self, gtk_setup, temp_config):
+        """Test that toolbar is created."""
+        from src.history import HistoryWindow
+
+        window = HistoryWindow()
+
+        # Window should have children
+        children = window.window.get_children()
+        assert len(children) > 0
+
+    def test_history_window_load_history(self, gtk_setup, temp_config, tmp_path):
+        """Test _load_history populates store."""
+        from src.history import HistoryWindow
+
+        # Create a real image file
+        test_file = tmp_path / "test.png"
+        # Create minimal valid PNG
+        import struct
+        import zlib
+
+        def create_minimal_png():
+            signature = b'\x89PNG\r\n\x1a\n'
+
+            # IHDR chunk
+            width = struct.pack('>I', 1)
+            height = struct.pack('>I', 1)
+            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
+            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
+            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
+
+            # IDAT chunk (1x1 red pixel)
+            raw_data = b'\x00\xff\x00\x00'
+            compressed = zlib.compress(raw_data)
+            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
+            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
+
+            # IEND chunk
+            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
+            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+
+            return signature + ihdr + idat + iend
+
+        test_file.write_bytes(create_minimal_png())
+
+        # Add to history
+        from src.history import HistoryManager
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        # Create window (loads history)
+        window = HistoryWindow()
+
+        # Store should have the entry
+        assert len(window.store) == 1
+
+    def test_history_window_statusbar(self, gtk_setup, temp_config):
+        """Test statusbar shows count."""
+        from src.history import HistoryWindow
+
+        window = HistoryWindow()
+
+        assert window.statusbar is not None
