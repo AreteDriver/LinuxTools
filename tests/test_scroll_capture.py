@@ -800,3 +800,311 @@ class TestScrollCaptureManagerClassMethods:
         from src.scroll_capture import ScrollCaptureManager
 
         assert hasattr(ScrollCaptureManager, "_estimate_total_height")
+
+
+class TestScrollCaptureFunctional:
+    """Functional tests requiring GTK and xvfb."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Setup GTK for testing."""
+        from src.scroll_capture import GTK_AVAILABLE
+
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+        import gi
+
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf
+
+        return {"GdkPixbuf": GdkPixbuf}
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_pixbuf_to_numpy(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test _pixbuf_to_numpy conversion."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager, _ensure_opencv
+
+        if not _ensure_opencv():
+            pytest.skip("OpenCV not available")
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+
+        # Create a simple pixbuf with known dimensions
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 50)
+        arr = manager._pixbuf_to_numpy(pixbuf)
+
+        assert arr.shape == (50, 100, 3)  # height, width, RGB
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_stitch_frames_single_frame(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test _stitch_frames with single frame."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 50)
+        manager.frames = [pixbuf]
+        manager.overlaps = []
+
+        result = manager._stitch_frames()
+        assert result == pixbuf  # Single frame returns as-is
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_stitch_frames_empty_raises(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test _stitch_frames with no frames raises error."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        manager = ScrollCaptureManager()
+        manager.frames = []
+
+        with pytest.raises(ValueError, match="No frames"):
+            manager._stitch_frames()
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_stitch_frames_multiple(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test _stitch_frames with multiple frames."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager, _ensure_opencv
+
+        if not _ensure_opencv():
+            pytest.skip("OpenCV not available")
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+
+        # Create two frames of same size
+        frame1 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 50)
+        frame2 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 50)
+        manager.frames = [frame1, frame2]
+        manager.overlaps = [10]  # 10px overlap
+
+        result = manager._stitch_frames()
+        # Total height should be 50 + (50 - 10) = 90
+        assert result.get_height() == 90
+        assert result.get_width() == 100
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_finish_capture_multiple_frames(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test finish_capture with multiple frames."""
+        from src.scroll_capture import (
+            DisplayServer,
+            ScrollCaptureManager,
+            ScrollState,
+            _ensure_opencv,
+        )
+
+        if not _ensure_opencv():
+            pytest.skip("OpenCV not available")
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+
+        frame1 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 60)
+        frame2 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 60)
+        frame3 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 60)
+        manager.frames = [frame1, frame2, frame3]
+        manager.overlaps = [15, 20]
+
+        result = manager.finish_capture()
+
+        assert result.success is True
+        assert result.frame_count == 3
+        # Total: 60 + (60-15) + (60-20) = 60 + 45 + 40 = 145
+        assert result.total_height == 145
+        assert manager.state == ScrollState.COMPLETED
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_find_overlap_returns_zero_no_opencv(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test _find_overlap returns 0 when opencv not available."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+
+        frame1 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 50)
+        frame2 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 50)
+
+        with patch("src.scroll_capture._ensure_opencv", return_value=False):
+            result = manager._find_overlap(frame1, frame2)
+            assert result == 0
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_find_overlap_with_real_pixbufs(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test _find_overlap with real pixbufs (may not find overlap with blank images)."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager, _ensure_opencv
+
+        if not _ensure_opencv():
+            pytest.skip("OpenCV not available")
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+
+        # Create blank frames - unlikely to find real overlap
+        frame1 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 100)
+        frame2 = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 100)
+
+        # This exercises the code path but blank images won't match
+        result = manager._find_overlap(frame1, frame2)
+        assert isinstance(result, int)
+        assert result >= 0
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_capture_frame_max_frames(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test capture_frame stops when max frames reached."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager, ScrollState
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+        manager = ScrollCaptureManager()
+        manager.state = ScrollState.CAPTURING
+        manager.region = (0, 0, 100, 100)
+
+        # Fill with max frames (default 50)
+        manager.frames = [
+            GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 100)
+            for _ in range(50)
+        ]
+
+        with patch("src.scroll_capture.config.load_config", return_value={"scroll_max_frames": 50}):
+            should_continue, error = manager.capture_frame()
+
+        assert should_continue is False
+        assert error is None  # Normal stop, not error
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_start_capture_with_callbacks(self, mock_run, mock_check, mock_detect, gtk_setup):
+        """Test start_capture stores callbacks correctly."""
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager, _ensure_opencv
+
+        if not _ensure_opencv():
+            pytest.skip("OpenCV not available")
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+
+        manager = ScrollCaptureManager()
+
+        progress_callback = MagicMock()
+        complete_callback = MagicMock()
+
+        with patch("src.scroll_capture.GTK_AVAILABLE", True):
+            with patch("src.scroll_capture._ensure_opencv", return_value=True):
+                success, error = manager.start_capture(
+                    0, 0, 800, 600,
+                    on_progress=progress_callback,
+                    on_complete=complete_callback
+                )
+
+        assert success is True
+        assert manager._on_progress == progress_callback
+        assert manager._on_complete == complete_callback
+
+
+class TestScrollCaptureManagerScrollTimeouts:
+    """Test scroll methods with timeouts."""
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_scroll_wayland_ydotool_timeout(self, mock_run, mock_check, mock_detect):
+        """Test _scroll_wayland handles ydotool timeout."""
+        import subprocess
+
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager
+
+        mock_detect.return_value = DisplayServer.WAYLAND
+        mock_check.return_value = True
+        mock_run.return_value = MagicMock()
+
+        manager = ScrollCaptureManager()
+        manager.wtype_available = False
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("ydotool", 1)):
+            result = manager._scroll_wayland()
+
+        assert result is False
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_scroll_wayland_wtype_timeout(self, mock_run, mock_check, mock_detect):
+        """Test _scroll_wayland handles wtype timeout."""
+        import subprocess
+
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager
+
+        mock_detect.return_value = DisplayServer.WAYLAND
+        mock_check.return_value = False
+        mock_run.return_value = MagicMock()
+
+        manager = ScrollCaptureManager()
+        manager.ydotool_available = False
+        manager.wtype_available = True
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("wtype", 1)):
+            result = manager._scroll_wayland()
+
+        assert result is False
+
+    @patch("src.scroll_capture.detect_display_server")
+    @patch("src.scroll_capture.config.check_tool_available")
+    @patch("subprocess.run")
+    def test_scroll_x11_timeout(self, mock_run, mock_check, mock_detect):
+        """Test _scroll_x11 handles timeout."""
+        import subprocess
+
+        from src.scroll_capture import DisplayServer, ScrollCaptureManager
+
+        mock_detect.return_value = DisplayServer.X11
+        mock_check.return_value = True
+        mock_run.return_value = MagicMock()
+
+        manager = ScrollCaptureManager()
+
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("xdotool", 1)):
+            result = manager._scroll_x11()
+
+        assert result is False
