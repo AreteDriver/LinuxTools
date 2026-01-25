@@ -57,6 +57,12 @@ from .scroll_overlay import ScrollCaptureOverlay
 from .tray import SystemTray
 from .uploader import Uploader
 
+# UX Enhancement modules
+from .quick_actions import QuickActionsPanel, create_selection_actions
+from .onboarding import OnboardingManager
+from .minimap import MinimapNavigator
+from .undo_history import UndoRedoButtons
+
 
 class RegionSelector:
     """Overlay window for selecting a screen region.
@@ -421,6 +427,11 @@ class EditorWindow:
         self._init_cursors()
         self._update_cursor()
 
+        # Initialize UX enhancements
+        self._init_quick_actions_panel()
+        self._init_minimap()
+        self._init_onboarding()
+
     def add_tab(self, result: CaptureResult, switch_to: bool = True) -> int:
         """Add a new tab with capture result.
 
@@ -737,6 +748,183 @@ class EditorWindow:
         else:
             self.drawing_area.get_window().set_cursor(self._arrow_cursor)
 
+    def _init_quick_actions_panel(self) -> None:
+        """Initialize the quick actions floating panel."""
+        self._quick_actions = QuickActionsPanel(self.window)
+        self._quick_actions.set_actions(create_selection_actions(self))
+
+    def _init_minimap(self) -> None:
+        """Initialize the minimap navigator."""
+        self._minimap = MinimapNavigator(
+            self.drawing_area,
+            on_navigate=self._on_minimap_navigate,
+        )
+        # Set initial image
+        if self.result and self.result.pixbuf:
+            self._minimap.set_image(self.result.pixbuf)
+        # Initially hidden, shown when zoomed
+        self._minimap.set_visible(False)
+        self._minimap_visible = False
+
+    def _init_onboarding(self) -> None:
+        """Initialize and start onboarding if first run."""
+        self._onboarding = OnboardingManager(self)
+        if self._onboarding.should_show():
+            self._onboarding.start()
+
+    def _on_minimap_navigate(self, img_x: float, img_y: float) -> None:
+        """Handle navigation from minimap click."""
+        if not self.editor_state or not self.result:
+            return
+
+        # Calculate scroll position to center on clicked point
+        scrolled = self.tabs[self.current_tab_index].scrolled_window
+        hadj = scrolled.get_hadjustment()
+        vadj = scrolled.get_vadjustment()
+
+        zoom = self.editor_state.zoom_level
+        viewport_w = hadj.get_page_size() / zoom
+        viewport_h = vadj.get_page_size() / zoom
+
+        # Scroll to center on the clicked point
+        new_h = (img_x - viewport_w / 2) * zoom
+        new_v = (img_y - viewport_h / 2) * zoom
+
+        hadj.set_value(max(0, min(new_h, hadj.get_upper() - hadj.get_page_size())))
+        vadj.set_value(max(0, min(new_v, vadj.get_upper() - vadj.get_page_size())))
+
+        self.drawing_area.queue_draw()
+
+    def _update_minimap(self) -> None:
+        """Update minimap with current viewport and annotations."""
+        if not hasattr(self, "_minimap") or not self._minimap:
+            return
+
+        if not self.editor_state or not self.result:
+            return
+
+        # Show minimap when zoomed in
+        zoom = self.editor_state.zoom_level
+        should_show = zoom > 1.2
+
+        if should_show != self._minimap_visible:
+            self._minimap.set_visible(should_show)
+            self._minimap_visible = should_show
+
+        if not should_show:
+            return
+
+        # Update viewport rectangle
+        scrolled = self.tabs[self.current_tab_index].scrolled_window
+        hadj = scrolled.get_hadjustment()
+        vadj = scrolled.get_vadjustment()
+
+        viewport_x = hadj.get_value() / zoom
+        viewport_y = vadj.get_value() / zoom
+        viewport_w = hadj.get_page_size() / zoom
+        viewport_h = vadj.get_page_size() / zoom
+
+        self._minimap.set_viewport(viewport_x, viewport_y, viewport_w, viewport_h)
+
+        # Update annotation markers
+        self._minimap.set_annotations(self.editor_state.elements)
+
+    def _show_quick_actions(self) -> None:
+        """Show the quick actions panel near the selection."""
+        if not self.editor_state or not self.editor_state.selected_indices:
+            return
+
+        # Get bounding box of all selected elements
+        all_x1, all_y1, all_x2, all_y2 = float("inf"), float("inf"), 0, 0
+        for idx in self.editor_state.selected_indices:
+            if 0 <= idx < len(self.editor_state.elements):
+                bbox = self.editor_state._get_element_bbox(self.editor_state.elements[idx])
+                if bbox:
+                    x1, y1, x2, y2 = bbox
+                    all_x1 = min(all_x1, x1)
+                    all_y1 = min(all_y1, y1)
+                    all_x2 = max(all_x2, x2)
+                    all_y2 = max(all_y2, y2)
+
+        if all_x1 == float("inf"):
+            return
+
+        # Convert to screen coordinates
+        zoom = self.editor_state.zoom_level
+        window = self.drawing_area.get_window()
+        if not window:
+            return
+
+        origin = window.get_origin()
+        if origin[0]:
+            win_x, win_y = origin[1], origin[2]
+        else:
+            return
+
+        screen_bbox = (
+            win_x + all_x1 * zoom,
+            win_y + all_y1 * zoom,
+            win_x + all_x2 * zoom,
+            win_y + all_y2 * zoom,
+        )
+
+        self._quick_actions.show_at(
+            int((screen_bbox[0] + screen_bbox[2]) / 2),
+            int(screen_bbox[1]),
+            screen_bbox,
+        )
+
+    def _hide_quick_actions(self) -> None:
+        """Hide the quick actions panel."""
+        if hasattr(self, "_quick_actions"):
+            self._quick_actions.hide()
+
+    # Quick action handler methods
+    def _delete_selected(self) -> None:
+        """Delete selected elements (for quick action)."""
+        if self.editor_state.delete_selected():
+            self._show_toast(_("Deleted"))
+            self.drawing_area.queue_draw()
+            self._hide_quick_actions()
+
+    def _duplicate_selected(self) -> None:
+        """Duplicate selected elements (for quick action)."""
+        if self.editor_state.duplicate_selected():
+            self._show_toast(_("Duplicated"))
+            self.drawing_area.queue_draw()
+
+    def _copy_annotations(self) -> None:
+        """Copy selected annotations (for quick action)."""
+        if self.editor_state.copy_selected():
+            count = len(self.editor_state.selected_indices)
+            self._show_toast(_("Copied {} annotation(s)").format(count))
+
+    def _bring_to_front(self) -> None:
+        """Bring selected elements to front (for quick action)."""
+        if self.editor_state.bring_to_front():
+            self._show_toast(_("Brought to front"))
+            self.drawing_area.queue_draw()
+
+    def _send_to_back(self) -> None:
+        """Send selected elements to back (for quick action)."""
+        if self.editor_state.send_to_back():
+            self._show_toast(_("Sent to back"))
+            self.drawing_area.queue_draw()
+
+    def _toggle_lock(self) -> None:
+        """Toggle lock on selected elements (for quick action)."""
+        if self.editor_state.toggle_lock_selected():
+            state = _("Locked") if self.editor_state.is_selection_locked() else _("Unlocked")
+            self._show_toast(state)
+            self.drawing_area.queue_draw()
+
+    def _group_selected(self) -> None:
+        """Group selected elements (for quick action)."""
+        if self.editor_state.group_selected():
+            count = len(self.editor_state.selected_indices)
+            self._show_toast(_("Grouped {} elements").format(count))
+            self.drawing_area.queue_draw()
+
     def _create_sidebar(self) -> Gtk.Box:
         """Create vertical tool sidebar."""
         css = b"""
@@ -1016,18 +1204,17 @@ class EditorWindow:
         # Spacer
         bar.pack_start(Gtk.Box(), True, True, 0)
 
-        # === EDIT GROUP (always visible) ===
-        edit_box = Gtk.Box(spacing=4)
-        for icon, cb, tip in [
-            ("↶", self._undo, "Undo (Ctrl+Z)"),
-            ("↷", self._redo, "Redo (Ctrl+Y)"),
-        ]:
-            btn = Gtk.Button(label=icon)
-            btn.set_tooltip_text(tip)
-            btn.get_style_context().add_class("ctx-btn")
-            btn.connect("clicked", lambda b, c=cb: c())
-            edit_box.pack_start(btn, False, False, 0)
-        bar.pack_start(edit_box, False, False, 0)
+        # === EDIT GROUP (always visible) - Enhanced Undo/Redo ===
+        self._undo_redo_buttons = UndoRedoButtons(
+            on_undo=self._undo,
+            on_redo=self._redo,
+            on_undo_to=self._undo_to,
+            on_redo_to=self._redo_to,
+            get_undo_stack=lambda: self.editor_state.undo_stack if self.editor_state else [],
+            get_redo_stack=lambda: self.editor_state.redo_stack if self.editor_state else [],
+            get_elements=lambda: self.editor_state.elements if self.editor_state else [],
+        )
+        bar.pack_start(self._undo_redo_buttons.get_widget(), False, False, 0)
 
         # Separator
         sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
@@ -1052,7 +1239,7 @@ class EditorWindow:
         return bar
 
     def _setup_inline_hex_picker(self) -> None:
-        """Create inline hexagonal color picker for toolbar."""
+        """Create inline hexagonal color picker for toolbar with recent colors."""
         import math
 
         # Color palette - 19 colors + 1 custom picker
@@ -1092,12 +1279,27 @@ class EditorWindow:
         canvas_w = int(hex_w * 10.5 + self._hex_size)
         canvas_h = int(hex_h * 2 + self._hex_size)
 
+        # Create vertical container for hex picker + recent colors
+        self._color_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+
         # Hexagon drawing area
         self._hex_canvas = Gtk.DrawingArea()
         self._hex_canvas.set_size_request(canvas_w, canvas_h)
         self._hex_canvas.connect("draw", self._draw_hex_palette)
         self._hex_canvas.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self._hex_canvas.connect("button-press-event", self._on_hex_click)
+        self._color_container.pack_start(self._hex_canvas, False, False, 0)
+
+        # Recent colors bar
+        self._recent_colors_bar = Gtk.DrawingArea()
+        self._recent_colors_bar.set_size_request(canvas_w, 16)
+        self._recent_colors_bar.connect("draw", self._draw_recent_colors)
+        self._recent_colors_bar.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self._recent_colors_bar.connect("button-press-event", self._on_recent_color_click)
+        self._color_container.pack_start(self._recent_colors_bar, False, False, 0)
+
+        # Replace single canvas with container
+        self._hex_canvas = self._color_container
 
     def _build_hex_positions(self) -> None:
         """Calculate center positions for each hexagon in 2-row honeycomb layout."""
@@ -1216,9 +1418,78 @@ class EditorWindow:
             self._custom_color = (rgba.red, rgba.green, rgba.blue)
             self._selected_hex_idx = self._custom_hex_idx
             self._set_color_rgb(rgba.red, rgba.green, rgba.blue)
-            self._hex_canvas.queue_draw()
+            self._color_container.queue_draw()
 
         dialog.destroy()
+
+    def _draw_recent_colors(self, widget, cr) -> bool:
+        """Draw the recent colors bar below the hex picker."""
+        if not self.editor_state:
+            return True
+
+        recent = self.editor_state.get_recent_colors()
+        if not recent:
+            # Draw placeholder text
+            cr.set_source_rgba(0.5, 0.5, 0.6, 0.6)
+            cr.select_font_face("Sans", 0, 0)
+            cr.set_font_size(9)
+            cr.move_to(4, 11)
+            cr.show_text(_("Recent colors appear here"))
+            return True
+
+        # Draw recent color swatches
+        swatch_size = 14
+        spacing = 2
+        x = 4
+
+        for color in recent[:8]:  # Max 8 recent colors
+            # Draw swatch background (for dark colors visibility)
+            cr.set_source_rgba(0.3, 0.3, 0.4, 0.5)
+            cr.rectangle(x - 1, 0, swatch_size + 2, swatch_size + 2)
+            cr.fill()
+
+            # Draw color swatch
+            cr.set_source_rgb(color.r, color.g, color.b)
+            cr.rectangle(x, 1, swatch_size, swatch_size)
+            cr.fill()
+
+            # Draw border
+            cr.set_source_rgba(0.6, 0.6, 0.7, 0.8)
+            cr.set_line_width(1)
+            cr.rectangle(x, 1, swatch_size, swatch_size)
+            cr.stroke()
+
+            x += swatch_size + spacing
+
+        return True
+
+    def _on_recent_color_click(self, widget, event) -> bool:
+        """Handle click on recent colors bar."""
+        if not self.editor_state:
+            return False
+
+        recent = self.editor_state.get_recent_colors()
+        if not recent:
+            return False
+
+        swatch_size = 14
+        spacing = 2
+        x = 4
+
+        for i, color in enumerate(recent[:8]):
+            if x <= event.x <= x + swatch_size and 1 <= event.y <= 1 + swatch_size:
+                self._set_color_rgb(color.r, color.g, color.b)
+                self._selected_hex_idx = -1  # Deselect preset colors
+                self._color_container.queue_draw()
+                return True
+            x += swatch_size + spacing
+
+        return False
+
+    def _refresh_recent_colors(self) -> None:
+        """Refresh the recent colors display."""
+        if hasattr(self, "_recent_colors_bar"):
+            self._recent_colors_bar.queue_draw()
 
     def _create_stamp_popover(self) -> None:
         """Create stamp selector popover."""
@@ -1446,13 +1717,60 @@ class EditorWindow:
         """Undo the last action."""
         if self.editor_state.undo():
             self.drawing_area.queue_draw()
-            self.statusbar.push(self.statusbar_context, "Undone")
+            self.statusbar.push(self.statusbar_context, _("Undone"))
+            self._update_undo_redo_sensitivity()
 
     def _redo(self) -> None:
         """Redo the last undone action."""
         if self.editor_state.redo():
             self.drawing_area.queue_draw()
-            self.statusbar.push(self.statusbar_context, "Redone")
+            self.statusbar.push(self.statusbar_context, _("Redone"))
+            self._update_undo_redo_sensitivity()
+
+    def _undo_to(self, index: int) -> None:
+        """Undo to a specific point in history.
+
+        Args:
+            index: Index in undo stack to revert to
+        """
+        if not self.editor_state:
+            return
+
+        # Undo multiple times to reach the target index
+        steps = len(self.editor_state.undo_stack) - index
+        for _step in range(steps):
+            if not self.editor_state.undo():
+                break
+
+        self.drawing_area.queue_draw()
+        self.statusbar.push(self.statusbar_context, _("Undone {} steps").format(steps))
+        self._update_undo_redo_sensitivity()
+
+    def _redo_to(self, index: int) -> None:
+        """Redo to a specific point in history.
+
+        Args:
+            index: Index in redo stack to advance to
+        """
+        if not self.editor_state:
+            return
+
+        # Redo multiple times to reach the target index
+        steps = len(self.editor_state.redo_stack) - index
+        for _step in range(steps):
+            if not self.editor_state.redo():
+                break
+
+        self.drawing_area.queue_draw()
+        self.statusbar.push(self.statusbar_context, _("Redone {} steps").format(steps))
+        self._update_undo_redo_sensitivity()
+
+    def _update_undo_redo_sensitivity(self) -> None:
+        """Update undo/redo button sensitivity."""
+        if hasattr(self, "_undo_redo_buttons") and self.editor_state:
+            can_undo = len(self.editor_state.undo_stack) > 0
+            can_redo = len(self.editor_state.redo_stack) > 0
+            self._undo_redo_buttons.update_sensitivity(can_undo, can_redo)
 
     def _clear(self) -> None:
         """Clear all drawings."""
@@ -2113,6 +2431,11 @@ class EditorWindow:
                     img_x, img_y, add_to_selection=bool(shift_held)
                 )
                 self.drawing_area.queue_draw()
+                # Show quick actions panel if something was selected
+                if self.editor_state.selected_indices:
+                    GLib.timeout_add(150, self._show_quick_actions)
+                else:
+                    self._hide_quick_actions()
             elif self.editor_state.current_tool == ToolType.TEXT:
                 # Show text input dialog
                 self._show_text_dialog(img_x, img_y)
@@ -2238,10 +2561,12 @@ class EditorWindow:
         return False
 
     def _update_zoom_label(self) -> None:
-        """Update the zoom percentage label."""
+        """Update the zoom percentage label and minimap."""
         if hasattr(self, "zoom_label"):
             percent = int(self.editor_state.zoom_level * 100)
             self.zoom_label.set_text(f"{percent}%")
+        # Update minimap visibility and viewport
+        self._update_minimap()
 
     def _show_text_dialog(self, x: float, y: float) -> None:
         """Show dialog to input text."""
