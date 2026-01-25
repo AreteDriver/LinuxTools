@@ -127,6 +127,56 @@ class TestGetActionName:
         result = get_action_name([], [])
         assert "modif" in result.lower()
 
+    def test_both_none_lists(self):
+        """Test with both None lists."""
+        from src.undo_history import get_action_name
+
+        result = get_action_name(None, None)
+        # Both None means len 0 = 0, so "modified"
+        assert "modif" in result.lower()
+
+    def test_single_element_modification(self):
+        """Test modification of single element."""
+        from src.undo_history import get_action_name
+
+        before = [MagicMock()]
+        after = [MagicMock()]
+        # Same length = modification
+        result = get_action_name(before, after)
+        assert "modif" in result.lower()
+
+    def test_large_add_count(self):
+        """Test adding many elements."""
+        from src.undo_history import get_action_name
+
+        before = []
+        after = [MagicMock() for _ in range(10)]
+
+        result = get_action_name(before, after)
+        assert "10" in result or "added" in result.lower()
+
+    def test_large_delete_count(self):
+        """Test deleting many elements."""
+        from src.undo_history import get_action_name
+
+        before = [MagicMock() for _ in range(7)]
+        after = []
+
+        result = get_action_name(before, after)
+        assert "7" in result or "delete" in result.lower()
+
+    def test_tool_value_access_for_new_element(self):
+        """Test that new element's tool.value is accessed for action name."""
+        from src.undo_history import get_action_name
+
+        elem = MagicMock()
+        elem.tool.value = "rectangle"
+        after = [elem]
+
+        result = get_action_name([], after)
+        # Should access tool.value and get a rectangle-related message
+        assert "rectangle" in result.lower() or "drew" in result.lower()
+
 
 class TestUndoHistoryEntry:
     """Test UndoHistoryEntry class."""

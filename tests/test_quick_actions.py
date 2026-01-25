@@ -420,3 +420,142 @@ class TestQuickActionsCssApplied:
         from src.quick_actions import _css_applied
 
         assert isinstance(_css_applied, bool)
+
+
+class TestCreateSelectionActionsCallbacks:
+    """Test callback behavior in create_selection_actions."""
+
+    def test_delete_action_calls_delete_selected(self):
+        """Test delete action calls _delete_selected."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+        mock_editor.editor_state.is_selection_locked.return_value = False
+
+        actions = create_selection_actions(mock_editor)
+
+        delete_action = next(a for a in actions if "Delete" in a.tooltip or "Del" in a.tooltip)
+        delete_action.callback()
+
+        mock_editor._delete_selected.assert_called_once()
+
+    def test_duplicate_action_calls_duplicate_selected(self):
+        """Test duplicate action calls _duplicate_selected."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+        mock_editor.editor_state.is_selection_locked.return_value = False
+
+        actions = create_selection_actions(mock_editor)
+
+        dup_action = next(a for a in actions if "Duplicate" in a.tooltip or "Ctrl+D" in a.tooltip)
+        dup_action.callback()
+
+        mock_editor._duplicate_selected.assert_called_once()
+
+    def test_copy_action_calls_copy_annotations(self):
+        """Test copy action calls _copy_annotations."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+
+        actions = create_selection_actions(mock_editor)
+
+        copy_action = next(a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip)
+        copy_action.callback()
+
+        mock_editor._copy_annotations.assert_called_once()
+
+    def test_bring_to_front_action(self):
+        """Test bring to front action calls _bring_to_front."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+
+        actions = create_selection_actions(mock_editor)
+
+        front_action = next(a for a in actions if "Front" in a.tooltip)
+        front_action.callback()
+
+        mock_editor._bring_to_front.assert_called_once()
+
+    def test_send_to_back_action(self):
+        """Test send to back action calls _send_to_back."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+
+        actions = create_selection_actions(mock_editor)
+
+        back_action = next(a for a in actions if "Back" in a.tooltip)
+        back_action.callback()
+
+        mock_editor._send_to_back.assert_called_once()
+
+    def test_lock_action_calls_toggle_lock(self):
+        """Test lock action calls _toggle_lock."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0]
+
+        actions = create_selection_actions(mock_editor)
+
+        lock_action = next(a for a in actions if "Lock" in a.tooltip)
+        lock_action.callback()
+
+        mock_editor._toggle_lock.assert_called_once()
+
+    def test_group_action_calls_group_selected(self):
+        """Test group action calls _group_selected."""
+        from src.quick_actions import create_selection_actions
+
+        mock_editor = MagicMock()
+        mock_editor.editor_state = MagicMock()
+        mock_editor.editor_state.selected_indices = [0, 1, 2]
+
+        actions = create_selection_actions(mock_editor)
+
+        group_action = next(a for a in actions if "Group" in a.tooltip)
+        group_action.callback()
+
+        mock_editor._group_selected.assert_called_once()
+
+
+class TestQuickActionsPanelMethods:
+    """Test QuickActionsPanel methods structure."""
+
+    def test_has_rebuild_buttons_method(self):
+        """Test QuickActionsPanel has _rebuild_buttons method."""
+        from src.quick_actions import QuickActionsPanel
+
+        assert hasattr(QuickActionsPanel, "_rebuild_buttons")
+
+    def test_has_on_leave_handler(self):
+        """Test QuickActionsPanel has _on_leave handler."""
+        from src.quick_actions import QuickActionsPanel
+
+        assert hasattr(QuickActionsPanel, "_on_leave")
+
+    def test_has_on_enter_handler(self):
+        """Test QuickActionsPanel has _on_enter handler."""
+        from src.quick_actions import QuickActionsPanel
+
+        assert hasattr(QuickActionsPanel, "_on_enter")
+
+    def test_has_delayed_hide_method(self):
+        """Test QuickActionsPanel has _delayed_hide method."""
+        from src.quick_actions import QuickActionsPanel
+
+        assert hasattr(QuickActionsPanel, "_delayed_hide")

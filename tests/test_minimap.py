@@ -205,3 +205,88 @@ class TestMinimapCssApplied:
         from src.minimap import _css_applied
 
         assert isinstance(_css_applied, bool)
+
+
+class TestMinimapNavigatorMethods:
+    """Test MinimapNavigator method signatures."""
+
+    def test_has_set_annotations_method(self):
+        """Test MinimapNavigator has set_annotations method."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "set_annotations")
+        assert callable(getattr(MinimapNavigator, "set_annotations"))
+
+    def test_has_on_draw_method(self):
+        """Test MinimapNavigator has _on_draw method."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_on_draw")
+
+    def test_has_navigate_to_method(self):
+        """Test MinimapNavigator has _navigate_to method."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_navigate_to")
+
+    def test_has_button_handlers(self):
+        """Test MinimapNavigator has button event handlers."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_on_button_press")
+        assert hasattr(MinimapNavigator, "_on_button_release")
+        assert hasattr(MinimapNavigator, "_on_motion")
+
+    def test_has_apply_styles_method(self):
+        """Test MinimapNavigator has _apply_styles method."""
+        from src.minimap import MinimapNavigator
+
+        assert hasattr(MinimapNavigator, "_apply_styles")
+
+
+class TestMinimapNavigatorInstanceVars:
+    """Test MinimapNavigator expected instance variables."""
+
+    def test_init_signature_includes_on_navigate(self):
+        """Test __init__ requires on_navigate parameter."""
+        from src.minimap import GTK_AVAILABLE
+
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        sig = inspect.signature(MinimapNavigator.__init__)
+        params = list(sig.parameters.keys())
+        assert "on_navigate" in params
+
+    def test_has_visible_attribute_doc(self):
+        """Test MinimapNavigator mentions visible attribute."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "visible" in source
+
+    def test_has_dragging_attribute_doc(self):
+        """Test MinimapNavigator has _dragging attribute."""
+        from src.minimap import MinimapNavigator
+        import inspect
+
+        source = inspect.getsource(MinimapNavigator.__init__)
+        assert "_dragging" in source
+
+
+class TestCreateMinimapOverlayReturnType:
+    """Test create_minimap_overlay function behavior."""
+
+    def test_function_returns_minimap_navigator(self):
+        """Test function return type annotation."""
+        from src.minimap import create_minimap_overlay
+        import inspect
+
+        annotations = create_minimap_overlay.__annotations__
+        assert "return" in annotations
+        # Return type should be MinimapNavigator
+        assert "MinimapNavigator" in str(annotations["return"])

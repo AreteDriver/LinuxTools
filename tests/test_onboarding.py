@@ -256,3 +256,48 @@ class TestOnboardingConfigIntegration:
         from src.onboarding import OnboardingManager
 
         assert OnboardingManager.CONFIG_KEY == "onboarding_completed"
+
+    def test_reset_sets_config_to_false(self):
+        """Test reset() sets onboarding_completed to False."""
+        from src.onboarding import OnboardingManager
+
+        with patch("src.onboarding.config.load_config") as mock_load:
+            with patch("src.onboarding.config.save_config") as mock_save:
+                mock_load.return_value = {"onboarding_completed": True}
+
+                with patch("src.onboarding.GTK_AVAILABLE", True):
+                    with patch("src.onboarding.OnboardingTooltip"):
+                        mock_editor = MagicMock()
+                        mock_editor.window = MagicMock()
+                        manager = OnboardingManager(mock_editor)
+
+                        manager.reset()
+
+                        # Verify save_config was called with False
+                        mock_save.assert_called()
+                        saved_cfg = mock_save.call_args[0][0]
+                        assert saved_cfg["onboarding_completed"] is False
+
+    def test_reset_preserves_other_config_keys(self):
+        """Test reset() preserves other config keys."""
+        from src.onboarding import OnboardingManager
+
+        with patch("src.onboarding.config.load_config") as mock_load:
+            with patch("src.onboarding.config.save_config") as mock_save:
+                mock_load.return_value = {
+                    "onboarding_completed": True,
+                    "other_setting": "value",
+                    "another": 42,
+                }
+
+                with patch("src.onboarding.GTK_AVAILABLE", True):
+                    with patch("src.onboarding.OnboardingTooltip"):
+                        mock_editor = MagicMock()
+                        mock_editor.window = MagicMock()
+                        manager = OnboardingManager(mock_editor)
+
+                        manager.reset()
+
+                        saved_cfg = mock_save.call_args[0][0]
+                        assert saved_cfg["other_setting"] == "value"
+                        assert saved_cfg["another"] == 42
