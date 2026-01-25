@@ -21,6 +21,9 @@ except (ImportError, ValueError):
 if TYPE_CHECKING:
     pass  # Types imported for documentation only
 
+# Module-level flag to prevent CSS provider accumulation
+_css_applied = False
+
 
 class MinimapNavigator:
     """A small minimap overlay showing the full image with viewport and annotations."""
@@ -83,7 +86,12 @@ class MinimapNavigator:
         self._apply_styles()
 
     def _apply_styles(self) -> None:
-        """Apply CSS styles."""
+        """Apply CSS styles (only once per process)."""
+        global _css_applied
+        if _css_applied:
+            return
+        _css_applied = True
+
         css = b"""
         .minimap-container {
             background: rgba(20, 20, 30, 0.85);
@@ -112,6 +120,10 @@ class MinimapNavigator:
         # Calculate scale to fit in max dimensions
         img_w = pixbuf.get_width()
         img_h = pixbuf.get_height()
+
+        # Guard against zero-dimension images to prevent division by zero
+        if img_w <= 0 or img_h <= 0:
+            return
 
         scale_w = self.MAX_WIDTH / img_w
         scale_h = self.MAX_HEIGHT / img_h
