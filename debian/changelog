@@ -1,3 +1,17 @@
+likx (3.30.0-1) unstable; urgency=medium
+
+  * Add minimap navigator for zoomed image navigation
+  * Add interactive onboarding tooltips for first-run tutorial
+  * Add quick actions floating panel for selected elements
+  * Add undo history panel with visual state preview
+  * Improve editor state management and type safety
+  * Add GitHub issue/PR templates and dependabot config
+  * Add CodeQL security scanning workflow
+  * Add pre-commit hooks configuration
+  * 1214 tests with comprehensive coverage
+
+ -- AreteDriver <aretedriver@users.noreply.github.com>  Sat, 25 Jan 2026 08:00:00 +0000
+
 likx (3.24.0-1) unstable; urgency=medium
 
   * Add Wayland support for scroll capture (ydotool/wtype)
