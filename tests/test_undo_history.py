@@ -846,3 +846,335 @@ class TestUndoHistoryButtonLabels:
         source = inspect.getsource(UndoRedoButtons._on_undo_dropdown_toggled)
         # Should have Unicode bullet •
         assert "\\u2022" in source or "\u2022" in source
+
+
+# =============================================================================
+# Functional GTK Tests (require xvfb or display)
+# =============================================================================
+
+
+class TestUndoRedoButtonsFunctional:
+    """Functional tests for UndoRedoButtons."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.undo_history import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        return {"Gtk": Gtk}
+
+    def test_create_buttons(self, gtk_setup):
+        """Test creating UndoRedoButtons instance."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        assert buttons is not None
+        assert buttons.undo_btn is not None
+        assert buttons.redo_btn is not None
+        assert buttons.undo_dropdown is not None
+        assert buttons.redo_dropdown is not None
+        assert buttons.container is not None
+
+    def test_get_widget(self, gtk_setup):
+        """Test get_widget returns container."""
+        from src.undo_history import UndoRedoButtons
+        Gtk = gtk_setup["Gtk"]
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        widget = buttons.get_widget()
+        assert isinstance(widget, Gtk.Box)
+        assert widget == buttons.container
+
+    def test_update_sensitivity_can_undo(self, gtk_setup):
+        """Test update_sensitivity with can_undo=True."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        buttons.update_sensitivity(can_undo=True, can_redo=False)
+
+        assert buttons.undo_btn.get_sensitive() is True
+        assert buttons.undo_dropdown.get_sensitive() is True
+        assert buttons.redo_btn.get_sensitive() is False
+        assert buttons.redo_dropdown.get_sensitive() is False
+
+    def test_update_sensitivity_can_redo(self, gtk_setup):
+        """Test update_sensitivity with can_redo=True."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        buttons.update_sensitivity(can_undo=False, can_redo=True)
+
+        assert buttons.undo_btn.get_sensitive() is False
+        assert buttons.redo_btn.get_sensitive() is True
+
+    def test_update_sensitivity_both(self, gtk_setup):
+        """Test update_sensitivity with both enabled."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        buttons.update_sensitivity(can_undo=True, can_redo=True)
+
+        assert buttons.undo_btn.get_sensitive() is True
+        assert buttons.redo_btn.get_sensitive() is True
+
+    def test_undo_button_click_calls_callback(self, gtk_setup):
+        """Test clicking undo button calls callback."""
+        from src.undo_history import UndoRedoButtons
+
+        undo_called = []
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: undo_called.append(True),
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        # Simulate click by calling the callback directly
+        buttons.on_undo()
+
+        assert len(undo_called) == 1
+
+    def test_redo_button_click_calls_callback(self, gtk_setup):
+        """Test clicking redo button calls callback."""
+        from src.undo_history import UndoRedoButtons
+
+        redo_called = []
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: redo_called.append(True),
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        buttons.on_redo()
+
+        assert len(redo_called) == 1
+
+    def test_popovers_created(self, gtk_setup):
+        """Test that popovers are created."""
+        from src.undo_history import UndoRedoButtons
+        Gtk = gtk_setup["Gtk"]
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        assert isinstance(buttons.undo_popover, Gtk.Popover)
+        assert isinstance(buttons.redo_popover, Gtk.Popover)
+
+    def test_undo_dropdown_toggle_empty_stack(self, gtk_setup):
+        """Test undo dropdown with empty stack."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        # Simulate dropdown toggle
+        mock_button = MagicMock()
+        mock_button.get_active.return_value = True
+
+        buttons._on_undo_dropdown_toggled(mock_button)
+
+        # Should have created "No undo history" label
+        children = buttons.undo_list.get_children()
+        assert len(children) == 1
+
+    def test_redo_dropdown_toggle_empty_stack(self, gtk_setup):
+        """Test redo dropdown with empty stack."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        mock_button = MagicMock()
+        mock_button.get_active.return_value = True
+
+        buttons._on_redo_dropdown_toggled(mock_button)
+
+        children = buttons.redo_list.get_children()
+        assert len(children) == 1
+
+    def test_undo_dropdown_with_stack(self, gtk_setup):
+        """Test undo dropdown with items in stack."""
+        from src.undo_history import UndoRedoButtons
+
+        # Create mock elements
+        elem1 = MagicMock()
+        elem1.tool.value = "rectangle"
+
+        elem2 = MagicMock()
+        elem2.tool.value = "pen"
+
+        undo_stack = [
+            [],  # State before first action
+            [elem1],  # State after first action
+        ]
+
+        current_elements = [elem1, elem2]
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: undo_stack,
+            get_redo_stack=lambda: [],
+            get_elements=lambda: current_elements,
+        )
+
+        mock_button = MagicMock()
+        mock_button.get_active.return_value = True
+
+        buttons._on_undo_dropdown_toggled(mock_button)
+
+        # Should have history items
+        children = buttons.undo_list.get_children()
+        assert len(children) >= 1
+
+    def test_undo_item_clicked(self, gtk_setup):
+        """Test clicking undo history item."""
+        from src.undo_history import UndoRedoButtons
+
+        undo_to_called = []
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: undo_to_called.append(idx),
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        mock_button = MagicMock()
+        buttons._on_undo_item_clicked(mock_button, 2)
+
+        assert undo_to_called == [2]
+
+    def test_redo_item_clicked(self, gtk_setup):
+        """Test clicking redo history item."""
+        from src.undo_history import UndoRedoButtons
+
+        redo_to_called = []
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: redo_to_called.append(idx),
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        mock_button = MagicMock()
+        buttons._on_redo_item_clicked(mock_button, 3)
+
+        assert redo_to_called == [3]
+
+    def test_dropdown_not_active_returns_early(self, gtk_setup):
+        """Test dropdown does nothing when not active."""
+        from src.undo_history import UndoRedoButtons
+
+        buttons = UndoRedoButtons(
+            on_undo=lambda: None,
+            on_redo=lambda: None,
+            on_undo_to=lambda idx: None,
+            on_redo_to=lambda idx: None,
+            get_undo_stack=lambda: [],
+            get_redo_stack=lambda: [],
+            get_elements=lambda: [],
+        )
+
+        mock_button = MagicMock()
+        mock_button.get_active.return_value = False
+
+        # Clear existing children
+        for child in buttons.undo_list.get_children():
+            buttons.undo_list.remove(child)
+
+        buttons._on_undo_dropdown_toggled(mock_button)
+
+        # Should not have added any children
+        children = buttons.undo_list.get_children()
+        assert len(children) == 0

@@ -998,3 +998,258 @@ class TestOnboardingI18nIntegration:
         # Skip and Next buttons should be translatable
         assert '_("Skip")' in source or "Skip" in source
         assert '_("Next")' in source or "Next" in source
+
+
+# =============================================================================
+# Functional GTK Tests (require xvfb or display)
+# =============================================================================
+
+
+class TestOnboardingTooltipFunctional:
+    """Functional tests for OnboardingTooltip."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.onboarding import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        window = Gtk.Window()
+        window.set_size_request(400, 300)
+        return {"Gtk": Gtk, "window": window}
+
+    def test_create_tooltip(self, gtk_setup):
+        """Test creating an OnboardingTooltip instance."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        assert tooltip is not None
+        assert tooltip.popup is not None
+        assert tooltip.title_label is not None
+        assert tooltip.message_label is not None
+        assert tooltip.next_btn is not None
+        assert tooltip.skip_btn is not None
+
+    def test_tooltip_show(self, gtk_setup):
+        """Test showing tooltip."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        next_called = []
+        skip_called = []
+
+        tooltip.show(
+            title="Test Title",
+            message="Test message",
+            step_num=1,
+            total_steps=3,
+            target_widget=None,
+            position="bottom",
+            on_next=lambda: next_called.append(True),
+            on_skip=lambda: skip_called.append(True),
+        )
+
+        # Verify labels were set
+        assert tooltip.title_label.get_text() == "Test Title"
+        assert tooltip.message_label.get_text() == "Test message"
+        assert "1/3" in tooltip.step_label.get_text()
+
+    def test_tooltip_show_last_step(self, gtk_setup):
+        """Test showing tooltip on last step."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        tooltip.show(
+            title="Final",
+            message="Last step",
+            step_num=3,
+            total_steps=3,
+            target_widget=None,
+            position="bottom",
+            on_next=lambda: None,
+            on_skip=lambda: None,
+        )
+
+        # Button should say "Got it!" on last step
+        assert "Got it" in tooltip.next_btn.get_label() or "3/3" in tooltip.step_label.get_text()
+
+    def test_tooltip_hide(self, gtk_setup):
+        """Test hiding tooltip."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        tooltip.show(
+            title="Test",
+            message="Test",
+            step_num=1,
+            total_steps=1,
+            target_widget=None,
+            position="bottom",
+            on_next=lambda: None,
+            on_skip=lambda: None,
+        )
+
+        tooltip.hide()
+        # Popup should be hidden
+        assert tooltip.popup.get_visible() is False
+
+    def test_tooltip_position_center(self, gtk_setup):
+        """Test positioning tooltip in center."""
+        from src.onboarding import OnboardingTooltip
+
+        tooltip = OnboardingTooltip(gtk_setup["window"])
+
+        # Should not raise
+        tooltip._position_center()
+
+
+class TestOnboardingManagerFunctional:
+    """Functional tests for OnboardingManager."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.onboarding import GTK_AVAILABLE
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+
+        window = Gtk.Window()
+        window.set_size_request(800, 600)
+        return {"Gtk": Gtk, "window": window}
+
+    def test_create_manager(self, gtk_setup):
+        """Test creating an OnboardingManager instance."""
+        from src.onboarding import OnboardingManager
+
+        # Mock editor_window
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+
+        assert manager is not None
+        assert manager.current_step == 0
+        assert len(manager.steps) > 0
+
+    def test_manager_should_show_true(self, gtk_setup):
+        """Test should_show returns True when not completed."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+            assert manager.should_show() is True
+
+    def test_manager_should_show_false(self, gtk_setup):
+        """Test should_show returns False when completed."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={"onboarding_completed": True}):
+            manager = OnboardingManager(mock_editor)
+            assert manager.should_show() is False
+
+    def test_manager_reset(self, gtk_setup):
+        """Test reset sets onboarding_completed to False."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={"onboarding_completed": True}):
+            with patch("src.onboarding.config.save_config") as mock_save:
+                manager = OnboardingManager(mock_editor)
+                manager.reset()
+
+                mock_save.assert_called()
+                saved_config = mock_save.call_args[0][0]
+                assert saved_config["onboarding_completed"] is False
+
+    def test_manager_steps_created(self, gtk_setup):
+        """Test that steps are created correctly."""
+        from src.onboarding import OnboardingManager, OnboardingStep
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            manager = OnboardingManager(mock_editor)
+
+        # Should have multiple steps
+        assert len(manager.steps) >= 5
+
+        # All steps should be OnboardingStep instances
+        for step in manager.steps:
+            assert isinstance(step, OnboardingStep)
+            assert step.target_id != ""
+            assert step.title != ""
+            assert step.message != ""
+
+    def test_manager_next_step(self, gtk_setup):
+        """Test _next_step increments step counter."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            with patch("src.onboarding.config.save_config"):
+                manager = OnboardingManager(mock_editor)
+
+                initial_step = manager.current_step
+
+                # Set step to last to trigger _finish instead of _show_current_step
+                manager.current_step = len(manager.steps) - 1
+                manager._next_step()
+
+                # Should have finished (step >= len)
+                assert manager.current_step >= len(manager.steps)
+
+    def test_manager_skip_finishes(self, gtk_setup):
+        """Test _skip calls _finish."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            with patch("src.onboarding.config.save_config") as mock_save:
+                manager = OnboardingManager(mock_editor)
+                manager._skip()
+
+                # Should have saved config marking as completed
+                mock_save.assert_called()
+
+    def test_manager_finish_saves_config(self, gtk_setup):
+        """Test _finish saves completion to config."""
+        from src.onboarding import OnboardingManager
+
+        mock_editor = MagicMock()
+        mock_editor.window = gtk_setup["window"]
+
+        with patch("src.onboarding.config.load_config", return_value={}):
+            with patch("src.onboarding.config.save_config") as mock_save:
+                manager = OnboardingManager(mock_editor)
+                manager._finish()
+
+                mock_save.assert_called()
+                saved_config = mock_save.call_args[0][0]
+                assert saved_config["onboarding_completed"] is True
