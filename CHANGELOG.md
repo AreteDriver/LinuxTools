@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Refactored `_on_key_press` complexity from 75 to 30 using dispatch tables
 
+## [3.30.0] - 2026-01-25
+
+### Added
+- Minimap panel for document navigation and overview
+- Onboarding tooltips for first-time users
+- Quick actions toolbar for common operations
+- Undo history panel with visual timeline
+- Capture queue for batch processing
+- System tray integration
+
+### Fixed
+- Security: Replaced `tempfile.mktemp()` with `tempfile.mkstemp()` to prevent race condition vulnerabilities
+
+### Changed
+- Expanded test coverage (300+ new tests across 8 modules)
+
 ## [3.29.0] - 2026-01-19
 
 ### Added
@@ -173,7 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 For detailed changes, see the [commit history](https://github.com/AreteDriver/LikX/commits/main).
 
-[Unreleased]: https://github.com/AreteDriver/LikX/compare/v3.29.0...HEAD
+[Unreleased]: https://github.com/AreteDriver/LikX/compare/v3.30.0...HEAD
+[3.30.0]: https://github.com/AreteDriver/LikX/releases/tag/v3.30.0
 [3.29.0]: https://github.com/AreteDriver/LikX/releases/tag/v3.29.0
 [3.28.0]: https://github.com/AreteDriver/LikX/releases/tag/v3.28.0
 [3.27.0]: https://github.com/AreteDriver/LikX/releases/tag/v3.27.0

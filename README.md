@@ -181,7 +181,13 @@ LikX/
 │   ├── recorder.py          # GIF recording
 │   ├── recording_overlay.py # GIF recording UI
 │   ├── scroll_capture.py    # Scrolling screenshots
-│   └── scroll_overlay.py    # Scroll capture UI
+│   ├── scroll_overlay.py    # Scroll capture UI
+│   ├── minimap.py           # Document navigation minimap
+│   ├── onboarding.py        # First-time user tooltips
+│   ├── quick_actions.py     # Quick action toolbar
+│   ├── undo_history.py      # Visual undo timeline
+│   ├── queue.py             # Capture batch queue
+│   └── tray.py              # System tray integration
 ├── locale/                  # Translation files (8 languages)
 │   ├── likx.pot             # Translation template
 │   ├── es/LC_MESSAGES/      # Spanish
