@@ -127,8 +127,10 @@ class GifRecorder:
         self.region = (x, y, width, height)
         self._on_state_change = on_state_change
 
-        # Create temp file for raw video capture
-        self.temp_video = Path(tempfile.mktemp(suffix=".mp4"))
+        # Create temp file for raw video capture (mkstemp for race-condition safety)
+        fd, temp_path = tempfile.mkstemp(suffix=".mp4")
+        os.close(fd)
+        self.temp_video = Path(temp_path)
 
         cfg = config.load_config()
         fps = cfg.get("gif_fps", 15)
@@ -394,7 +396,10 @@ class GifRecorder:
         dither_opts = self._get_dither_options(dither)
 
         # Two-pass encoding for optimal GIF quality with palette
-        palette_path = Path(tempfile.mktemp(suffix=".png"))
+        # Use mkstemp for race-condition safety
+        fd, temp_palette = tempfile.mkstemp(suffix=".png")
+        os.close(fd)
+        palette_path = Path(temp_palette)
 
         try:
             # Pass 1: Generate palette
