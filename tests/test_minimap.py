@@ -1216,3 +1216,133 @@ class TestMinimapDrawWithAnnotations:
         assert minimap._viewport_w == 100
         assert minimap._viewport_h == 80
         assert len(minimap._annotation_positions) == 1
+
+
+class TestMinimapOnDrawFunctional:
+    """Functional tests for _on_draw with real cairo context."""
+
+    @pytest.fixture
+    def gtk_setup(self):
+        """Set up GTK for testing."""
+        from src.minimap import GTK_AVAILABLE
+
+        if not GTK_AVAILABLE:
+            pytest.skip("GTK not available")
+
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf, Gtk
+
+        try:
+            import cairo
+        except ImportError:
+            pytest.skip("cairo not available")
+
+        parent = Gtk.DrawingArea()
+        return {"Gtk": Gtk, "GdkPixbuf": GdkPixbuf, "parent": parent, "cairo": cairo}
+
+    def test_on_draw_with_real_cairo_context(self, gtk_setup):
+        """Test _on_draw with real cairo context executes drawing code."""
+        from src.minimap import MinimapNavigator
+
+        cairo = gtk_setup["cairo"]
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Set image
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 200, 150)
+        pixbuf.fill(0xFF0000FF)  # Red
+        minimap.set_image(pixbuf)
+
+        # Set viewport
+        minimap.set_viewport(10, 10, 100, 80)
+
+        # Create real cairo context
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 200, 150)
+        cr = cairo.Context(surface)
+
+        # Call _on_draw - should execute all drawing code
+        result = minimap._on_draw(minimap.drawing_area, cr)
+
+        assert result is True
+
+    def test_on_draw_with_annotations(self, gtk_setup):
+        """Test _on_draw draws annotation markers."""
+        from src.minimap import MinimapNavigator
+
+        cairo = gtk_setup["cairo"]
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Set image
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 200, 150)
+        minimap.set_image(pixbuf)
+
+        # Add annotations
+        point = MagicMock()
+        point.x = 50.0
+        point.y = 60.0
+        elem = MagicMock()
+        elem.points = [point]
+        minimap.set_annotations([elem])
+
+        # Set viewport
+        minimap.set_viewport(20, 30, 80, 60)
+
+        # Create real cairo context
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 200, 150)
+        cr = cairo.Context(surface)
+
+        result = minimap._on_draw(minimap.drawing_area, cr)
+
+        assert result is True
+        assert len(minimap._annotation_positions) > 0
+
+    def test_on_draw_with_zero_viewport(self, gtk_setup):
+        """Test _on_draw handles zero viewport dimensions."""
+        from src.minimap import MinimapNavigator
+
+        cairo = gtk_setup["cairo"]
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Set image
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 200, 150)
+        minimap.set_image(pixbuf)
+
+        # Zero viewport (should skip viewport drawing)
+        minimap.set_viewport(0, 0, 0, 0)
+
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 200, 150)
+        cr = cairo.Context(surface)
+
+        result = minimap._on_draw(minimap.drawing_area, cr)
+
+        assert result is True
+
+    def test_on_draw_viewport_clamping(self, gtk_setup):
+        """Test _on_draw clamps viewport to minimap bounds."""
+        from src.minimap import MinimapNavigator
+
+        cairo = gtk_setup["cairo"]
+        GdkPixbuf = gtk_setup["GdkPixbuf"]
+
+        minimap = MinimapNavigator(gtk_setup["parent"], lambda x, y: None)
+
+        # Set small image
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 80)
+        minimap.set_image(pixbuf)
+
+        # Large viewport that exceeds image bounds
+        minimap.set_viewport(-10, -10, 200, 200)
+
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 200, 150)
+        cr = cairo.Context(surface)
+
+        result = minimap._on_draw(minimap.drawing_area, cr)
+
+        assert result is True

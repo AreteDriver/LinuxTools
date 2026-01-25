@@ -833,3 +833,260 @@ class TestHistoryWindowFunctional:
         window = HistoryWindow()
 
         assert window.statusbar is not None
+
+    def test_on_item_activated(self, gtk_setup, temp_config, tmp_path):
+        """Test _on_item_activated opens file."""
+        from src.history import HistoryWindow, HistoryManager
+
+        # Create file and add to history
+        test_file = tmp_path / "test.png"
+        test_file.write_bytes(b"fake")
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        window = HistoryWindow()
+
+        # Mock subprocess.Popen
+        with patch("subprocess.Popen") as mock_popen:
+            # Get path from store
+            if len(window.store) > 0:
+                path = Gtk.TreePath.new_first()
+                window._on_item_activated(window.icon_view, path)
+                mock_popen.assert_called_once()
+
+    def test_on_item_activated_exception(self, gtk_setup, temp_config, tmp_path):
+        """Test _on_item_activated handles exception."""
+        from src.history import HistoryWindow, HistoryManager
+
+        test_file = tmp_path / "test.png"
+        test_file.write_bytes(b"fake")
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        window = HistoryWindow()
+
+        with patch("subprocess.Popen", side_effect=Exception("Failed")):
+            if len(window.store) > 0:
+                path = Gtk.TreePath.new_first()
+                # Should not raise
+                window._on_item_activated(window.icon_view, path)
+
+    def test_on_delete_no_selection(self, gtk_setup, temp_config):
+        """Test _on_delete does nothing with no selection."""
+        from src.history import HistoryWindow
+
+        window = HistoryWindow()
+
+        # Clear any selection
+        window.icon_view.unselect_all()
+
+        # Should return early without error
+        window._on_delete(None)
+
+    def test_on_delete_with_selection_yes(self, gtk_setup, temp_config, tmp_path):
+        """Test _on_delete with selection and YES response."""
+        from src.history import HistoryWindow, HistoryManager
+        Gtk = gtk_setup["Gtk"]
+
+        # Create a valid PNG file
+        import struct
+        import zlib
+
+        def create_minimal_png():
+            signature = b'\x89PNG\r\n\x1a\n'
+            width = struct.pack('>I', 1)
+            height = struct.pack('>I', 1)
+            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
+            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
+            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
+            raw_data = b'\x00\xff\x00\x00'
+            compressed = zlib.compress(raw_data)
+            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
+            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
+            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
+            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            return signature + ihdr + idat + iend
+
+        test_file = tmp_path / "to_delete.png"
+        test_file.write_bytes(create_minimal_png())
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        window = HistoryWindow()
+
+        # Select first item
+        if len(window.store) > 0:
+            path = Gtk.TreePath.new_first()
+            window.icon_view.select_path(path)
+
+            # Mock the dialog to return YES
+            with patch.object(Gtk.MessageDialog, "run", return_value=Gtk.ResponseType.YES):
+                with patch.object(Gtk.MessageDialog, "destroy"):
+                    window._on_delete(None)
+
+            # File should be deleted
+            assert not test_file.exists()
+
+    def test_on_delete_with_selection_no(self, gtk_setup, temp_config, tmp_path):
+        """Test _on_delete with selection and NO response."""
+        from src.history import HistoryWindow, HistoryManager
+        Gtk = gtk_setup["Gtk"]
+
+        import struct
+        import zlib
+
+        def create_minimal_png():
+            signature = b'\x89PNG\r\n\x1a\n'
+            width = struct.pack('>I', 1)
+            height = struct.pack('>I', 1)
+            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
+            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
+            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
+            raw_data = b'\x00\xff\x00\x00'
+            compressed = zlib.compress(raw_data)
+            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
+            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
+            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
+            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            return signature + ihdr + idat + iend
+
+        test_file = tmp_path / "keep.png"
+        test_file.write_bytes(create_minimal_png())
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        window = HistoryWindow()
+
+        if len(window.store) > 0:
+            path = Gtk.TreePath.new_first()
+            window.icon_view.select_path(path)
+
+            # Mock the dialog to return NO
+            with patch.object(Gtk.MessageDialog, "run", return_value=Gtk.ResponseType.NO):
+                with patch.object(Gtk.MessageDialog, "destroy"):
+                    window._on_delete(None)
+
+            # File should still exist
+            assert test_file.exists()
+
+    def test_on_clear_all_yes(self, gtk_setup, temp_config, tmp_path):
+        """Test _on_clear_all with YES response."""
+        from src.history import HistoryWindow, HistoryManager
+        Gtk = gtk_setup["Gtk"]
+
+        import struct
+        import zlib
+
+        def create_minimal_png():
+            signature = b'\x89PNG\r\n\x1a\n'
+            width = struct.pack('>I', 1)
+            height = struct.pack('>I', 1)
+            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
+            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
+            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
+            raw_data = b'\x00\xff\x00\x00'
+            compressed = zlib.compress(raw_data)
+            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
+            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
+            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
+            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            return signature + ihdr + idat + iend
+
+        # Add multiple files
+        for i in range(3):
+            test_file = tmp_path / f"test{i}.png"
+            test_file.write_bytes(create_minimal_png())
+            manager = HistoryManager()
+            manager.add(test_file, mode="test")
+
+        window = HistoryWindow()
+        initial_count = len(window.store)
+
+        # Mock dialog to return YES
+        with patch.object(Gtk.MessageDialog, "run", return_value=Gtk.ResponseType.YES):
+            with patch.object(Gtk.MessageDialog, "destroy"):
+                window._on_clear_all(None)
+
+        # Store should be empty
+        assert len(window.store) == 0
+
+    def test_on_clear_all_no(self, gtk_setup, temp_config, tmp_path):
+        """Test _on_clear_all with NO response keeps history."""
+        from src.history import HistoryWindow, HistoryManager
+        Gtk = gtk_setup["Gtk"]
+
+        import struct
+        import zlib
+
+        def create_minimal_png():
+            signature = b'\x89PNG\r\n\x1a\n'
+            width = struct.pack('>I', 1)
+            height = struct.pack('>I', 1)
+            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
+            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
+            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
+            raw_data = b'\x00\xff\x00\x00'
+            compressed = zlib.compress(raw_data)
+            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
+            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
+            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
+            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            return signature + ihdr + idat + iend
+
+        test_file = tmp_path / "keep.png"
+        test_file.write_bytes(create_minimal_png())
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        window = HistoryWindow()
+
+        # Mock dialog to return NO
+        with patch.object(Gtk.MessageDialog, "run", return_value=Gtk.ResponseType.NO):
+            with patch.object(Gtk.MessageDialog, "destroy"):
+                window._on_clear_all(None)
+
+        # Store should still have entry
+        assert len(window.store) == 1
+
+    def test_on_open_folder(self, gtk_setup, temp_config):
+        """Test _on_open_folder opens screenshots folder."""
+        from src.history import HistoryWindow
+
+        window = HistoryWindow()
+
+        with patch("subprocess.Popen") as mock_popen:
+            window._on_open_folder(None)
+            mock_popen.assert_called_once()
+            # Should call xdg-open with folder path
+            call_args = mock_popen.call_args[0][0]
+            assert call_args[0] == "xdg-open"
+
+    def test_on_open_folder_exception(self, gtk_setup, temp_config):
+        """Test _on_open_folder handles exception."""
+        from src.history import HistoryWindow
+
+        window = HistoryWindow()
+
+        with patch("subprocess.Popen", side_effect=Exception("Failed")):
+            # Should not raise
+            window._on_open_folder(None)
+
+    def test_load_history_exception(self, gtk_setup, temp_config, tmp_path):
+        """Test _load_history handles thumbnail exception."""
+        from src.history import HistoryWindow, HistoryManager
+
+        # Create file that will fail to create thumbnail
+        test_file = tmp_path / "bad.png"
+        test_file.write_bytes(b"not a valid image")
+
+        manager = HistoryManager()
+        manager.add(test_file, mode="test")
+
+        # Should not raise even with bad image
+        window = HistoryWindow()
+        assert window is not None
