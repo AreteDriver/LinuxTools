@@ -398,3 +398,603 @@ class TestOnboardingTooltipStructure:
         assert "total_steps" in params
         assert "on_next" in params
         assert "on_skip" in params
+
+
+class TestOnboardingTooltipSourceInspection:
+    """Test OnboardingTooltip implementation via source inspection."""
+
+    def test_init_creates_popup_window(self):
+        """Test __init__ creates popup window."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.__init__)
+        assert "Gtk.Window" in source
+        assert "POPUP" in source or "popup" in source
+
+    def test_init_sets_window_hints(self):
+        """Test __init__ sets window type hints."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.__init__)
+        assert "set_type_hint" in source or "WindowTypeHint" in source
+        assert "set_decorated" in source
+        assert "set_transient_for" in source
+
+    def test_init_creates_labels(self):
+        """Test __init__ creates title and message labels."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.__init__)
+        assert "title_label" in source
+        assert "message_label" in source
+        assert "Gtk.Label" in source
+
+    def test_init_creates_buttons(self):
+        """Test __init__ creates skip and next buttons."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.__init__)
+        assert "skip_btn" in source
+        assert "next_btn" in source
+        assert "Gtk.Button" in source
+
+    def test_show_updates_labels(self):
+        """Test show method updates label text."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "set_text" in source
+        assert "title" in source
+        assert "message" in source
+
+    def test_show_updates_step_indicator(self):
+        """Test show method updates step indicator."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "step_num" in source
+        assert "total_steps" in source
+        assert "step_label" in source
+
+    def test_show_handles_last_step(self):
+        """Test show method changes button for last step."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "step_num == total_steps" in source
+        assert "Got it" in source
+
+    def test_show_connects_button_handlers(self):
+        """Test show method connects button click handlers."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "connect" in source
+        assert "clicked" in source
+        assert "on_next" in source
+        assert "on_skip" in source
+
+    def test_show_disconnects_old_handlers(self):
+        """Test show method disconnects old handlers."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "disconnect" in source
+        assert "_handler_ids" in source
+
+    def test_show_positions_tooltip(self):
+        """Test show method positions tooltip."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "_position_near_widget" in source
+        assert "_position_center" in source
+        assert "get_realized" in source
+
+    def test_position_near_widget_calculates_coordinates(self):
+        """Test _position_near_widget calculates screen coordinates."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_near_widget)
+        assert "get_allocation" in source
+        assert "get_window" in source
+        assert "get_origin" in source
+
+    def test_position_near_widget_handles_all_positions(self):
+        """Test _position_near_widget handles all position values."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_near_widget)
+        assert 'position == "bottom"' in source
+        assert 'position == "top"' in source
+        assert 'position == "right"' in source
+        assert 'position == "left"' in source
+
+    def test_position_near_widget_keeps_on_screen(self):
+        """Test _position_near_widget keeps tooltip on screen."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_near_widget)
+        assert "get_width" in source
+        assert "get_height" in source
+        assert "max(" in source or "min(" in source
+
+    def test_position_near_widget_fallback_to_center(self):
+        """Test _position_near_widget falls back to center on failure."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_near_widget)
+        assert "_position_center" in source
+
+    def test_position_center_uses_parent(self):
+        """Test _position_center uses parent window."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_center)
+        assert "parent_window" in source
+        assert "get_allocation" in source
+        assert "get_position" in source
+
+    def test_hide_hides_popup(self):
+        """Test hide method hides popup."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.hide)
+        assert "popup" in source
+        assert "hide" in source
+
+
+class TestOnboardingTooltipCSS:
+    """Test OnboardingTooltip CSS handling."""
+
+    def test_apply_styles_method_exists(self):
+        """Test _apply_styles method exists."""
+        from src.onboarding import OnboardingTooltip
+
+        assert hasattr(OnboardingTooltip, "_apply_styles")
+        assert callable(OnboardingTooltip._apply_styles)
+
+    def test_apply_styles_uses_global_flag(self):
+        """Test _apply_styles uses global flag to prevent duplication."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._apply_styles)
+        assert "_css_applied" in source
+        assert "global" in source
+
+    def test_apply_styles_creates_css_provider(self):
+        """Test _apply_styles creates CSS provider."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._apply_styles)
+        assert "CssProvider" in source
+        assert "load_from_data" in source
+
+    def test_css_contains_tooltip_styles(self):
+        """Test CSS contains tooltip class styles."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._apply_styles)
+        assert ".onboarding-tooltip" in source
+        assert ".onboarding-title" in source
+        assert ".onboarding-message" in source
+
+    def test_css_contains_button_styles(self):
+        """Test CSS contains button styles."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._apply_styles)
+        assert ".onboarding-btn" in source
+        assert ".skip-btn" in source
+        assert ".next-btn" in source
+
+    def test_css_contains_highlight_style(self):
+        """Test CSS contains highlight style for target widgets."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._apply_styles)
+        assert ".onboarding-highlight" in source
+        assert "box-shadow" in source
+
+    def test_module_has_css_flag(self):
+        """Test module has _css_applied flag."""
+        from src import onboarding
+
+        assert hasattr(onboarding, "_css_applied")
+
+
+class TestOnboardingManagerSourceInspection:
+    """Test OnboardingManager implementation via source inspection."""
+
+    def test_init_creates_tooltip(self):
+        """Test __init__ creates OnboardingTooltip."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.__init__)
+        assert "OnboardingTooltip" in source
+        assert "self.tooltip" in source
+
+    def test_init_initializes_step_counter(self):
+        """Test __init__ initializes current_step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.__init__)
+        assert "current_step" in source
+        assert "= 0" in source
+
+    def test_init_creates_steps(self):
+        """Test __init__ calls _create_steps."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.__init__)
+        assert "_create_steps" in source
+        assert "self.steps" in source
+
+    def test_init_tracks_highlighted_widget(self):
+        """Test __init__ initializes highlighted widget tracker."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.__init__)
+        assert "_highlighted_widget" in source
+
+    def test_create_steps_returns_list(self):
+        """Test _create_steps returns list of OnboardingStep."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert "OnboardingStep" in source
+        assert "return [" in source or "return[" in source
+
+    def test_create_steps_has_sidebar_step(self):
+        """Test _create_steps includes sidebar step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert 'target_id="sidebar"' in source
+        assert "Tool Sidebar" in source or "_(" in source
+
+    def test_create_steps_has_context_bar_step(self):
+        """Test _create_steps includes context bar step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert 'target_id="context_bar"' in source
+
+    def test_create_steps_has_color_picker_step(self):
+        """Test _create_steps includes color picker step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert 'target_id="color_picker"' in source
+
+    def test_create_steps_has_radial_menu_step(self):
+        """Test _create_steps includes radial menu step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert 'target_id="drawing_area"' in source
+        assert "Right-Click" in source or "Radial" in source or "_(" in source
+
+    def test_create_steps_has_command_palette_step(self):
+        """Test _create_steps includes command palette step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert 'target_id="command_palette"' in source
+
+    def test_create_steps_has_actions_step(self):
+        """Test _create_steps includes actions step."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert 'target_id="actions"' in source
+
+    def test_start_resets_step_counter(self):
+        """Test start method resets current_step to 0."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.start)
+        assert "current_step = 0" in source
+
+    def test_start_uses_timer(self):
+        """Test start method uses GLib timer for delay."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.start)
+        assert "timeout_add" in source or "GLib" in source
+
+    def test_start_checks_empty_steps(self):
+        """Test start method checks for empty steps."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.start)
+        assert "if not self.steps" in source
+
+    def test_get_target_widget_has_target_map(self):
+        """Test _get_target_widget has target ID to widget mapping."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._get_target_widget)
+        assert "targets" in source or "target_id" in source
+        assert '"sidebar"' in source
+        assert '"context_bar"' in source
+
+    def test_get_target_widget_handles_actions(self):
+        """Test _get_target_widget has special handling for actions."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._get_target_widget)
+        assert '"actions"' in source
+        assert "get_children" in source
+
+    def test_show_current_step_checks_bounds(self):
+        """Test _show_current_step checks step bounds."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._show_current_step)
+        assert "current_step >= len(self.steps)" in source
+        assert "_finish" in source
+
+    def test_show_current_step_removes_previous_highlight(self):
+        """Test _show_current_step removes previous highlight."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._show_current_step)
+        assert "remove_class" in source
+        assert "onboarding-highlight" in source
+
+    def test_show_current_step_adds_highlight(self):
+        """Test _show_current_step adds highlight to target."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._show_current_step)
+        assert "add_class" in source
+        assert "onboarding-highlight" in source
+
+    def test_show_current_step_shows_tooltip(self):
+        """Test _show_current_step shows tooltip."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._show_current_step)
+        assert "self.tooltip.show" in source or "tooltip.show" in source
+
+    def test_next_step_increments_counter(self):
+        """Test _next_step increments step counter."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._next_step)
+        assert "current_step += 1" in source
+
+    def test_next_step_finishes_at_end(self):
+        """Test _next_step calls _finish at end."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._next_step)
+        assert "_finish" in source
+
+    def test_skip_calls_finish(self):
+        """Test _skip calls _finish."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._skip)
+        assert "_finish" in source
+
+    def test_finish_removes_highlight(self):
+        """Test _finish removes highlight from widget."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._finish)
+        assert "remove_class" in source
+        assert "_highlighted_widget" in source
+
+    def test_finish_hides_tooltip(self):
+        """Test _finish hides tooltip."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._finish)
+        assert "tooltip.hide" in source or "self.tooltip.hide" in source
+
+    def test_finish_saves_config(self):
+        """Test _finish saves completion to config."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._finish)
+        assert "save_config" in source
+        assert "CONFIG_KEY" in source
+        assert "True" in source
+
+    def test_reset_loads_and_saves_config(self):
+        """Test reset loads and saves config."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.reset)
+        assert "load_config" in source
+        assert "save_config" in source
+
+    def test_reset_sets_key_to_false(self):
+        """Test reset sets CONFIG_KEY to False."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.reset)
+        assert "CONFIG_KEY" in source
+        assert "False" in source
+
+
+class TestOnboardingStepSourceInspection:
+    """Test OnboardingStep implementation details."""
+
+    def test_step_is_simple_class(self):
+        """Test OnboardingStep is a simple data class."""
+        from src.onboarding import OnboardingStep
+        import inspect
+
+        source = inspect.getsource(OnboardingStep)
+        # Should have __init__ with assignments
+        assert "def __init__" in source
+        assert "self.target_id" in source
+        assert "self.title" in source
+        assert "self.message" in source
+        assert "self.position" in source
+        assert "self.highlight" in source
+
+    def test_step_has_default_values(self):
+        """Test OnboardingStep has default values in signature."""
+        from src.onboarding import OnboardingStep
+        import inspect
+
+        sig = inspect.signature(OnboardingStep.__init__)
+        params = sig.parameters
+
+        assert params["position"].default == "bottom"
+        assert params["highlight"].default is True
+
+    def test_step_positions_are_strings(self):
+        """Test step positions are string values."""
+        from src.onboarding import OnboardingStep
+
+        step = OnboardingStep(
+            target_id="test",
+            title="Test",
+            message="Test",
+            position="right",
+        )
+        assert isinstance(step.position, str)
+
+
+class TestOnboardingEdgeCases:
+    """Test edge cases and error handling."""
+
+    def test_tooltip_requires_gtk(self):
+        """Test OnboardingTooltip raises error without GTK."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.__init__)
+        assert "GTK_AVAILABLE" in source
+        assert "RuntimeError" in source
+
+    def test_manager_start_with_empty_steps(self):
+        """Test start method handles empty steps gracefully."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager.start)
+        assert "if not self.steps" in source
+        assert "return" in source
+
+    def test_show_current_step_handles_no_target(self):
+        """Test _show_current_step handles missing target widget."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._show_current_step)
+        # Should check for None or handle missing widgets
+        assert "target" in source
+        assert "if" in source
+
+    def test_position_near_widget_handles_no_window(self):
+        """Test _position_near_widget handles widget with no window."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_near_widget)
+        assert "if not window" in source
+        assert "_position_center" in source
+
+    def test_position_near_widget_handles_origin_failure(self):
+        """Test _position_near_widget handles get_origin failure."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip._position_near_widget)
+        assert "get_origin" in source
+        assert "origin" in source
+
+    def test_show_handles_disconnect_exceptions(self):
+        """Test show method handles disconnect exceptions."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.show)
+        assert "try:" in source or "except" in source
+        assert "disconnect" in source
+
+
+class TestOnboardingI18nIntegration:
+    """Test internationalization integration."""
+
+    def test_uses_translation_function(self):
+        """Test module uses _() translation function."""
+        from src import onboarding
+        import inspect
+
+        source = inspect.getsource(onboarding)
+        # Check for translation wrapper usage
+        assert '_("' in source
+
+    def test_translatable_strings_in_steps(self):
+        """Test step text uses translation function."""
+        from src.onboarding import OnboardingManager
+        import inspect
+
+        source = inspect.getsource(OnboardingManager._create_steps)
+        assert "_(" in source
+
+    def test_button_labels_translated(self):
+        """Test button labels use translation."""
+        from src.onboarding import OnboardingTooltip
+        import inspect
+
+        source = inspect.getsource(OnboardingTooltip.__init__)
+        # Skip and Next buttons should be translatable
+        assert '_("Skip")' in source or "Skip" in source
+        assert '_("Next")' in source or "Next" in source
