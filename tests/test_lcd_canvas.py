@@ -1,6 +1,5 @@
 """Tests for LCD Canvas drawing primitives."""
 
-
 from g13_linux.lcd.canvas import Canvas
 
 
