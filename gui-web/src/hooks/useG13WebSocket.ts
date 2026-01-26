@@ -36,41 +36,7 @@ export function useG13WebSocket(): G13WebSocketHook {
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    const ws = new WebSocket(WS_URL);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setWsConnected(true);
-      // Request current state
-      ws.send(JSON.stringify({ type: 'get_state' }));
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setWsConnected(false);
-      // Reconnect after 2 seconds
-      reconnectTimeoutRef.current = setTimeout(connect, 2000);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        handleMessage(message);
-      } catch (e) {
-        console.error('Failed to parse message:', e);
-      }
-    };
-
-    wsRef.current = ws;
-  }, []);
+  const connectRef = useRef<() => void>(() => {});
 
   const handleMessage = useCallback((message: { type: string; [key: string]: unknown }) => {
     switch (message.type) {
@@ -125,6 +91,46 @@ export function useG13WebSocket(): G13WebSocketHook {
         console.log('Unknown message type:', message.type);
     }
   }, []);
+
+  const connect = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    const ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setWsConnected(true);
+      // Request current state
+      ws.send(JSON.stringify({ type: 'get_state' }));
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setWsConnected(false);
+      // Reconnect after 2 seconds using ref to avoid stale closure
+      reconnectTimeoutRef.current = setTimeout(() => connectRef.current(), 2000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        handleMessage(message);
+      } catch (e) {
+        console.error('Failed to parse message:', e);
+      }
+    };
+
+    wsRef.current = ws;
+  }, [handleMessage]);
+
+  // Keep ref up to date for reconnection
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     connect();

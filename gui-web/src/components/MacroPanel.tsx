@@ -15,19 +15,21 @@ export function MacroPanel({ onAssignMacro, selectedButton }: MacroPanelProps) {
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
   const [recordStartTime, setRecordStartTime] = useState<number>(0);
 
-  // Load macros on mount
-  useEffect(() => {
-    loadMacros();
-  }, []);
-
-  const loadMacros = async () => {
+  const loadMacros = useCallback(async () => {
     try {
       const list = await listMacros();
       setMacros(list);
     } catch (e) {
       console.error('Failed to load macros:', e);
     }
-  };
+  }, []);
+
+  // Load macros on mount - data fetching is an expected use case for effects
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    loadMacros();
+  }, [loadMacros]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleStartRecording = useCallback(() => {
     setIsRecording(true);
@@ -59,7 +61,7 @@ export function MacroPanel({ onAssignMacro, selectedButton }: MacroPanelProps) {
     } catch (e) {
       alert(`Failed to save macro: ${e}`);
     }
-  }, [recordedSteps, recordingName]);
+  }, [recordedSteps, recordingName, loadMacros]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isRecording) return;

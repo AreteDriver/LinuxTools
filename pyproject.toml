@@ -61,7 +61,8 @@ dev = [
     "ruff>=0.11.0",
     "mypy>=1.15.0",
     "build>=1.2.0",
-    "twine>=6.0.0"
+    "twine>=6.0.0",
+    "bandit[toml]>=1.7.0"
 ]
 
 [project.urls]
@@ -121,4 +122,17 @@ exclude_lines = [
     "def __repr__",
     "raise NotImplementedError",
     "if __name__ == .__main__.:"
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "build", "dist"]
+skips = [
+    "B101",  # assert used (tests)
+    "B108",  # hardcoded /tmp for lock file (local daemon)
+    "B110",  # try/except/pass in hardware cleanup (intentional)
+    "B112",  # try/except/continue in file loading loops (intentional)
+    "B311",  # random module for visual effects, not crypto
+    "B404",  # subprocess import (required for system tools)
+    "B603",  # subprocess without shell=True (safe usage)
+    "B607",  # partial path for system binaries (xdotool, etc.)
 ]

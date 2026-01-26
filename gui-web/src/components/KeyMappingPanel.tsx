@@ -36,17 +36,15 @@ export function KeyMappingPanel({
   const [macroText, setMacroText] = useState<string>(mapping?.macro?.join(', ') || '');
   const [isListening, setIsListening] = useState(false);
 
+  // Sync local state with prop changes when button selection changes
+  // This is intentional cascading - we want to reset form when switching buttons
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (mapping) {
-      setActionType(mapping.action || 'key');
-      setSelectedKey(mapping.key || '');
-      setMacroText(mapping.macro?.join(', ') || '');
-    } else {
-      setActionType('key');
-      setSelectedKey('');
-      setMacroText('');
-    }
+    setActionType(mapping?.action || 'key');
+    setSelectedKey(mapping?.key || '');
+    setMacroText(mapping?.macro?.join(', ') || '');
   }, [mapping, selectedButton]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleKeyCapture = useCallback((e: KeyboardEvent) => {
     e.preventDefault();
