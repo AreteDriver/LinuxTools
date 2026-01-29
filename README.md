@@ -9,7 +9,28 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux-orange.svg)]()
 
-A Synapse-like control center for Razer devices on Linux. Configure button remapping, macros, RGB lighting, and DPI settings.
+A Synapse-like control center for Razer devices on Linux. Configure button remapping, macros, RGB lighting, and DPI settings — all without Windows.
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/bindings-tab.png" alt="Bindings Tab" width="45%">
+  <img src="docs/screenshots/lighting-tab.png" alt="Lighting & DPI Tab" width="45%">
+</p>
+
+<p align="center">
+  <em>Left: Button remapping and macro configuration. Right: RGB lighting and DPI control via OpenRazer.</em>
+</p>
+
+<!-- TODO: Add screenshots by running the GUI and capturing:
+     1. Bindings tab with a few configured bindings
+     2. Lighting & DPI tab showing color picker
+     3. Device view with visual button overlay
+     Save to docs/screenshots/ -->
+
+---
 
 ## Features
 
