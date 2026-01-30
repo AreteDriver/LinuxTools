@@ -56,9 +56,7 @@ class TestScrollCaptureOverlayInit:
                         get_width=MagicMock(return_value=1920)
                     )
 
-                    overlay = scroll_overlay.ScrollCaptureOverlay(
-                        on_stop=mock_stop, region=region
-                    )
+                    overlay = scroll_overlay.ScrollCaptureOverlay(on_stop=mock_stop, region=region)
 
         assert overlay.on_stop == mock_stop
         assert overlay.region == region

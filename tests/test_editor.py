@@ -1,19 +1,19 @@
 """Tests for editor module."""
 
-from unittest.mock import MagicMock
-
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.editor import (
-    ToolType,
-    ArrowStyle,
-    Point,
-    Color,
     COLORS,
+    ArrowStyle,
+    Color,
     DrawingElement,
     EditorState,
+    Point,
+    ToolType,
 )
 
 
@@ -89,8 +89,18 @@ class TestPredefinedColors:
     """Test predefined colors dictionary."""
 
     def test_colors_has_expected_keys(self):
-        expected = ["red", "green", "blue", "yellow", "orange",
-                    "purple", "black", "white", "cyan", "pink"]
+        expected = [
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "orange",
+            "purple",
+            "black",
+            "white",
+            "cyan",
+            "pink",
+        ]
         for color_name in expected:
             assert color_name in COLORS
 
@@ -605,7 +615,7 @@ class TestResizeHandles:
 
         # Click near top-left corner (10, 10)
         handle = state._hit_test_handles(12, 12)
-        assert handle == 'nw'
+        assert handle == "nw"
 
     def test_hit_test_handles_se_corner(self):
         state = EditorState()
@@ -616,7 +626,7 @@ class TestResizeHandles:
 
         # Click near bottom-right corner (100, 100)
         handle = state._hit_test_handles(98, 98)
-        assert handle == 'se'
+        assert handle == "se"
 
     def test_hit_test_handles_ne_corner(self):
         state = EditorState()
@@ -627,7 +637,7 @@ class TestResizeHandles:
 
         # Click near top-right corner (100, 10)
         handle = state._hit_test_handles(98, 12)
-        assert handle == 'ne'
+        assert handle == "ne"
 
     def test_hit_test_handles_sw_corner(self):
         state = EditorState()
@@ -638,7 +648,7 @@ class TestResizeHandles:
 
         # Click near bottom-left corner (10, 100)
         handle = state._hit_test_handles(12, 98)
-        assert handle == 'sw'
+        assert handle == "sw"
 
     def test_hit_test_handles_miss(self):
         state = EditorState()
@@ -660,7 +670,7 @@ class TestResizeHandles:
 
         # Click on resize handle
         state.select_at(12, 12)  # nw corner
-        assert state._resize_handle == 'nw'
+        assert state._resize_handle == "nw"
         assert state._drag_start is not None
 
     def test_resize_selected_changes_size(self):
@@ -672,7 +682,7 @@ class TestResizeHandles:
 
         # Start resize from se corner
         state.select_at(98, 98)  # se corner
-        assert state._resize_handle == 'se'
+        assert state._resize_handle == "se"
 
         # Drag to expand
         state.move_selected(150, 150)
@@ -707,7 +717,7 @@ class TestResizeHandles:
 
         # Start resize
         state.select_at(98, 98)  # se corner
-        assert state._resize_handle == 'se'
+        assert state._resize_handle == "se"
 
         # Finish
         state.finish_move()
@@ -722,7 +732,7 @@ class TestResizeHandles:
 
         # Start resize from nw corner
         state.select_at(52, 52)
-        assert state._resize_handle == 'nw'
+        assert state._resize_handle == "nw"
 
         # Drag to move top-left corner
         state.move_selected(20, 30)
@@ -882,7 +892,7 @@ class TestMultiSelect:
 
         # Single selection - handles visible
         state.select_at(50, 50)
-        assert state._hit_test_handles(12, 12) == 'nw'
+        assert state._hit_test_handles(12, 12) == "nw"
 
         # Multi-selection - no handles
         state.select_at(250, 50, add_to_selection=True)
@@ -1118,14 +1128,14 @@ class TestAnnotationSnapping:
 
     def test_apply_snap_clears_guides_first(self):
         state = EditorState()
-        state.active_snap_guides = [('h', 50)]
+        state.active_snap_guides = [("h", 50)]
         state._apply_snap((10, 20, 100, 80))
         # Even with no elements, guides should be cleared
         assert state.active_snap_guides == []
 
     def test_finish_move_clears_snap_guides(self):
         state = EditorState()
-        state.active_snap_guides = [('h', 50), ('v', 100)]
+        state.active_snap_guides = [("h", 50), ("v", 100)]
         state.finish_move()
         assert state.active_snap_guides == []
 
@@ -1150,7 +1160,7 @@ class TestAnnotationSnapping:
 
         # Should snap to y=100 (dy = 100 - 95 = 5)
         assert snap_dy == 5.0
-        assert ('h', 100) in state.active_snap_guides
+        assert ("h", 100) in state.active_snap_guides
 
     def test_snap_vertical_alignment(self):
         state = EditorState()
@@ -1172,7 +1182,7 @@ class TestAnnotationSnapping:
 
         # Should snap to x=100 (dx = 100 - 95 = 5)
         assert snap_dx == 5.0
-        assert ('v', 100) in state.active_snap_guides
+        assert ("v", 100) in state.active_snap_guides
 
 
 class TestKeyboardNudge:
@@ -2129,7 +2139,7 @@ class TestAspectLockResize:
 
         state.select_at(50, 25)
         # Simulate resize handle grab (SE corner)
-        state._resize_handle = 'se'
+        state._resize_handle = "se"
         state._drag_start = Point(50, 25)
 
         # Resize without aspect lock - can change proportions
@@ -2150,7 +2160,7 @@ class TestAspectLockResize:
         state.finish_drawing(100, 50)  # 2:1 aspect ratio
 
         state.select_at(50, 25)
-        state._resize_handle = 'se'
+        state._resize_handle = "se"
         state._drag_start = Point(50, 25)
 
         # Get original aspect ratio
@@ -2176,7 +2186,7 @@ class TestAspectLockResize:
         state.finish_drawing(100, 50)  # 2:1 aspect ratio
 
         state.select_at(50, 25)
-        state._resize_handle = 'e'  # East (right edge)
+        state._resize_handle = "e"  # East (right edge)
         state._drag_start = Point(50, 25)
 
         orig_bbox = state._get_element_bbox(state.elements[0])
@@ -2201,7 +2211,7 @@ class TestAspectLockResize:
         state.finish_drawing(100, 50)  # 2:1 aspect ratio
 
         state.select_at(50, 25)
-        state._resize_handle = 's'  # South (bottom edge)
+        state._resize_handle = "s"  # South (bottom edge)
         state._drag_start = Point(50, 25)
 
         orig_bbox = state._get_element_bbox(state.elements[0])
@@ -2226,7 +2236,7 @@ class TestAspectLockResize:
         state.finish_drawing(100, 50)
 
         state.select_at(50, 25)
-        state._resize_handle = 'se'
+        state._resize_handle = "se"
         state._drag_start = Point(50, 25)
 
         # Call move_selected with aspect_locked=True
@@ -2247,7 +2257,7 @@ class TestAspectLockResize:
         state.finish_drawing(100, 100)
 
         state.select_at(50, 50)
-        state._resize_handle = 'se'
+        state._resize_handle = "se"
         state._drag_start = Point(50, 50)
 
         # Try to resize to very small size
@@ -2261,7 +2271,7 @@ class TestAspectLockResize:
         state.finish_drawing(200, 100)  # 2:1 ratio
 
         state.select_at(150, 75)
-        state._resize_handle = 'nw'
+        state._resize_handle = "nw"
         state._drag_start = Point(150, 75)
 
         orig_bbox = state._get_element_bbox(state.elements[0])

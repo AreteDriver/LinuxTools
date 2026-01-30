@@ -5,8 +5,6 @@ from enum import Enum
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestRecorderModuleImport:
     """Test recorder module imports."""
@@ -232,8 +230,8 @@ class TestGifRecorderIsAvailable:
 
     def test_is_available_with_ffmpeg_on_x11(self):
         """Test is_available returns True when ffmpeg available on X11."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server", return_value=DisplayServer.X11):
             with patch("src.recorder.config.check_tool_available") as mock_check:
@@ -247,8 +245,8 @@ class TestGifRecorderIsAvailable:
 
     def test_is_available_without_ffmpeg_on_x11(self):
         """Test is_available returns False when ffmpeg not available on X11."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server", return_value=DisplayServer.X11):
             with patch("src.recorder.config.check_tool_available", return_value=False):
@@ -261,8 +259,8 @@ class TestGifRecorderIsAvailable:
 
     def test_is_available_with_wf_recorder_on_wayland(self):
         """Test is_available returns True with wf-recorder on Wayland."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server", return_value=DisplayServer.WAYLAND):
             with patch("src.recorder.config.check_tool_available", return_value=True):
@@ -275,8 +273,8 @@ class TestGifRecorderIsAvailable:
 
     def test_is_available_with_ffmpeg_on_wayland(self):
         """Test is_available returns True with ffmpeg on Wayland (no wf-recorder)."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         def mock_check(cmd):
             # wf-recorder not available, but ffmpeg is
@@ -294,8 +292,8 @@ class TestGifRecorderIsAvailable:
 
     def test_is_available_without_tools_on_wayland(self):
         """Test is_available returns False without tools on Wayland."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server", return_value=DisplayServer.WAYLAND):
             with patch("src.recorder.config.check_tool_available", return_value=False):
@@ -339,8 +337,8 @@ class TestGifRecorderStartRecording:
 
     def test_start_recording_not_available(self):
         """Test start_recording fails when tools not available."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server", return_value=DisplayServer.X11):
             with patch("src.recorder.config.check_tool_available", return_value=False):
@@ -353,8 +351,8 @@ class TestGifRecorderStartRecording:
 
     def test_start_recording_region_too_small(self):
         """Test start_recording fails with region too small."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server", return_value=DisplayServer.X11):
             with patch("src.recorder.config.check_tool_available", return_value=True):
@@ -376,7 +374,7 @@ class TestGifRecorderStopRecording:
 
     def test_stop_recording_not_recording(self):
         """Test stop_recording fails when not recording."""
-        from src.recorder import GifRecorder, RecordingState
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server"):
             with patch("src.recorder.config.check_tool_available", return_value=False):
@@ -456,7 +454,8 @@ class TestGifRecorderCancel:
     def test_cancel_cleans_up_temp_file(self):
         """Test cancel removes temp video file."""
         import tempfile
-        from src.recorder import GifRecorder, RecordingState
+
+        from src.recorder import GifRecorder
 
         with patch("src.recorder.detect_display_server"):
             with patch("src.recorder.config.check_tool_available", return_value=False):
@@ -493,6 +492,7 @@ class TestGifRecorderGetElapsedTime:
     def test_get_elapsed_time_while_recording(self):
         """Test get_elapsed_time returns elapsed time when recording."""
         import time
+
         from src.recorder import GifRecorder, RecordingState
 
         with patch("src.recorder.detect_display_server"):
@@ -705,8 +705,9 @@ class TestGifRecorderFunctional:
 
     def test_get_elapsed_time_recording(self):
         """Test get_elapsed_time while recording."""
-        from src.recorder import GifRecorder, RecordingState
         import time
+
+        from src.recorder import GifRecorder, RecordingState
 
         recorder = GifRecorder()
         recorder.state = RecordingState.RECORDING
@@ -737,8 +738,8 @@ class TestGifRecorderFunctional:
 
     def test_cancel_cleans_up_temp_file(self, tmp_path):
         """Test cancel removes temp file."""
+
         from src.recorder import GifRecorder, RecordingState
-        from pathlib import Path
 
         recorder = GifRecorder()
         recorder.state = RecordingState.RECORDING
@@ -811,7 +812,7 @@ class TestGifRecorderWithMocks:
 
     def test_stop_recording_when_not_recording(self):
         """Test stop_recording returns error when not recording."""
-        from src.recorder import GifRecorder, RecordingState
+        from src.recorder import GifRecorder
 
         recorder = GifRecorder()
 
@@ -822,8 +823,9 @@ class TestGifRecorderWithMocks:
 
     def test_stop_recording_terminates_process(self, tmp_path):
         """Test stop_recording terminates the subprocess."""
-        from src.recorder import GifRecorder, RecordingState
         from pathlib import Path
+
+        from src.recorder import GifRecorder, RecordingState
 
         recorder = GifRecorder()
         recorder.state = RecordingState.RECORDING
@@ -839,7 +841,7 @@ class TestGifRecorderWithMocks:
         recorder.temp_video = temp_file
 
         with patch.object(recorder, "_finalize_video", return_value=Path("/tmp/output.gif")):
-            result = recorder.stop_recording()
+            recorder.stop_recording()
 
         # Process should have been signaled
         assert mock_process.send_signal.called or mock_process.terminate.called
@@ -911,8 +913,8 @@ class TestRecorderToolChecks:
 
     def test_is_available_x11_with_ffmpeg(self):
         """Test is_available on X11 with ffmpeg."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         recorder = GifRecorder()
         recorder.display_server = DisplayServer.X11
@@ -925,8 +927,8 @@ class TestRecorderToolChecks:
 
     def test_is_available_wayland_with_wf_recorder(self):
         """Test is_available on Wayland with wf-recorder."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         recorder = GifRecorder()
         recorder.display_server = DisplayServer.WAYLAND
@@ -938,8 +940,8 @@ class TestRecorderToolChecks:
 
     def test_is_available_no_tools(self):
         """Test is_available with no tools available."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         recorder = GifRecorder()
         recorder.display_server = DisplayServer.X11
@@ -990,14 +992,11 @@ class TestRecordingResultDataclass:
 
     def test_create_success_result(self):
         """Test creating a success result."""
-        from src.recorder import RecordingResult
         from pathlib import Path
 
-        result = RecordingResult(
-            success=True,
-            filepath=Path("/tmp/test.gif"),
-            duration=5.5
-        )
+        from src.recorder import RecordingResult
+
+        result = RecordingResult(success=True, filepath=Path("/tmp/test.gif"), duration=5.5)
 
         assert result.success is True
         assert result.filepath == Path("/tmp/test.gif")
@@ -1008,10 +1007,7 @@ class TestRecordingResultDataclass:
         """Test creating an error result."""
         from src.recorder import RecordingResult
 
-        result = RecordingResult(
-            success=False,
-            error="Recording failed"
-        )
+        result = RecordingResult(success=False, error="Recording failed")
 
         assert result.success is False
         assert result.filepath is None
@@ -1030,8 +1026,8 @@ class TestRecorderStartRecordingFull:
         self, mock_mkstemp, mock_popen, mock_config, mock_check, mock_detect
     ):
         """Test successful X11 recording start."""
-        from src.recorder import GifRecorder, RecordingState
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, RecordingState
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1057,8 +1053,8 @@ class TestRecorderStartRecordingFull:
         self, mock_mkstemp, mock_popen, mock_config, mock_check, mock_detect
     ):
         """Test Wayland recording start with wf-recorder."""
-        from src.recorder import GifRecorder, RecordingState
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, RecordingState
 
         mock_detect.return_value = DisplayServer.WAYLAND
         mock_check.return_value = True
@@ -1082,8 +1078,8 @@ class TestRecorderStartRecordingFull:
         self, mock_mkstemp, mock_popen, mock_config, mock_check, mock_detect
     ):
         """Test start_recording handles exception."""
-        from src.recorder import GifRecorder, RecordingState
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, RecordingState
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1106,9 +1102,8 @@ class TestRecorderStopRecordingFull:
     @patch("src.recorder.config.check_tool_available")
     def test_stop_recording_temp_file_not_created(self, mock_check, mock_detect):
         """Test stop_recording when temp file doesn't exist."""
-        import signal
-        from src.recorder import GifRecorder, RecordingState
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, RecordingState
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1131,10 +1126,10 @@ class TestRecorderStopRecordingFull:
     @patch("src.recorder.config.check_tool_available")
     def test_stop_recording_process_timeout(self, mock_check, mock_detect, tmp_path):
         """Test stop_recording handles process timeout."""
-        import signal
         import subprocess
-        from src.recorder import GifRecorder, RecordingState, OutputFormat
+
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, OutputFormat, RecordingState
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1153,7 +1148,7 @@ class TestRecorderStopRecordingFull:
 
         with patch.object(recorder, "_encode_to_gif") as mock_encode:
             mock_encode.return_value = MagicMock(success=True)
-            result = recorder.stop_recording(OutputFormat.GIF)
+            recorder.stop_recording(OutputFormat.GIF)
 
         # Should have killed the process after timeout
         mock_process.kill.assert_called()
@@ -1162,8 +1157,8 @@ class TestRecorderStopRecordingFull:
     @patch("src.recorder.config.check_tool_available")
     def test_stop_recording_mp4_format(self, mock_check, mock_detect, tmp_path):
         """Test stop_recording with MP4 format."""
-        from src.recorder import GifRecorder, RecordingState, OutputFormat
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, OutputFormat, RecordingState
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1181,7 +1176,7 @@ class TestRecorderStopRecordingFull:
 
         with patch.object(recorder, "_finalize_video") as mock_finalize:
             mock_finalize.return_value = MagicMock(success=True)
-            result = recorder.stop_recording(OutputFormat.MP4)
+            recorder.stop_recording(OutputFormat.MP4)
 
         mock_finalize.assert_called()
 
@@ -1189,8 +1184,8 @@ class TestRecorderStopRecordingFull:
     @patch("src.recorder.config.check_tool_available")
     def test_stop_recording_webm_format(self, mock_check, mock_detect, tmp_path):
         """Test stop_recording with WebM format."""
-        from src.recorder import GifRecorder, RecordingState, OutputFormat
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder, OutputFormat, RecordingState
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1208,7 +1203,7 @@ class TestRecorderStopRecordingFull:
 
         with patch.object(recorder, "_finalize_video") as mock_finalize:
             mock_finalize.return_value = MagicMock(success=True)
-            result = recorder.stop_recording(OutputFormat.WEBM)
+            recorder.stop_recording(OutputFormat.WEBM)
 
         mock_finalize.assert_called()
 
@@ -1225,8 +1220,8 @@ class TestRecorderFinalizeVideo:
         self, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _finalize_video with MP4 format succeeds."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1253,8 +1248,8 @@ class TestRecorderFinalizeVideo:
         self, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _finalize_video with WebM format succeeds."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1279,8 +1274,8 @@ class TestRecorderFinalizeVideo:
         self, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _finalize_video handles ffmpeg failure."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1305,9 +1300,8 @@ class TestRecorderFinalizeVideo:
         self, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _finalize_video handles timeout."""
-        import subprocess
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1336,8 +1330,8 @@ class TestRecorderEncodeToGif:
         self, mock_mkstemp, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _encode_to_gif success."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1378,8 +1372,8 @@ class TestRecorderEncodeToGif:
         self, mock_mkstemp, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _encode_to_gif with low quality preset."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1418,8 +1412,8 @@ class TestRecorderEncodeToGif:
         self, mock_mkstemp, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _encode_to_gif with high quality preset."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1458,8 +1452,8 @@ class TestRecorderEncodeToGif:
         self, mock_mkstemp, mock_run, mock_save_path, mock_config, mock_check, mock_detect, tmp_path
     ):
         """Test _encode_to_gif with scaling."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1497,8 +1491,8 @@ class TestRecorderOptimizeGif:
     @patch("subprocess.run")
     def test_optimize_gif_success(self, mock_run, mock_check, mock_detect, tmp_path):
         """Test _optimize_gif succeeds."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1524,8 +1518,8 @@ class TestRecorderOptimizeGif:
     @patch("subprocess.run")
     def test_optimize_gif_failure(self, mock_run, mock_check, mock_detect, tmp_path):
         """Test _optimize_gif handles failure."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1544,8 +1538,8 @@ class TestRecorderOptimizeGif:
     @patch("subprocess.run", side_effect=Exception("gifsicle error"))
     def test_optimize_gif_exception(self, mock_run, mock_check, mock_detect, tmp_path):
         """Test _optimize_gif handles exception."""
-        from src.recorder import GifRecorder
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.X11
         mock_check.return_value = True
@@ -1571,8 +1565,8 @@ class TestRecorderWaylandFallback:
         self, mock_mkstemp, mock_popen, mock_config, mock_check, mock_detect
     ):
         """Test Wayland uses ffmpeg when wf-recorder not available."""
-        from src.recorder import GifRecorder, RecordingState
         from src.capture import DisplayServer
+        from src.recorder import GifRecorder
 
         mock_detect.return_value = DisplayServer.WAYLAND
         # ffmpeg available, wf-recorder not

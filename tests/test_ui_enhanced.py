@@ -12,26 +12,32 @@ class TestUiEnhancedModuleAvailability:
 
     def test_ui_enhanced_module_imports(self):
         from src import ui_enhanced
+
         assert ui_enhanced is not None
 
     def test_gtk_available_flag_exists(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         assert isinstance(GTK_AVAILABLE, bool)
 
     def test_add_advanced_features_function_exists(self):
         from src.ui_enhanced import add_advanced_features_to_editor
+
         assert callable(add_advanced_features_to_editor)
 
     def test_editor_window_enhancements_class_exists(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert EditorWindowEnhancements is not None
 
     def test_main_window_enhancements_class_exists(self):
         from src.ui_enhanced import MainWindowEnhancements
+
         assert MainWindowEnhancements is not None
 
     def test_quick_actions_dialog_class_exists(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert QuickActionsDialog is not None
 
 
@@ -40,6 +46,7 @@ class TestAddAdvancedFeatures:
 
     def test_returns_tuple_of_buttons(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -57,34 +64,42 @@ class TestEditorWindowEnhancementsAttributes:
 
     def test_has_init_enhanced_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "__init_enhanced__")
 
     def test_has_extract_text_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_extract_text")
 
     def test_has_pin_to_desktop_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_pin_to_desktop")
 
     def test_has_apply_shadow_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_apply_shadow")
 
     def test_has_apply_border_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_apply_border")
 
     def test_has_apply_background_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_apply_background")
 
     def test_has_apply_round_corners_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_apply_round_corners")
 
     def test_has_save_to_history_method(self):
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_save_to_history")
 
 
@@ -119,6 +134,7 @@ class TestEditorWindowEnhancementsExtractText:
 
     def test_extract_text_shows_error_when_ocr_unavailable(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -144,6 +160,7 @@ class TestEditorWindowEnhancementsExtractText:
 
     def test_extract_text_success(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -174,6 +191,7 @@ class TestEditorWindowEnhancementsExtractText:
 
     def test_extract_text_failure(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -205,8 +223,9 @@ class TestEditorWindowEnhancementsPinToDesktop:
     def test_pin_to_desktop_method_exists(self):
         """Test that _pin_to_desktop method exists."""
         from src.ui_enhanced import EditorWindowEnhancements
+
         assert hasattr(EditorWindowEnhancements, "_pin_to_desktop")
-        assert callable(getattr(EditorWindowEnhancements, "_pin_to_desktop"))
+        assert callable(EditorWindowEnhancements._pin_to_desktop)
 
     def test_pin_to_desktop_exception(self):
         from src.ui_enhanced import EditorWindowEnhancements
@@ -256,6 +275,7 @@ class TestEditorWindowEnhancementsApplyEffects:
 
     def test_apply_border_ok(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -297,6 +317,7 @@ class TestEditorWindowEnhancementsApplyEffects:
 
     def test_apply_border_cancel(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -321,6 +342,7 @@ class TestEditorWindowEnhancementsApplyEffects:
 
     def test_apply_background_ok(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -408,10 +430,12 @@ class TestMainWindowEnhancementsAttributes:
 
     def test_has_add_history_button_method(self):
         from src.ui_enhanced import MainWindowEnhancements
+
         assert hasattr(MainWindowEnhancements, "add_history_button")
 
     def test_has_on_history_method(self):
         from src.ui_enhanced import MainWindowEnhancements
+
         assert hasattr(MainWindowEnhancements, "_on_history")
 
 
@@ -453,26 +477,32 @@ class TestQuickActionsDialogAttributes:
 
     def test_has_quick_screenshot_method(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert hasattr(QuickActionsDialog, "_quick_screenshot")
 
     def test_has_screenshot_ocr_method(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert hasattr(QuickActionsDialog, "_screenshot_ocr")
 
     def test_has_screenshot_upload_method(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert hasattr(QuickActionsDialog, "_screenshot_upload")
 
     def test_has_screenshot_pin_method(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert hasattr(QuickActionsDialog, "_screenshot_pin")
 
     def test_has_screenshot_blur_method(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert hasattr(QuickActionsDialog, "_screenshot_blur")
 
     def test_has_recent_screenshots_method(self):
         from src.ui_enhanced import QuickActionsDialog
+
         assert hasattr(QuickActionsDialog, "_recent_screenshots")
 
 
@@ -545,6 +575,7 @@ class TestQuickActionsDialogInit:
 
     def test_init_creates_dialog(self):
         from src.ui_enhanced import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 

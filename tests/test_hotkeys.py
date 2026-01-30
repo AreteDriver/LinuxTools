@@ -12,10 +12,12 @@ class TestHotkeysModuleAvailability:
 
     def test_hotkeys_module_imports(self):
         from src import hotkeys
+
         assert hotkeys is not None
 
     def test_hotkey_manager_class_exists(self):
         from src.hotkeys import HotkeyManager
+
         assert HotkeyManager is not None
 
 
@@ -25,6 +27,7 @@ class TestHotkeyManagerInit:
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "GNOME"})
     def test_init(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         assert manager is not None
@@ -34,6 +37,7 @@ class TestHotkeyManagerInit:
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "KDE"})
     def test_init_stores_desktop_env(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         assert manager.desktop_env == "kde"
@@ -41,6 +45,7 @@ class TestHotkeyManagerInit:
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "GNOME"})
     def test_init_creates_hotkeys_dict(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         assert isinstance(manager.hotkeys, dict)
@@ -52,42 +57,49 @@ class TestDetectDesktopEnvironment:
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "GNOME"})
     def test_detect_gnome(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "gnome"
 
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "KDE"})
     def test_detect_kde(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "kde"
 
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "plasma"})
     def test_detect_plasma(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "kde"
 
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "XFCE"})
     def test_detect_xfce(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "xfce"
 
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "MATE"})
     def test_detect_mate(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "mate"
 
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": ""}, clear=True)
     def test_detect_unknown(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "unknown"
 
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "SOME_OTHER_DE"})
     def test_detect_other(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
         assert manager.desktop_env == "unknown"
 
@@ -101,7 +113,9 @@ class TestRegisterHotkey:
         mock_run.return_value = MagicMock(returncode=0, stdout="@as []")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -117,7 +131,9 @@ class TestRegisterHotkey:
         mock_run.return_value = MagicMock(returncode=0, stdout="@as []")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return "test"
 
@@ -132,7 +148,9 @@ class TestRegisterHotkey:
     def test_register_kde_hotkey_returns_false(self, mock_run):
         # KDE hotkey registration is not implemented
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -144,7 +162,9 @@ class TestRegisterHotkey:
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "UNKNOWN"})
     def test_register_unsupported_desktop_returns_false(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -162,7 +182,9 @@ class TestGnomeHotkeyRegistration:
         mock_run.return_value = MagicMock(returncode=0, stdout="@as []")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -175,13 +197,12 @@ class TestGnomeHotkeyRegistration:
     @patch("src.hotkeys.subprocess.run")
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "GNOME"})
     def test_gnome_adds_to_existing_list(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="['/existing/path/']"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="['/existing/path/']")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -195,7 +216,9 @@ class TestGnomeHotkeyRegistration:
         mock_run.side_effect = Exception("gsettings error")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -213,10 +236,11 @@ class TestUnregisterHotkey:
     def test_unregister_all_gnome(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout="['/some/path/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/likx/']"
+            stdout="['/some/path/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/likx/']",
         )
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         # Should not raise
@@ -228,12 +252,10 @@ class TestUnregisterHotkey:
     @patch("src.hotkeys.subprocess.run")
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "GNOME"})
     def test_unregister_all_no_likx_path(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="['/some/other/path/']"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="['/some/other/path/']")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         # Should not raise
@@ -245,6 +267,7 @@ class TestUnregisterHotkey:
         mock_run.side_effect = Exception("gsettings error")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         # Should not raise
@@ -253,6 +276,7 @@ class TestUnregisterHotkey:
     @patch.dict("os.environ", {"XDG_CURRENT_DESKTOP": "KDE"})
     def test_unregister_kde_does_nothing(self):
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
 
         # Should not raise for unsupported desktop
@@ -264,22 +288,27 @@ class TestHotkeyManagerAttributes:
 
     def test_has_register_hotkey(self):
         from src.hotkeys import HotkeyManager
+
         assert hasattr(HotkeyManager, "register_hotkey")
 
     def test_has_unregister_all(self):
         from src.hotkeys import HotkeyManager
+
         assert hasattr(HotkeyManager, "unregister_all")
 
     def test_has_detect_desktop_environment(self):
         from src.hotkeys import HotkeyManager
+
         assert hasattr(HotkeyManager, "_detect_desktop_environment")
 
     def test_has_register_gnome_hotkey(self):
         from src.hotkeys import HotkeyManager
+
         assert hasattr(HotkeyManager, "_register_gnome_hotkey")
 
     def test_has_register_kde_hotkey(self):
         from src.hotkeys import HotkeyManager
+
         assert hasattr(HotkeyManager, "_register_kde_hotkey")
 
 
@@ -292,7 +321,9 @@ class TestHotkeyEdgeCases:
         mock_run.return_value = MagicMock(returncode=0, stdout="@as []")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 
@@ -306,7 +337,9 @@ class TestHotkeyEdgeCases:
         mock_run.return_value = MagicMock(returncode=0, stdout="@as []")
 
         from src.hotkeys import HotkeyManager
+
         manager = HotkeyManager()
+
         def callback():
             return None
 

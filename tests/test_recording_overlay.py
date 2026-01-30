@@ -94,9 +94,7 @@ class TestRecordingOverlayInit:
 
                         mock_glib.timeout_add.return_value = 1
 
-                        overlay = recording_overlay.RecordingOverlay(
-                            on_stop=lambda: None
-                        )
+                        overlay = recording_overlay.RecordingOverlay(on_stop=lambda: None)
 
         assert overlay.region is None
         assert overlay.border_window is None
@@ -134,9 +132,7 @@ class TestRecordingOverlayMethods:
 
                         mock_glib.timeout_add.return_value = 1
 
-                        overlay = recording_overlay.RecordingOverlay(
-                            on_stop=MagicMock()
-                        )
+                        overlay = recording_overlay.RecordingOverlay(on_stop=MagicMock())
                         overlay._mock_glib = mock_glib
                         yield overlay
 
@@ -341,9 +337,7 @@ class TestDrawBorder:
 
                         mock_glib.timeout_add.return_value = 1
 
-                        overlay = recording_overlay.RecordingOverlay(
-                            on_stop=lambda: None
-                        )
+                        overlay = recording_overlay.RecordingOverlay(on_stop=lambda: None)
 
         mock_cr = MagicMock()
         result = overlay._draw_border(None, mock_cr, 400, 300, 3)

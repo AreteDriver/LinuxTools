@@ -1,7 +1,7 @@
 """Tests for radial_menu module."""
 
-import sys
 import math
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -20,18 +20,22 @@ class TestRadialMenuModuleAvailability:
 
     def test_radial_menu_module_imports(self):
         from src import radial_menu
+
         assert radial_menu is not None
 
     def test_gtk_available_flag_exists(self):
         from src.radial_menu import GTK_AVAILABLE
+
         assert isinstance(GTK_AVAILABLE, bool)
 
     def test_radial_menu_class_exists(self):
         from src.radial_menu import RadialMenu
+
         assert RadialMenu is not None
 
     def test_radial_items_exists(self):
         from src.radial_menu import RADIAL_ITEMS
+
         assert isinstance(RADIAL_ITEMS, list)
 
 
@@ -40,16 +44,19 @@ class TestRadialItems:
 
     def test_has_8_items(self):
         from src.radial_menu import RADIAL_ITEMS
+
         assert len(RADIAL_ITEMS) == 8
 
     def test_items_are_tuples(self):
         from src.radial_menu import RADIAL_ITEMS
+
         for item in RADIAL_ITEMS:
             assert isinstance(item, tuple)
             assert len(item) == 3  # (label, tool_type, icon)
 
     def test_contains_expected_tools(self):
         from src.radial_menu import RADIAL_ITEMS
+
         labels = [item[0] for item in RADIAL_ITEMS]
 
         assert "Crop" in labels
@@ -60,10 +67,10 @@ class TestRadialItems:
         assert "Blur" in labels
 
     def test_items_have_tool_types(self):
-        from src.radial_menu import RADIAL_ITEMS
         from src.editor import ToolType
+        from src.radial_menu import RADIAL_ITEMS
 
-        for label, tool_type, icon in RADIAL_ITEMS:
+        for _label, tool_type, _icon in RADIAL_ITEMS:
             # Tool type can be None for placeholder items
             if tool_type is not None:
                 assert isinstance(tool_type, ToolType)
@@ -71,7 +78,7 @@ class TestRadialItems:
     def test_items_have_icons(self):
         from src.radial_menu import RADIAL_ITEMS
 
-        for label, tool_type, icon in RADIAL_ITEMS:
+        for _label, _tool_type, icon in RADIAL_ITEMS:
             assert isinstance(icon, str)
             assert len(icon) > 0
 
@@ -81,14 +88,17 @@ class TestRadialMenuConstants:
 
     def test_radius_constant(self):
         from src.radial_menu import RadialMenu
+
         assert RadialMenu.RADIUS == 100
 
     def test_inner_radius_constant(self):
         from src.radial_menu import RadialMenu
+
         assert RadialMenu.INNER_RADIUS == 35
 
     def test_segment_count_constant(self):
         from src.radial_menu import RadialMenu
+
         assert RadialMenu.SEGMENT_COUNT == 8
 
 
@@ -108,6 +118,7 @@ class TestRadialMenuInit:
     def test_init_stores_callback(self):
         """Test that callback is stored."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -121,6 +132,7 @@ class TestRadialMenuInit:
     def test_init_sets_defaults(self):
         """Test initial state is correct."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -139,30 +151,37 @@ class TestRadialMenuAttributes:
 
     def test_has_setup_window(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "_setup_window")
 
     def test_has_connect_signals(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "_connect_signals")
 
     def test_has_show_at(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "show_at")
 
     def test_has_on_draw(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "_on_draw")
 
     def test_has_on_motion(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "_on_motion")
 
     def test_has_on_button_release(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "_on_button_release")
 
     def test_has_on_key_press(self):
         from src.radial_menu import RadialMenu
+
         assert hasattr(RadialMenu, "_on_key_press")
 
 
@@ -172,6 +191,7 @@ class TestRadialMenuShowAt:
     def test_show_at_sets_position(self):
         """Test show_at sets center position."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -192,6 +212,7 @@ class TestRadialMenuShowAt:
     def test_show_at_sets_active(self):
         """Test show_at sets active flag."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -209,6 +230,7 @@ class TestRadialMenuShowAt:
     def test_show_at_resets_highlight(self):
         """Test show_at resets highlighted segment."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -231,6 +253,7 @@ class TestRadialMenuMotion:
     def test_motion_center_no_highlight(self):
         """Test motion in center dead zone."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -253,6 +276,7 @@ class TestRadialMenuMotion:
     def test_motion_outside_no_highlight(self):
         """Test motion outside radius."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -275,6 +299,7 @@ class TestRadialMenuMotion:
     def test_motion_segment_highlight(self):
         """Test motion highlights correct segment."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -304,6 +329,7 @@ class TestRadialMenuButtonRelease:
     def test_release_inactive_does_nothing(self):
         """Test release when not active."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -321,10 +347,11 @@ class TestRadialMenuButtonRelease:
     def test_release_with_selection_calls_callback(self):
         """Test release with highlighted segment calls callback."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
-        from src.radial_menu import RadialMenu, RADIAL_ITEMS
+        from src.radial_menu import RADIAL_ITEMS, RadialMenu
 
         callback = MagicMock()
         menu = RadialMenu(callback)
@@ -344,6 +371,7 @@ class TestRadialMenuButtonRelease:
     def test_release_in_center_calls_callback_with_none(self):
         """Test release in center (cancel) calls callback with None."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -368,6 +396,7 @@ class TestRadialMenuKeyPress:
     def test_escape_cancels(self):
         """Test Escape key cancels menu."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -393,6 +422,7 @@ class TestRadialMenuKeyPress:
     def test_other_key_does_nothing(self):
         """Test other keys don't do anything."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -416,6 +446,7 @@ class TestRadialMenuDraw:
     def test_on_draw_returns_false(self):
         """Test _on_draw returns False."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -470,6 +501,7 @@ class TestRadialMenuEdgeCases:
     def test_callback_none(self):
         """Test with None callback."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -488,6 +520,7 @@ class TestRadialMenuEdgeCases:
     def test_motion_updates_only_on_change(self):
         """Test motion only updates on segment change."""
         from src.radial_menu import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 

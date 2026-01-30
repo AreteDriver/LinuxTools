@@ -31,8 +31,8 @@ class TestQueuedCapture:
 
     def test_queued_capture_init(self):
         """Test QueuedCapture initialization."""
-        from src.queue import QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import QueuedCapture
 
         mock_result = MagicMock()
         timestamp = datetime.now()
@@ -50,8 +50,8 @@ class TestQueuedCapture:
 
     def test_queued_capture_with_temp_path(self):
         """Test QueuedCapture with temp_path."""
-        from src.queue import QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import QueuedCapture
 
         queued = QueuedCapture(
             result=MagicMock(),
@@ -71,7 +71,7 @@ class TestCaptureQueueClass:
         from src.queue import CaptureQueue
 
         assert hasattr(CaptureQueue, "add")
-        assert callable(getattr(CaptureQueue, "add"))
+        assert callable(CaptureQueue.add)
 
     def test_class_has_get_all_method(self):
         """Test CaptureQueue has get_all method."""
@@ -131,8 +131,8 @@ class TestCaptureQueueOperations:
 
     def test_queue_add_capture(self):
         """Test adding capture to queue."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
@@ -148,13 +148,13 @@ class TestCaptureQueueOperations:
 
     def test_queue_add_multiple_captures(self):
         """Test adding multiple captures."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
 
-            for i in range(5):
+            for _i in range(5):
                 mock_result = MagicMock()
                 mock_result.success = True
                 queue.add(mock_result, CaptureMode.REGION)
@@ -163,8 +163,8 @@ class TestCaptureQueueOperations:
 
     def test_queue_get_all(self):
         """Test get_all returns all results."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
@@ -183,8 +183,8 @@ class TestCaptureQueueOperations:
 
     def test_queue_get_at_valid_index(self):
         """Test get_at with valid index."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
@@ -211,13 +211,13 @@ class TestCaptureQueueOperations:
 
     def test_queue_clear(self):
         """Test clearing the queue."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
 
-            for i in range(3):
+            for _i in range(3):
                 queue.add(MagicMock(), CaptureMode.REGION)
 
             assert queue.count == 3
@@ -229,13 +229,13 @@ class TestCaptureQueueOperations:
 
     def test_queue_pop_all(self):
         """Test pop_all returns all and clears queue."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
 
-            for i in range(3):
+            for _i in range(3):
                 queue.add(MagicMock(), CaptureMode.REGION)
 
             results = queue.pop_all()
@@ -245,13 +245,13 @@ class TestCaptureQueueOperations:
 
     def test_queue_remove_valid_index(self):
         """Test remove with valid index."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()
 
-            for i in range(3):
+            for _i in range(3):
                 queue.add(MagicMock(), CaptureMode.REGION)
 
             result = queue.remove(1)
@@ -274,13 +274,13 @@ class TestCaptureQueueOperations:
 
     def test_queue_enforces_max_size(self):
         """Test queue enforces max size limit."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with patch("src.queue.config.get_setting", return_value=5):
             queue = CaptureQueue()
 
-            for i in range(10):
+            for _i in range(10):
                 queue.add(MagicMock(), CaptureMode.REGION)
 
             # Should only keep max_queue_size items
@@ -316,8 +316,8 @@ class TestCaptureQueueWithPersistence:
 
     def test_add_with_persist_calls_persist_capture(self):
         """Test add with persistence calls _persist_capture."""
-        from src.queue import CaptureQueue
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue
 
         with tempfile.TemporaryDirectory() as tmpdir:
             persist_dir = Path(tmpdir) / "queue"
@@ -338,8 +338,8 @@ class TestCaptureQueueWithPersistence:
 
     def test_clear_with_persist_removes_files(self):
         """Test clear with persistence removes temp files."""
+        from src.capture import CaptureMode
         from src.queue import CaptureQueue, QueuedCapture
-        from src.capture import CaptureMode, CaptureResult
 
         with tempfile.TemporaryDirectory() as tmpdir:
             persist_dir = Path(tmpdir) / "queue"
@@ -370,8 +370,8 @@ class TestCaptureQueueWithPersistence:
 
     def test_remove_with_persist_removes_file(self):
         """Test remove with persistence removes temp file."""
-        from src.queue import CaptureQueue, QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue, QueuedCapture
 
         with tempfile.TemporaryDirectory() as tmpdir:
             persist_dir = Path(tmpdir) / "queue"
@@ -403,8 +403,8 @@ class TestCaptureQueuePersistCapture:
 
     def test_persist_capture_raises_without_dir(self):
         """Test _persist_capture raises error without persist_dir."""
-        from src.queue import CaptureQueue, QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue, QueuedCapture
 
         with patch("src.queue.config.get_setting", return_value=50):
             queue = CaptureQueue()  # No persist_dir
@@ -420,8 +420,8 @@ class TestCaptureQueuePersistCapture:
 
     def test_persist_capture_creates_directory(self):
         """Test _persist_capture creates persist directory if needed."""
-        from src.queue import CaptureQueue, QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue, QueuedCapture
 
         with tempfile.TemporaryDirectory() as tmpdir:
             persist_dir = Path(tmpdir) / "new_queue_dir"
@@ -445,8 +445,8 @@ class TestCaptureQueuePersistCapture:
 
     def test_persist_capture_handles_savev_exception(self):
         """Test _persist_capture handles pixbuf.savev exception."""
-        from src.queue import CaptureQueue, QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue, QueuedCapture
 
         with tempfile.TemporaryDirectory() as tmpdir:
             persist_dir = Path(tmpdir) / "queue"
@@ -544,8 +544,8 @@ class TestCaptureQueueEdgeCases:
 
     def test_remove_handles_oserror_on_unlink(self):
         """Test remove handles OSError when deleting temp file."""
-        from src.queue import CaptureQueue, QueuedCapture
         from src.capture import CaptureMode
+        from src.queue import CaptureQueue, QueuedCapture
 
         with tempfile.TemporaryDirectory() as tmpdir:
             persist_dir = Path(tmpdir) / "queue"

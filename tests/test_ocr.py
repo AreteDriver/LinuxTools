@@ -1,9 +1,9 @@
 """Tests for OCR module."""
 
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import subprocess
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

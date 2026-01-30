@@ -12,14 +12,17 @@ class TestCommandsModuleAvailability:
 
     def test_commands_module_imports(self):
         from src import commands
+
         assert commands is not None
 
     def test_command_class_exists(self):
         from src.commands import Command
+
         assert Command is not None
 
     def test_build_command_registry_exists(self):
         from src.commands import build_command_registry
+
         assert callable(build_command_registry)
 
 
@@ -41,12 +44,13 @@ class TestCommandDataclass:
 
         def callback():
             return None
+
         cmd = Command(
             name="Full Command",
             keywords=["test", "example"],
             callback=callback,
             icon="📝",
-            shortcut="Ctrl+T"
+            shortcut="Ctrl+T",
         )
 
         assert cmd.name == "Full Command"
@@ -58,10 +62,7 @@ class TestCommandDataclass:
     def test_command_with_keywords(self):
         from src.commands import Command
 
-        cmd = Command(
-            name="Pen Tool",
-            keywords=["draw", "pen", "brush"]
-        )
+        cmd = Command(name="Pen Tool", keywords=["draw", "pen", "brush"])
 
         assert len(cmd.keywords) == 3
         assert "draw" in cmd.keywords
@@ -151,7 +152,7 @@ class TestBuildCommandRegistry:
         assert isinstance(commands, list)
 
     def test_returns_command_objects(self):
-        from src.commands import build_command_registry, Command
+        from src.commands import Command, build_command_registry
 
         mock_editor = MagicMock()
         commands = build_command_registry(mock_editor)

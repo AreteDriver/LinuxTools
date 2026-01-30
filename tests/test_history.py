@@ -4,7 +4,7 @@ import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -129,42 +129,42 @@ class TestHistoryManager:
         from src.history import HistoryManager
 
         assert hasattr(HistoryManager, "load")
-        assert callable(getattr(HistoryManager, "load"))
+        assert callable(HistoryManager.load)
 
     def test_manager_has_save_method(self):
         """Test HistoryManager has save method."""
         from src.history import HistoryManager
 
         assert hasattr(HistoryManager, "save")
-        assert callable(getattr(HistoryManager, "save"))
+        assert callable(HistoryManager.save)
 
     def test_manager_has_add_method(self):
         """Test HistoryManager has add method."""
         from src.history import HistoryManager
 
         assert hasattr(HistoryManager, "add")
-        assert callable(getattr(HistoryManager, "add"))
+        assert callable(HistoryManager.add)
 
     def test_manager_has_remove_method(self):
         """Test HistoryManager has remove method."""
         from src.history import HistoryManager
 
         assert hasattr(HistoryManager, "remove")
-        assert callable(getattr(HistoryManager, "remove"))
+        assert callable(HistoryManager.remove)
 
     def test_manager_has_clear_method(self):
         """Test HistoryManager has clear method."""
         from src.history import HistoryManager
 
         assert hasattr(HistoryManager, "clear")
-        assert callable(getattr(HistoryManager, "clear"))
+        assert callable(HistoryManager.clear)
 
     def test_manager_has_get_recent_method(self):
         """Test HistoryManager has get_recent method."""
         from src.history import HistoryManager
 
         assert hasattr(HistoryManager, "get_recent")
-        assert callable(getattr(HistoryManager, "get_recent"))
+        assert callable(HistoryManager.get_recent)
 
 
 class TestHistoryManagerOperations:
@@ -172,7 +172,7 @@ class TestHistoryManagerOperations:
 
     def test_add_entry(self):
         """Test adding entry to history."""
-        from src.history import HistoryEntry, HistoryManager
+        from src.history import HistoryManager
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config_dir = Path(tmpdir)
@@ -212,7 +212,7 @@ class TestHistoryManagerOperations:
 
     def test_get_recent_default_limit(self):
         """Test get_recent with default limit."""
-        from src.history import HistoryEntry, HistoryManager
+        from src.history import HistoryManager
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config_dir = Path(tmpdir)
@@ -321,8 +321,9 @@ class TestHistoryWindowClass:
 
     def test_gtk_check_in_init(self):
         """Test that HistoryWindow checks GTK_AVAILABLE in init."""
-        from src.history import HistoryWindow
         import inspect
+
+        from src.history import HistoryWindow
 
         source = inspect.getsource(HistoryWindow.__init__)
         assert "GTK_AVAILABLE" in source or "RuntimeError" in source
@@ -369,7 +370,7 @@ class TestHistoryManagerRemove:
 
     def test_remove_existing_entry(self):
         """Test removing an existing entry."""
-        from src.history import HistoryEntry, HistoryManager
+        from src.history import HistoryManager
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config_dir = Path(tmpdir)
@@ -572,8 +573,6 @@ class TestHistoryManagerFunctional:
         """Set up temporary config directory."""
         from src import config
 
-        original_dir = config.get_config_dir()
-
         # Patch config dir
         with patch.object(config, "get_config_dir", return_value=tmp_path):
             with patch.object(config, "ensure_config_dir", return_value=None):
@@ -731,10 +730,12 @@ class TestHistoryWindowFunctional:
     def gtk_setup(self):
         """Set up GTK for testing."""
         from src.history import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             pytest.skip("GTK not available")
 
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 
@@ -764,6 +765,7 @@ class TestHistoryWindowFunctional:
     def test_history_window_with_parent(self, gtk_setup, temp_config):
         """Test creating HistoryWindow with parent."""
         from src.history import HistoryWindow
+
         Gtk = gtk_setup["Gtk"]
 
         parent = Gtk.Window()
@@ -792,24 +794,24 @@ class TestHistoryWindowFunctional:
         import zlib
 
         def create_minimal_png():
-            signature = b'\x89PNG\r\n\x1a\n'
+            signature = b"\x89PNG\r\n\x1a\n"
 
             # IHDR chunk
-            width = struct.pack('>I', 1)
-            height = struct.pack('>I', 1)
-            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
-            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
-            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
+            width = struct.pack(">I", 1)
+            height = struct.pack(">I", 1)
+            ihdr_data = width + height + b"\x08\x02\x00\x00\x00"
+            ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
+            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + ihdr_crc
 
             # IDAT chunk (1x1 red pixel)
-            raw_data = b'\x00\xff\x00\x00'
+            raw_data = b"\x00\xff\x00\x00"
             compressed = zlib.compress(raw_data)
-            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
-            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
+            idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF)
+            idat = struct.pack(">I", len(compressed)) + b"IDAT" + compressed + idat_crc
 
             # IEND chunk
-            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
-            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+            iend = struct.pack(">I", 0) + b"IEND" + iend_crc
 
             return signature + ihdr + idat + iend
 
@@ -817,6 +819,7 @@ class TestHistoryWindowFunctional:
 
         # Add to history
         from src.history import HistoryManager
+
         manager = HistoryManager()
         manager.add(test_file, mode="test")
 
@@ -836,7 +839,7 @@ class TestHistoryWindowFunctional:
 
     def test_on_item_activated(self, gtk_setup, temp_config, tmp_path):
         """Test _on_item_activated opens file."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
 
         # Create file and add to history
         test_file = tmp_path / "test.png"
@@ -851,13 +854,13 @@ class TestHistoryWindowFunctional:
         with patch("subprocess.Popen") as mock_popen:
             # Get path from store
             if len(window.store) > 0:
-                path = Gtk.TreePath.new_first()
+                path = gtk_setup["Gtk"].TreePath.new_first()
                 window._on_item_activated(window.icon_view, path)
                 mock_popen.assert_called_once()
 
     def test_on_item_activated_exception(self, gtk_setup, temp_config, tmp_path):
         """Test _on_item_activated handles exception."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
 
         test_file = tmp_path / "test.png"
         test_file.write_bytes(b"fake")
@@ -869,7 +872,7 @@ class TestHistoryWindowFunctional:
 
         with patch("subprocess.Popen", side_effect=Exception("Failed")):
             if len(window.store) > 0:
-                path = Gtk.TreePath.new_first()
+                path = gtk_setup["Gtk"].TreePath.new_first()
                 # Should not raise
                 window._on_item_activated(window.icon_view, path)
 
@@ -887,7 +890,8 @@ class TestHistoryWindowFunctional:
 
     def test_on_delete_with_selection_yes(self, gtk_setup, temp_config, tmp_path):
         """Test _on_delete with selection and YES response."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
+
         Gtk = gtk_setup["Gtk"]
 
         # Create a valid PNG file
@@ -895,18 +899,18 @@ class TestHistoryWindowFunctional:
         import zlib
 
         def create_minimal_png():
-            signature = b'\x89PNG\r\n\x1a\n'
-            width = struct.pack('>I', 1)
-            height = struct.pack('>I', 1)
-            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
-            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
-            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
-            raw_data = b'\x00\xff\x00\x00'
+            signature = b"\x89PNG\r\n\x1a\n"
+            width = struct.pack(">I", 1)
+            height = struct.pack(">I", 1)
+            ihdr_data = width + height + b"\x08\x02\x00\x00\x00"
+            ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
+            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + ihdr_crc
+            raw_data = b"\x00\xff\x00\x00"
             compressed = zlib.compress(raw_data)
-            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
-            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
-            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
-            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF)
+            idat = struct.pack(">I", len(compressed)) + b"IDAT" + compressed + idat_crc
+            iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+            iend = struct.pack(">I", 0) + b"IEND" + iend_crc
             return signature + ihdr + idat + iend
 
         test_file = tmp_path / "to_delete.png"
@@ -932,25 +936,26 @@ class TestHistoryWindowFunctional:
 
     def test_on_delete_with_selection_no(self, gtk_setup, temp_config, tmp_path):
         """Test _on_delete with selection and NO response."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
+
         Gtk = gtk_setup["Gtk"]
 
         import struct
         import zlib
 
         def create_minimal_png():
-            signature = b'\x89PNG\r\n\x1a\n'
-            width = struct.pack('>I', 1)
-            height = struct.pack('>I', 1)
-            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
-            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
-            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
-            raw_data = b'\x00\xff\x00\x00'
+            signature = b"\x89PNG\r\n\x1a\n"
+            width = struct.pack(">I", 1)
+            height = struct.pack(">I", 1)
+            ihdr_data = width + height + b"\x08\x02\x00\x00\x00"
+            ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
+            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + ihdr_crc
+            raw_data = b"\x00\xff\x00\x00"
             compressed = zlib.compress(raw_data)
-            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
-            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
-            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
-            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF)
+            idat = struct.pack(">I", len(compressed)) + b"IDAT" + compressed + idat_crc
+            iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+            iend = struct.pack(">I", 0) + b"IEND" + iend_crc
             return signature + ihdr + idat + iend
 
         test_file = tmp_path / "keep.png"
@@ -975,25 +980,26 @@ class TestHistoryWindowFunctional:
 
     def test_on_clear_all_yes(self, gtk_setup, temp_config, tmp_path):
         """Test _on_clear_all with YES response."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
+
         Gtk = gtk_setup["Gtk"]
 
         import struct
         import zlib
 
         def create_minimal_png():
-            signature = b'\x89PNG\r\n\x1a\n'
-            width = struct.pack('>I', 1)
-            height = struct.pack('>I', 1)
-            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
-            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
-            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
-            raw_data = b'\x00\xff\x00\x00'
+            signature = b"\x89PNG\r\n\x1a\n"
+            width = struct.pack(">I", 1)
+            height = struct.pack(">I", 1)
+            ihdr_data = width + height + b"\x08\x02\x00\x00\x00"
+            ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
+            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + ihdr_crc
+            raw_data = b"\x00\xff\x00\x00"
             compressed = zlib.compress(raw_data)
-            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
-            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
-            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
-            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF)
+            idat = struct.pack(">I", len(compressed)) + b"IDAT" + compressed + idat_crc
+            iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+            iend = struct.pack(">I", 0) + b"IEND" + iend_crc
             return signature + ihdr + idat + iend
 
         # Add multiple files
@@ -1004,7 +1010,6 @@ class TestHistoryWindowFunctional:
             manager.add(test_file, mode="test")
 
         window = HistoryWindow()
-        initial_count = len(window.store)
 
         # Mock dialog to return YES
         with patch.object(Gtk.MessageDialog, "run", return_value=Gtk.ResponseType.YES):
@@ -1016,25 +1021,26 @@ class TestHistoryWindowFunctional:
 
     def test_on_clear_all_no(self, gtk_setup, temp_config, tmp_path):
         """Test _on_clear_all with NO response keeps history."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
+
         Gtk = gtk_setup["Gtk"]
 
         import struct
         import zlib
 
         def create_minimal_png():
-            signature = b'\x89PNG\r\n\x1a\n'
-            width = struct.pack('>I', 1)
-            height = struct.pack('>I', 1)
-            ihdr_data = width + height + b'\x08\x02\x00\x00\x00'
-            ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff)
-            ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + ihdr_crc
-            raw_data = b'\x00\xff\x00\x00'
+            signature = b"\x89PNG\r\n\x1a\n"
+            width = struct.pack(">I", 1)
+            height = struct.pack(">I", 1)
+            ihdr_data = width + height + b"\x08\x02\x00\x00\x00"
+            ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
+            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + ihdr_crc
+            raw_data = b"\x00\xff\x00\x00"
             compressed = zlib.compress(raw_data)
-            idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + compressed) & 0xffffffff)
-            idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + idat_crc
-            iend_crc = struct.pack('>I', zlib.crc32(b'IEND') & 0xffffffff)
-            iend = struct.pack('>I', 0) + b'IEND' + iend_crc
+            idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF)
+            idat = struct.pack(">I", len(compressed)) + b"IDAT" + compressed + idat_crc
+            iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+            iend = struct.pack(">I", 0) + b"IEND" + iend_crc
             return signature + ihdr + idat + iend
 
         test_file = tmp_path / "keep.png"
@@ -1078,7 +1084,7 @@ class TestHistoryWindowFunctional:
 
     def test_load_history_exception(self, gtk_setup, temp_config, tmp_path):
         """Test _load_history handles thumbnail exception."""
-        from src.history import HistoryWindow, HistoryManager
+        from src.history import HistoryManager, HistoryWindow
 
         # Create file that will fail to create thumbnail
         test_file = tmp_path / "bad.png"

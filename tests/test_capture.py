@@ -1,18 +1,18 @@
 """Tests for capture module."""
 
 import os
-from unittest.mock import MagicMock, patch
+import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.capture import (
     CaptureMode,
-    DisplayServer,
     CaptureResult,
+    DisplayServer,
     detect_display_server,
 )
 
@@ -80,9 +80,7 @@ class TestDetectDisplayServer:
         result = detect_display_server()
         assert result == DisplayServer.WAYLAND
 
-    @patch.dict(
-        os.environ, {"XDG_SESSION_TYPE": "", "WAYLAND_DISPLAY": "wayland-0"}, clear=True
-    )
+    @patch.dict(os.environ, {"XDG_SESSION_TYPE": "", "WAYLAND_DISPLAY": "wayland-0"}, clear=True)
     def test_detect_wayland_from_display(self):
         result = detect_display_server()
         assert result == DisplayServer.WAYLAND
@@ -187,7 +185,7 @@ class TestCaptureMainFunction:
 
     @patch("src.capture.config.load_config")
     def test_capture_region_without_coordinates(self, mock_config):
-        from src.capture import capture, CaptureMode
+        from src.capture import CaptureMode, capture
 
         mock_config.return_value = {}
         result = capture(CaptureMode.REGION, region=None)
@@ -197,7 +195,7 @@ class TestCaptureMainFunction:
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_fullscreen")
     def test_capture_fullscreen_mode(self, mock_fullscreen, mock_config):
-        from src.capture import capture, CaptureMode, CaptureResult
+        from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
         mock_fullscreen.return_value = CaptureResult(success=True, pixbuf=MagicMock())
@@ -208,7 +206,7 @@ class TestCaptureMainFunction:
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_region")
     def test_capture_region_mode(self, mock_region, mock_config):
-        from src.capture import capture, CaptureMode, CaptureResult
+        from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
         mock_region.return_value = CaptureResult(success=True, pixbuf=MagicMock())
@@ -219,7 +217,7 @@ class TestCaptureMainFunction:
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_window")
     def test_capture_window_mode(self, mock_window, mock_config):
-        from src.capture import capture, CaptureMode, CaptureResult
+        from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
         mock_window.return_value = CaptureResult(success=True, pixbuf=MagicMock())
@@ -240,14 +238,12 @@ class TestCaptureMainFunction:
     @patch("src.capture.capture_fullscreen")
     @patch("src.capture.save_capture")
     def test_capture_with_auto_save(self, mock_save, mock_fullscreen, mock_config):
-        from src.capture import capture, CaptureMode, CaptureResult
+        from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
         mock_pixbuf = MagicMock()
         mock_fullscreen.return_value = CaptureResult(success=True, pixbuf=mock_pixbuf)
-        mock_save.return_value = CaptureResult(
-            success=True, filepath=Path("/tmp/test.png")
-        )
+        mock_save.return_value = CaptureResult(success=True, filepath=Path("/tmp/test.png"))
 
         capture(CaptureMode.FULLSCREEN, auto_save=True)
         mock_save.assert_called_once()
@@ -261,7 +257,7 @@ class TestCaptureFullscreenWayland:
     @patch("src.capture.os.path.exists")
     @patch("src.capture.os.unlink")
     def test_grim_success(self, mock_unlink, mock_exists, mock_run, mock_sleep):
-        from src.capture import capture_fullscreen_wayland, GTK_AVAILABLE
+        from src.capture import GTK_AVAILABLE, capture_fullscreen_wayland
 
         if not GTK_AVAILABLE:
             return
@@ -301,10 +297,8 @@ class TestCaptureRegionWayland:
     @patch("src.capture.subprocess.run")
     @patch("src.capture.os.path.exists")
     @patch("src.capture.os.unlink")
-    def test_grim_with_geometry_success(
-        self, mock_unlink, mock_exists, mock_run, mock_sleep
-    ):
-        from src.capture import capture_region_wayland, GTK_AVAILABLE
+    def test_grim_with_geometry_success(self, mock_unlink, mock_exists, mock_run, mock_sleep):
+        from src.capture import GTK_AVAILABLE, capture_region_wayland
 
         if not GTK_AVAILABLE:
             return
@@ -320,7 +314,7 @@ class TestCaptureRegionWayland:
     @patch("src.capture.subprocess.run")
     @patch("src.capture.capture_fullscreen_wayland")
     def test_fallback_to_crop(self, mock_fullscreen, mock_run):
-        from src.capture import capture_region_wayland, CaptureResult, GTK_AVAILABLE
+        from src.capture import GTK_AVAILABLE, CaptureResult, capture_region_wayland
 
         if not GTK_AVAILABLE:
             return
@@ -344,10 +338,8 @@ class TestCaptureWindowWayland:
     @patch("src.capture.subprocess.run")
     @patch("src.capture.os.path.exists")
     @patch("src.capture.os.unlink")
-    def test_gnome_screenshot_success(
-        self, mock_unlink, mock_exists, mock_run, mock_sleep
-    ):
-        from src.capture import capture_window_wayland, GTK_AVAILABLE
+    def test_gnome_screenshot_success(self, mock_unlink, mock_exists, mock_run, mock_sleep):
+        from src.capture import GTK_AVAILABLE, capture_window_wayland
 
         if not GTK_AVAILABLE:
             return
@@ -382,7 +374,7 @@ class TestCaptureWindowX11:
     @patch("src.capture.subprocess.run")
     @patch("src.capture.capture_region")
     def test_capture_active_window(self, mock_region, mock_run, mock_detect):
-        from src.capture import capture_window, DisplayServer, CaptureResult
+        from src.capture import CaptureResult, DisplayServer, capture_window
 
         mock_detect.return_value = DisplayServer.X11
 
@@ -400,7 +392,7 @@ class TestCaptureWindowX11:
     @patch("src.capture.GTK_AVAILABLE", True)
     @patch("src.capture.subprocess.run")
     def test_xdotool_not_installed(self, mock_run, mock_detect):
-        from src.capture import capture_window, DisplayServer
+        from src.capture import DisplayServer, capture_window
 
         mock_detect.return_value = DisplayServer.X11
         mock_run.side_effect = FileNotFoundError("xdotool not found")
@@ -413,8 +405,9 @@ class TestCaptureWindowX11:
     @patch("src.capture.GTK_AVAILABLE", True)
     @patch("src.capture.subprocess.run")
     def test_xdotool_timeout(self, mock_run, mock_detect):
-        from src.capture import capture_window, DisplayServer
         import subprocess
+
+        from src.capture import DisplayServer, capture_window
 
         mock_detect.return_value = DisplayServer.X11
         mock_run.side_effect = subprocess.TimeoutExpired("xdotool", 2)
@@ -428,7 +421,7 @@ class TestSaveCaptureExtended:
     """Extended tests for save_capture function."""
 
     def test_save_with_format_mapping(self):
-        from src.capture import save_capture, CaptureResult
+        from src.capture import CaptureResult, save_capture
 
         mock_pixbuf = MagicMock()
         result = CaptureResult(success=True, pixbuf=mock_pixbuf)
@@ -442,8 +435,9 @@ class TestSaveCaptureExtended:
                 mock_pixbuf.savev.assert_called()
 
     def test_save_creates_directory(self):
-        from src.capture import save_capture, CaptureResult
         import tempfile
+
+        from src.capture import CaptureResult, save_capture
 
         mock_pixbuf = MagicMock()
         result = CaptureResult(success=True, pixbuf=mock_pixbuf)
@@ -455,7 +449,7 @@ class TestSaveCaptureExtended:
             # Directory should be created
 
     def test_save_exception_handling(self):
-        from src.capture import save_capture, CaptureResult
+        from src.capture import CaptureResult, save_capture
 
         mock_pixbuf = MagicMock()
         mock_pixbuf.savev.side_effect = Exception("Save error")
@@ -473,7 +467,7 @@ class TestCopyToClipboardExtended:
     @patch("src.capture.subprocess.Popen")
     @patch("src.capture.os.unlink")
     def test_wayland_wl_copy_success(self, mock_unlink, mock_popen, mock_detect):
-        from src.capture import copy_to_clipboard, CaptureResult, DisplayServer
+        from src.capture import CaptureResult, DisplayServer, copy_to_clipboard
 
         mock_detect.return_value = DisplayServer.WAYLAND
         mock_pixbuf = MagicMock()
@@ -492,7 +486,7 @@ class TestCopyToClipboardExtended:
     @patch("src.capture.subprocess.Popen")
     @patch("src.capture.time.sleep")
     def test_x11_xclip_success(self, mock_sleep, mock_popen, mock_detect):
-        from src.capture import copy_to_clipboard, CaptureResult, DisplayServer
+        from src.capture import CaptureResult, DisplayServer, copy_to_clipboard
 
         mock_detect.return_value = DisplayServer.X11
         mock_pixbuf = MagicMock()
@@ -512,7 +506,7 @@ class TestCopyToClipboardExtended:
     def test_external_tools_fail_fallback_to_gtk(
         self, mock_unlink, mock_exists, mock_popen, mock_detect
     ):
-        from src.capture import copy_to_clipboard, CaptureResult, DisplayServer
+        from src.capture import CaptureResult, DisplayServer, copy_to_clipboard
 
         mock_detect.return_value = DisplayServer.X11
         mock_pixbuf = MagicMock()
@@ -584,9 +578,7 @@ class TestMonitorInfo:
         """Test the geometry property returns correct tuple."""
         from src.capture import MonitorInfo
 
-        monitor = MonitorInfo(
-            index=0, name="Test", x=100, y=200, width=1920, height=1080
-        )
+        monitor = MonitorInfo(index=0, name="Test", x=100, y=200, width=1920, height=1080)
         assert monitor.geometry == (100, 200, 1920, 1080)
 
     def test_monitor_str_primary(self):
@@ -743,7 +735,7 @@ class TestGetMonitorAtPoint:
     @patch("src.capture.get_monitors")
     def test_point_on_first_monitor(self, mock_get_monitors):
         """Test finding monitor at point on first monitor."""
-        from src.capture import get_monitor_at_point, MonitorInfo
+        from src.capture import MonitorInfo, get_monitor_at_point
 
         mock_get_monitors.return_value = [
             MonitorInfo(0, "Primary", 0, 0, 1920, 1080, True),
@@ -757,7 +749,7 @@ class TestGetMonitorAtPoint:
     @patch("src.capture.get_monitors")
     def test_point_on_second_monitor(self, mock_get_monitors):
         """Test finding monitor at point on second monitor."""
-        from src.capture import get_monitor_at_point, MonitorInfo
+        from src.capture import MonitorInfo, get_monitor_at_point
 
         mock_get_monitors.return_value = [
             MonitorInfo(0, "Primary", 0, 0, 1920, 1080, True),
@@ -771,7 +763,7 @@ class TestGetMonitorAtPoint:
     @patch("src.capture.get_monitors")
     def test_point_outside_all_monitors(self, mock_get_monitors):
         """Test returns None when point is outside all monitors."""
-        from src.capture import get_monitor_at_point, MonitorInfo
+        from src.capture import MonitorInfo, get_monitor_at_point
 
         mock_get_monitors.return_value = [
             MonitorInfo(0, "Primary", 0, 0, 1920, 1080, True),
@@ -783,7 +775,7 @@ class TestGetMonitorAtPoint:
     @patch("src.capture.get_monitors")
     def test_point_at_monitor_boundary(self, mock_get_monitors):
         """Test point at exact monitor boundary."""
-        from src.capture import get_monitor_at_point, MonitorInfo
+        from src.capture import MonitorInfo, get_monitor_at_point
 
         mock_get_monitors.return_value = [
             MonitorInfo(0, "Primary", 0, 0, 1920, 1080, True),
@@ -818,7 +810,7 @@ class TestGetPrimaryMonitor:
     @patch("src.capture.get_monitors")
     def test_returns_primary(self, mock_get_monitors):
         """Test returns the primary monitor."""
-        from src.capture import get_primary_monitor, MonitorInfo
+        from src.capture import MonitorInfo, get_primary_monitor
 
         mock_get_monitors.return_value = [
             MonitorInfo(0, "Secondary", 1920, 0, 2560, 1440, False),
@@ -833,7 +825,7 @@ class TestGetPrimaryMonitor:
     @patch("src.capture.get_monitors")
     def test_fallback_to_first_if_no_primary(self, mock_get_monitors):
         """Test falls back to first monitor if no primary set."""
-        from src.capture import get_primary_monitor, MonitorInfo
+        from src.capture import MonitorInfo, get_primary_monitor
 
         mock_get_monitors.return_value = [
             MonitorInfo(0, "First", 0, 0, 1920, 1080, False),
@@ -862,7 +854,7 @@ class TestCaptureMonitor:
     @patch("src.capture.time.sleep")
     def test_capture_with_delay(self, mock_sleep, mock_capture_region):
         """Test capture_monitor with delay."""
-        from src.capture import capture_monitor, MonitorInfo, CaptureResult
+        from src.capture import CaptureResult, MonitorInfo, capture_monitor
 
         monitor = MonitorInfo(0, "Test", 0, 0, 1920, 1080)
         mock_capture_region.return_value = CaptureResult(success=True)
@@ -876,7 +868,7 @@ class TestCaptureMonitor:
     @patch("src.capture.time.sleep")
     def test_capture_without_delay(self, mock_sleep, mock_capture_region):
         """Test capture_monitor without delay."""
-        from src.capture import capture_monitor, MonitorInfo, CaptureResult
+        from src.capture import CaptureResult, MonitorInfo, capture_monitor
 
         monitor = MonitorInfo(0, "Test", 100, 200, 2560, 1440)
         mock_capture_region.return_value = CaptureResult(success=True)
@@ -889,7 +881,7 @@ class TestCaptureMonitor:
     @patch("src.capture.capture_region")
     def test_capture_passes_geometry(self, mock_capture_region):
         """Test that monitor geometry is passed to capture_region."""
-        from src.capture import capture_monitor, MonitorInfo, CaptureResult
+        from src.capture import CaptureResult, MonitorInfo, capture_monitor
 
         monitor = MonitorInfo(0, "Offset Monitor", 1920, 0, 2560, 1440)
         mock_capture_region.return_value = CaptureResult(success=True)
@@ -902,7 +894,7 @@ class TestCaptureMonitor:
     @patch("src.capture.capture_region")
     def test_capture_returns_result(self, mock_capture_region):
         """Test that capture_monitor returns the result from capture_region."""
-        from src.capture import capture_monitor, MonitorInfo, CaptureResult
+        from src.capture import CaptureResult, MonitorInfo, capture_monitor
 
         monitor = MonitorInfo(0, "Test", 0, 0, 1920, 1080)
         expected_result = CaptureResult(success=True, pixbuf=MagicMock())

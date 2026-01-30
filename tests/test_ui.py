@@ -50,7 +50,7 @@ class TestUIConfigIntegration:
 
     @pytest.mark.requires_gtk
     def test_config_module_imported(self):
-        from src import ui, config
+        from src import config, ui
 
         # Check ui module uses config
         assert ui.config is config
@@ -67,8 +67,8 @@ class TestEditorStateSettings:
     """Test EditorState applies settings correctly."""
 
     def test_set_grid_snap_with_config_values(self):
-        from src.editor import EditorState
         from src import config
+        from src.editor import EditorState
 
         # Create a mock pixbuf
         mock_pixbuf = MagicMock()
@@ -305,10 +305,10 @@ class TestEditorWindowClass:
 
         assert hasattr(EditorWindow, "_set_color")
 
-    def test_editor_window_has_save(self):
-        from src.ui import EditorWindow
+    def test_save_handler_has_save(self):
+        from src.widgets.save_handler import SaveHandler
 
-        assert hasattr(EditorWindow, "_save")
+        assert hasattr(SaveHandler, "save")
 
     def test_editor_window_has_undo(self):
         from src.ui import EditorWindow
@@ -325,15 +325,15 @@ class TestEditorWindowClass:
 
         assert hasattr(EditorWindow, "_clear")
 
-    def test_editor_window_has_upload(self):
-        from src.ui import EditorWindow
+    def test_save_handler_has_upload(self):
+        from src.widgets.save_handler import SaveHandler
 
-        assert hasattr(EditorWindow, "_upload")
+        assert hasattr(SaveHandler, "upload")
 
-    def test_editor_window_has_copy_to_clipboard(self):
-        from src.ui import EditorWindow
+    def test_save_handler_has_copy_to_clipboard(self):
+        from src.widgets.save_handler import SaveHandler
 
-        assert hasattr(EditorWindow, "_copy_to_clipboard")
+        assert hasattr(SaveHandler, "copy_to_clipboard")
 
     def test_editor_window_has_show_command_palette(self):
         from src.ui import EditorWindow
@@ -707,13 +707,13 @@ class TestEditorWindowToggleMethods:
 
 
 @pytest.mark.requires_gtk
-class TestEditorWindowSaveMethods:
-    """Test EditorWindow save methods."""
+class TestSaveHandlerMethods:
+    """Test SaveHandler methods."""
 
     def test_has_save_with_annotations(self):
-        from src.ui import EditorWindow
+        from src.widgets.save_handler import SaveHandler
 
-        assert hasattr(EditorWindow, "_save_with_annotations")
+        assert hasattr(SaveHandler, "save_with_annotations")
 
     def test_has_on_destroy(self):
         from src.ui import EditorWindow
@@ -1049,23 +1049,23 @@ class TestEditorWindowTabMethods:
 
         assert hasattr(EditorWindow, "close_tab")
 
-    def test_has_create_tab_label(self):
-        """Test EditorWindow has _create_tab_label method."""
-        from src.ui import EditorWindow
+    def test_tab_manager_has_create_tab_label(self):
+        """Test TabManager has _create_tab_label method."""
+        from src.widgets.tab_manager import TabManager
 
-        assert hasattr(EditorWindow, "_create_tab_label")
+        assert hasattr(TabManager, "_create_tab_label")
 
-    def test_has_reindex_tabs(self):
-        """Test EditorWindow has _reindex_tabs method."""
-        from src.ui import EditorWindow
+    def test_tab_manager_has_reindex_tabs(self):
+        """Test TabManager has _reindex_tabs method."""
+        from src.widgets.tab_manager import TabManager
 
-        assert hasattr(EditorWindow, "_reindex_tabs")
+        assert hasattr(TabManager, "_reindex_tabs")
 
-    def test_has_on_tab_switch(self):
-        """Test EditorWindow has _on_tab_switch method."""
-        from src.ui import EditorWindow
+    def test_tab_manager_has_on_notebook_switch_page(self):
+        """Test TabManager has _on_notebook_switch_page method."""
+        from src.widgets.tab_manager import TabManager
 
-        assert hasattr(EditorWindow, "_on_tab_switch")
+        assert hasattr(TabManager, "_on_notebook_switch_page")
 
     def test_has_sync_toolbar_to_state(self):
         """Test EditorWindow has _sync_toolbar_to_state method."""
@@ -1075,35 +1075,35 @@ class TestEditorWindowTabMethods:
 
 
 @pytest.mark.requires_gtk
-class TestEditorWindowHexPickerMethods:
-    """Test EditorWindow hex color picker methods."""
+class TestInlineColorPickerMethods:
+    """Test InlineColorPicker hex color picker methods."""
 
-    def test_has_setup_inline_hex_picker(self):
-        """Test EditorWindow has _setup_inline_hex_picker method."""
-        from src.ui import EditorWindow
+    def test_has_setup_widgets(self):
+        """Test InlineColorPicker has _setup_widgets method."""
+        from src.widgets.color_picker import InlineColorPicker
 
-        assert hasattr(EditorWindow, "_setup_inline_hex_picker")
+        assert hasattr(InlineColorPicker, "_setup_widgets")
 
     def test_has_build_hex_positions(self):
-        """Test EditorWindow has _build_hex_positions method."""
-        from src.ui import EditorWindow
+        """Test InlineColorPicker has _build_hex_positions method."""
+        from src.widgets.color_picker import InlineColorPicker
 
-        assert hasattr(EditorWindow, "_build_hex_positions")
+        assert hasattr(InlineColorPicker, "_build_hex_positions")
 
     def test_has_draw_hex_palette(self):
-        """Test EditorWindow has _draw_hex_palette method."""
-        from src.ui import EditorWindow
+        """Test InlineColorPicker has _draw_hex_palette method."""
+        from src.widgets.color_picker import InlineColorPicker
 
-        assert hasattr(EditorWindow, "_draw_hex_palette")
+        assert hasattr(InlineColorPicker, "_draw_hex_palette")
 
     def test_has_on_hex_click(self):
-        """Test EditorWindow has _on_hex_click method."""
-        from src.ui import EditorWindow
+        """Test InlineColorPicker has _on_hex_click method."""
+        from src.widgets.color_picker import InlineColorPicker
 
-        assert hasattr(EditorWindow, "_on_hex_click")
+        assert hasattr(InlineColorPicker, "_on_hex_click")
 
     def test_has_open_color_chooser(self):
-        """Test EditorWindow has _open_color_chooser method."""
-        from src.ui import EditorWindow
+        """Test InlineColorPicker has _open_color_chooser method."""
+        from src.widgets.color_picker import InlineColorPicker
 
-        assert hasattr(EditorWindow, "_open_color_chooser")
+        assert hasattr(InlineColorPicker, "_open_color_chooser")
