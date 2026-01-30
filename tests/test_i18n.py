@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-
 class TestI18nModuleImport:
     """Test i18n module can be imported."""
 
@@ -59,7 +58,9 @@ class TestGetSystemLanguage:
         with patch.dict(os.environ, {"LANG": "fr_FR.UTF-8"}, clear=False):
             # Need to reimport to pick up env change
             import importlib
+
             from src import i18n
+
             importlib.reload(i18n)
             result = i18n.get_system_language()
             # Should extract 'fr' from 'fr_FR.UTF-8'
@@ -68,10 +69,14 @@ class TestGetSystemLanguage:
     def test_fallback_to_english(self):
         """Test fallback to English when no language detected."""
 
-        with patch.dict(os.environ, {"LC_ALL": "", "LC_MESSAGES": "", "LANG": "", "LANGUAGE": ""}, clear=False):
+        with patch.dict(
+            os.environ, {"LC_ALL": "", "LC_MESSAGES": "", "LANG": "", "LANGUAGE": ""}, clear=False
+        ):
             with patch("locale.getlocale", return_value=(None, None)):
                 import importlib
+
                 from src import i18n
+
                 importlib.reload(i18n)
                 result = i18n.get_system_language()
                 assert result == "en"
@@ -130,7 +135,7 @@ class TestInitTranslations:
 
     def test_init_with_english(self):
         """Test initialization with English."""
-        from src.i18n import init_translations, _
+        from src.i18n import _, init_translations
 
         init_translations("en")
         # English should return strings unchanged
@@ -139,7 +144,7 @@ class TestInitTranslations:
 
     def test_init_with_spanish(self):
         """Test initialization with Spanish."""
-        from src.i18n import init_translations, _
+        from src.i18n import _, init_translations
 
         init_translations("es")
         result = _("Settings")
@@ -161,7 +166,7 @@ class TestInitTranslations:
 
     def test_init_with_unknown_language(self):
         """Test initialization with unknown language falls back."""
-        from src.i18n import init_translations, _
+        from src.i18n import _, init_translations
 
         init_translations("xx")  # Non-existent language
         # Should fall back and not crash
@@ -174,7 +179,7 @@ class TestTranslationFunction:
 
     def test_translate_known_string(self):
         """Test translating a known string."""
-        from src.i18n import init_translations, _
+        from src.i18n import _, init_translations
 
         init_translations("es")
         assert _("Save") == "Guardar"
@@ -183,7 +188,7 @@ class TestTranslationFunction:
 
     def test_translate_unknown_string(self):
         """Test that unknown strings return unchanged."""
-        from src.i18n import init_translations, _
+        from src.i18n import _, init_translations
 
         init_translations("es")
         unknown = "This string does not exist in translations"
@@ -199,7 +204,7 @@ class TestTranslationFunction:
 
     def test_translate_with_markup(self):
         """Test translating strings with markup."""
-        from src.i18n import init_translations, _
+        from src.i18n import _, init_translations
 
         init_translations("es")
         result = _("<b>Grid Settings</b>")

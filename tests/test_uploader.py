@@ -1,10 +1,10 @@
 """Tests for uploader module."""
 
-import sys
 import json
 import subprocess
+import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -31,10 +31,9 @@ class TestUploadToImgur:
     def test_upload_success(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout=json.dumps({
-                "success": True,
-                "data": {"link": "https://i.imgur.com/abc123.png"}
-            })
+            stdout=json.dumps(
+                {"success": True, "data": {"link": "https://i.imgur.com/abc123.png"}}
+            ),
         )
 
         uploader = Uploader()
@@ -49,10 +48,7 @@ class TestUploadToImgur:
     def test_upload_api_failure(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout=json.dumps({
-                "success": False,
-                "data": {"error": "Rate limit exceeded"}
-            })
+            stdout=json.dumps({"success": False, "data": {"error": "Rate limit exceeded"}}),
         )
 
         uploader = Uploader()
@@ -65,11 +61,7 @@ class TestUploadToImgur:
 
     @patch("src.uploader.subprocess.run")
     def test_upload_curl_failure(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="Connection refused"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Connection refused")
 
         uploader = Uploader()
         with patch("builtins.open", mock_open(read_data=b"fake_image_data")):
@@ -112,10 +104,7 @@ class TestUploadToImgur:
 
     @patch("src.uploader.subprocess.run")
     def test_upload_invalid_json_response(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="not valid json"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="not valid json")
 
         uploader = Uploader()
         with patch("builtins.open", mock_open(read_data=b"fake_image_data")):
@@ -131,11 +120,7 @@ class TestUploadToFileIo:
     @patch("src.uploader.subprocess.run")
     def test_upload_success(self, mock_run):
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout=json.dumps({
-                "success": True,
-                "link": "https://file.io/abc123"
-            })
+            returncode=0, stdout=json.dumps({"success": True, "link": "https://file.io/abc123"})
         )
 
         uploader = Uploader()
@@ -148,11 +133,7 @@ class TestUploadToFileIo:
     @patch("src.uploader.subprocess.run")
     def test_upload_api_failure(self, mock_run):
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout=json.dumps({
-                "success": False,
-                "error": "File too large"
-            })
+            returncode=0, stdout=json.dumps({"success": False, "error": "File too large"})
         )
 
         uploader = Uploader()
@@ -164,11 +145,7 @@ class TestUploadToFileIo:
 
     @patch("src.uploader.subprocess.run")
     def test_upload_curl_failure(self, mock_run):
-        mock_run.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="Connection refused"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Connection refused")
 
         uploader = Uploader()
         success, url, error = uploader.upload_to_file_io(Path("/path/to/image.png"))
@@ -279,10 +256,7 @@ class TestUnifiedUpload:
         mock_config.return_value = {"upload_service": "imgur"}
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout=json.dumps({
-                "success": True,
-                "data": {"link": "https://i.imgur.com/abc.png"}
-            })
+            stdout=json.dumps({"success": True, "data": {"link": "https://i.imgur.com/abc.png"}}),
         )
 
         uploader = Uploader()
@@ -322,7 +296,7 @@ class TestUploadToS3:
         mock_config.return_value = {
             "s3_bucket": "my-bucket",
             "s3_region": "us-west-2",
-            "s3_public": True
+            "s3_public": True,
         }
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
@@ -350,7 +324,7 @@ class TestUploadToS3:
         mock_config.return_value = {
             "s3_bucket": "my-bucket",
             "s3_region": "us-east-1",
-            "s3_public": True
+            "s3_public": True,
         }
         mock_run.side_effect = FileNotFoundError()
 
@@ -366,13 +340,9 @@ class TestUploadToS3:
         mock_config.return_value = {
             "s3_bucket": "my-bucket",
             "s3_region": "us-east-1",
-            "s3_public": True
+            "s3_public": True,
         }
-        mock_run.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="Access Denied"
-        )
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Access Denied")
 
         uploader = Uploader()
         success, url, error = uploader.upload_to_s3(Path("/path/to/image.png"))
@@ -402,7 +372,10 @@ class TestUploadToDropbox:
         # First call: upload, Second call: create share link
         mock_run.side_effect = [
             MagicMock(returncode=0, stdout=json.dumps({"path_display": "/Screenshots/image.png"})),
-            MagicMock(returncode=0, stdout=json.dumps({"url": "https://www.dropbox.com/s/abc/image.png?dl=0"}))
+            MagicMock(
+                returncode=0,
+                stdout=json.dumps({"url": "https://www.dropbox.com/s/abc/image.png?dl=0"}),
+            ),
         ]
 
         uploader = Uploader()
@@ -433,8 +406,7 @@ class TestUploadToGdrive:
     def test_upload_with_gdrive_success(self, mock_run, mock_config):
         mock_config.return_value = {"gdrive_folder_id": ""}
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="Uploaded image.png with id abc123xyz"
+            returncode=0, stdout="Uploaded image.png with id abc123xyz"
         )
 
         uploader = Uploader()
@@ -452,7 +424,7 @@ class TestUploadToGdrive:
         mock_run.side_effect = [
             FileNotFoundError(),  # gdrive not found
             MagicMock(returncode=0, stdout=""),  # rclone copy
-            MagicMock(returncode=0, stdout="https://drive.google.com/file/d/xyz")  # rclone link
+            MagicMock(returncode=0, stdout="https://drive.google.com/file/d/xyz"),  # rclone link
         ]
 
         uploader = Uploader()
@@ -481,17 +453,12 @@ class TestUploaderEdgeCases:
     def test_upload_special_characters_in_path(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout=json.dumps({
-                "success": True,
-                "data": {"link": "https://i.imgur.com/abc.png"}
-            })
+            stdout=json.dumps({"success": True, "data": {"link": "https://i.imgur.com/abc.png"}}),
         )
 
         uploader = Uploader()
         with patch("builtins.open", mock_open(read_data=b"data")):
-            success, url, error = uploader.upload_to_imgur(
-                Path("/path with spaces/image.png")
-            )
+            success, url, error = uploader.upload_to_imgur(Path("/path with spaces/image.png"))
 
         # Should handle spaces in path
         assert mock_run.called

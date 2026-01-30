@@ -97,8 +97,9 @@ class TestQuickActionsPanelClass:
 
     def test_gtk_check_in_init(self):
         """Test that QuickActionsPanel checks GTK_AVAILABLE in init."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         # Check that __init__ has GTK check
         source = inspect.getsource(QuickActionsPanel.__init__)
@@ -115,8 +116,9 @@ class TestQuickActionsPanelWithGtk:
         if not GTK_AVAILABLE:
             pytest.skip("GTK not available")
 
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         sig = inspect.signature(QuickActionsPanel.show_at)
         params = list(sig.parameters.keys())
@@ -131,8 +133,9 @@ class TestQuickActionsPanelWithGtk:
         if not GTK_AVAILABLE:
             pytest.skip("GTK not available")
 
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         sig = inspect.signature(QuickActionsPanel.update_position)
         params = list(sig.parameters.keys())
@@ -151,8 +154,9 @@ class TestCreateSelectionActions:
 
     def test_function_has_type_hint(self):
         """Test that create_selection_actions has type hint for editor_window."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         sig = inspect.signature(create_selection_actions)
         params = list(sig.parameters.keys())
@@ -164,7 +168,7 @@ class TestCreateSelectionActions:
 
     def test_returns_list(self):
         """Test that create_selection_actions returns a list."""
-        from src.quick_actions import create_selection_actions, QuickAction
+        from src.quick_actions import QuickAction, create_selection_actions
 
         # Create a mock editor_window with necessary attributes
         mock_editor = MagicMock()
@@ -202,8 +206,9 @@ class TestQuickActionsI18n:
 
     def test_imports_i18n(self):
         """Test that quick_actions imports i18n."""
-        from src import quick_actions
         import inspect
+
+        from src import quick_actions
 
         source = inspect.getsource(quick_actions)
         assert "from .i18n import _" in source or "from src.i18n import _" in source
@@ -242,7 +247,9 @@ class TestCreateSelectionActionsEnabledChecks:
         actions = create_selection_actions(mock_editor)
 
         # Find the copy action (should be enabled with selection)
-        copy_action = next((a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip), None)
+        copy_action = next(
+            (a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip), None
+        )
         assert copy_action is not None
         assert copy_action.enabled_check() is True
 
@@ -257,7 +264,9 @@ class TestCreateSelectionActionsEnabledChecks:
         actions = create_selection_actions(mock_editor)
 
         # Find the copy action (should be disabled without selection)
-        copy_action = next((a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip), None)
+        copy_action = next(
+            (a for a in actions if "Copy" in a.tooltip or "Ctrl+C" in a.tooltip), None
+        )
         assert copy_action is not None
         assert copy_action.enabled_check() is False
 
@@ -287,7 +296,9 @@ class TestCreateSelectionActionsEnabledChecks:
         actions = create_selection_actions(mock_editor)
 
         # Find delete action (requires unlocked)
-        delete_action = next((a for a in actions if "Delete" in a.tooltip or "Del" in a.tooltip), None)
+        delete_action = next(
+            (a for a in actions if "Delete" in a.tooltip or "Del" in a.tooltip), None
+        )
         assert delete_action is not None
         # Should be disabled because selection is locked
         assert delete_action.enabled_check() is False
@@ -302,14 +313,18 @@ class TestCreateSelectionActionsEnabledChecks:
         mock_editor.editor_state.selected_indices = [0]
 
         actions = create_selection_actions(mock_editor)
-        group_action = next((a for a in actions if "Group" in a.tooltip or "Ctrl+G" in a.tooltip), None)
+        group_action = next(
+            (a for a in actions if "Group" in a.tooltip or "Ctrl+G" in a.tooltip), None
+        )
         assert group_action is not None
         assert group_action.enabled_check() is False  # Single item can't be grouped
 
         # Multiple selection
         mock_editor.editor_state.selected_indices = [0, 1, 2]
         actions = create_selection_actions(mock_editor)
-        group_action = next((a for a in actions if "Group" in a.tooltip or "Ctrl+G" in a.tooltip), None)
+        group_action = next(
+            (a for a in actions if "Group" in a.tooltip or "Ctrl+G" in a.tooltip), None
+        )
         assert group_action.enabled_check() is True
 
     def test_action_callbacks_are_callable(self):
@@ -685,8 +700,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_init_creates_popup_window(self):
         """Test __init__ creates popup window."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.__init__)
         assert "Gtk.Window" in source
@@ -694,8 +710,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_init_sets_window_hints(self):
         """Test __init__ sets window type hints."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.__init__)
         assert "set_type_hint" in source
@@ -705,8 +722,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_init_creates_container(self):
         """Test __init__ creates container box."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.__init__)
         assert "Gtk.Box" in source
@@ -714,8 +732,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_init_connects_mouse_events(self):
         """Test __init__ connects mouse event handlers."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.__init__)
         assert "leave-notify-event" in source
@@ -725,8 +744,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_init_tracks_visibility_and_timer(self):
         """Test __init__ initializes visibility and timer state."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.__init__)
         assert "self.visible" in source
@@ -734,8 +754,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_set_actions_stores_and_rebuilds(self):
         """Test set_actions stores actions and rebuilds buttons."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.set_actions)
         assert "self._actions = actions" in source
@@ -743,8 +764,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_rebuild_buttons_clears_children(self):
         """Test _rebuild_buttons clears existing children."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._rebuild_buttons)
         assert "get_children" in source
@@ -752,8 +774,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_rebuild_buttons_adds_separators(self):
         """Test _rebuild_buttons adds separators between groups."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._rebuild_buttons)
         assert "Gtk.Separator" in source
@@ -761,8 +784,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_rebuild_buttons_creates_action_buttons(self):
         """Test _rebuild_buttons creates action buttons."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._rebuild_buttons)
         assert "Gtk.Button" in source
@@ -772,8 +796,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_rebuild_buttons_connects_click_handler(self):
         """Test _rebuild_buttons connects click handlers."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._rebuild_buttons)
         assert "connect" in source
@@ -782,8 +807,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_on_action_clicked_hides_and_calls(self):
         """Test _on_action_clicked hides panel and calls callback."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._on_action_clicked)
         assert "self.hide()" in source
@@ -791,8 +817,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_show_at_checks_empty_actions(self):
         """Test show_at returns early when no actions."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "if not self._actions" in source
@@ -800,8 +827,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_show_at_positions_popup(self):
         """Test show_at positions popup on screen."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "popup.move" in source
@@ -809,8 +837,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_show_at_uses_element_bbox(self):
         """Test show_at uses element bounding box for positioning."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "element_bbox" in source
@@ -818,8 +847,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_show_at_keeps_on_screen(self):
         """Test show_at keeps panel on screen."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "get_width" in source
@@ -828,8 +858,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_show_at_cancels_hide_timer(self):
         """Test show_at cancels pending hide timer."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "_hide_timer_id" in source
@@ -837,8 +868,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_hide_removes_timer_and_hides(self):
         """Test hide removes timer and hides popup."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.hide)
         assert "_hide_timer_id" in source
@@ -847,8 +879,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_on_leave_starts_hide_timer(self):
         """Test _on_leave starts hide timer."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._on_leave)
         assert "timeout_add" in source
@@ -857,16 +890,18 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_on_leave_ignores_inferior_events(self):
         """Test _on_leave ignores inferior notify events."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._on_leave)
         assert "NotifyType.INFERIOR" in source or "INFERIOR" in source
 
     def test_on_enter_cancels_hide_timer(self):
         """Test _on_enter cancels hide timer."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._on_enter)
         assert "_hide_timer_id" in source
@@ -874,8 +909,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_delayed_hide_calls_hide(self):
         """Test _delayed_hide calls hide method."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._delayed_hide)
         assert "self.hide()" in source
@@ -883,8 +919,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_update_position_checks_visibility(self):
         """Test update_position returns early if not visible."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.update_position)
         assert "if not self.visible" in source
@@ -892,8 +929,9 @@ class TestQuickActionsPanelSourceInspection:
 
     def test_update_position_converts_coordinates(self):
         """Test update_position converts coordinates."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.update_position)
         assert "get_window" in source
@@ -906,8 +944,9 @@ class TestQuickActionsPanelCSS:
 
     def test_apply_styles_uses_global_flag(self):
         """Test _apply_styles uses global flag to prevent duplication."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._apply_styles)
         assert "_css_applied" in source
@@ -915,8 +954,9 @@ class TestQuickActionsPanelCSS:
 
     def test_apply_styles_creates_css_provider(self):
         """Test _apply_styles creates CSS provider."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._apply_styles)
         assert "CssProvider" in source
@@ -924,8 +964,9 @@ class TestQuickActionsPanelCSS:
 
     def test_css_contains_panel_styles(self):
         """Test CSS contains panel class styles."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._apply_styles)
         assert ".quick-actions-panel" in source
@@ -934,8 +975,9 @@ class TestQuickActionsPanelCSS:
 
     def test_css_contains_button_styles(self):
         """Test CSS contains button styles."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._apply_styles)
         assert ".quick-action-btn" in source
@@ -945,8 +987,9 @@ class TestQuickActionsPanelCSS:
 
     def test_css_contains_separator_style(self):
         """Test CSS contains separator style."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel._apply_styles)
         assert ".quick-action-sep" in source
@@ -957,8 +1000,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_has_selection_helper(self):
         """Test has_selection helper function exists."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "def has_selection" in source
@@ -966,8 +1010,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_is_unlocked_helper(self):
         """Test is_unlocked helper function exists."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "def is_unlocked" in source
@@ -975,8 +1020,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_has_multiple_helper(self):
         """Test has_multiple helper function exists."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "def has_multiple" in source
@@ -984,8 +1030,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_delete_action_defined(self):
         """Test delete action is defined."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "_delete_selected" in source
@@ -993,8 +1040,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_duplicate_action_defined(self):
         """Test duplicate action is defined."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "_duplicate_selected" in source
@@ -1002,8 +1050,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_copy_action_defined(self):
         """Test copy action is defined."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "_copy_annotations" in source
@@ -1011,8 +1060,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_layer_actions_defined(self):
         """Test bring to front and send to back actions are defined."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "_bring_to_front" in source
@@ -1020,8 +1070,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_lock_action_defined(self):
         """Test lock/unlock action is defined."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "_toggle_lock" in source
@@ -1029,8 +1080,9 @@ class TestCreateSelectionActionsSourceInspection:
 
     def test_group_action_defined(self):
         """Test group action is defined."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         assert "_group_selected" in source
@@ -1042,8 +1094,9 @@ class TestQuickActionsEdgeCases:
 
     def test_panel_requires_gtk(self):
         """Test QuickActionsPanel raises error without GTK."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.__init__)
         assert "GTK_AVAILABLE" in source
@@ -1051,16 +1104,18 @@ class TestQuickActionsEdgeCases:
 
     def test_show_at_handles_empty_actions(self):
         """Test show_at handles empty actions list."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "if not self._actions" in source
 
     def test_show_at_handles_no_bbox(self):
         """Test show_at handles missing bounding box."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.show_at)
         assert "if element_bbox" in source
@@ -1068,16 +1123,18 @@ class TestQuickActionsEdgeCases:
 
     def test_update_position_handles_no_window(self):
         """Test update_position handles missing window."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.update_position)
         assert "if not window" in source
 
     def test_update_position_handles_origin_failure(self):
         """Test update_position handles get_origin failure."""
-        from src.quick_actions import QuickActionsPanel
         import inspect
+
+        from src.quick_actions import QuickActionsPanel
 
         source = inspect.getsource(QuickActionsPanel.update_position)
         assert "origin" in source
@@ -1090,16 +1147,18 @@ class TestQuickActionsI18nIntegration:
 
     def test_uses_translation_function(self):
         """Test module uses _() translation function."""
-        from src import quick_actions
         import inspect
+
+        from src import quick_actions
 
         source = inspect.getsource(quick_actions)
         assert '_("' in source
 
     def test_action_tooltips_translated(self):
         """Test action tooltips use translation."""
-        from src.quick_actions import create_selection_actions
         import inspect
+
+        from src.quick_actions import create_selection_actions
 
         source = inspect.getsource(create_selection_actions)
         # Tooltips should be wrapped in _()
@@ -1118,10 +1177,12 @@ class TestQuickActionsPanelFunctional:
     def gtk_setup(self):
         """Set up GTK for testing."""
         from src.quick_actions import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             pytest.skip("GTK not available")
 
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
 
@@ -1141,7 +1202,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_set_actions(self, gtk_setup):
         """Test setting actions on panel."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         panel = QuickActionsPanel(gtk_setup["window"])
 
@@ -1156,7 +1217,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_show_at(self, gtk_setup):
         """Test showing panel at coordinates."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         panel = QuickActionsPanel(gtk_setup["window"])
 
@@ -1182,7 +1243,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_hide(self, gtk_setup):
         """Test hiding panel."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         panel = QuickActionsPanel(gtk_setup["window"])
 
@@ -1199,7 +1260,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_show_at_with_bbox(self, gtk_setup):
         """Test showing panel with element bounding box."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         panel = QuickActionsPanel(gtk_setup["window"])
 
@@ -1215,8 +1276,9 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_rebuild_buttons(self, gtk_setup):
         """Test _rebuild_buttons creates buttons."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
-        Gtk = gtk_setup["Gtk"]
+        from src.quick_actions import QuickAction, QuickActionsPanel
+
+        gtk_setup["Gtk"]
 
         panel = QuickActionsPanel(gtk_setup["window"])
 
@@ -1236,7 +1298,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_action_clicked(self, gtk_setup):
         """Test action callback is called on click."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         clicked = []
 
@@ -1256,7 +1318,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_enabled_check(self, gtk_setup):
         """Test action with enabled_check."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         enabled = [False]
 
@@ -1288,7 +1350,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_show_at_fallback_position(self, gtk_setup):
         """Test show_at uses fallback position when panel_y < 10."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         panel = QuickActionsPanel(gtk_setup["window"])
         panel.set_actions([QuickAction(icon="X", tooltip="Test", callback=lambda: None)])
@@ -1314,7 +1376,7 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_show_at_cancels_timer(self, gtk_setup):
         """Test show_at() cancels pending hide timer."""
-        from src.quick_actions import QuickActionsPanel, QuickAction
+        from src.quick_actions import QuickAction, QuickActionsPanel
 
         panel = QuickActionsPanel(gtk_setup["window"])
         panel.set_actions([QuickAction(icon="X", tooltip="Test", callback=lambda: None)])
@@ -1344,8 +1406,9 @@ class TestQuickActionsPanelFunctional:
 
     def test_panel_on_leave_ignores_inferior(self, gtk_setup):
         """Test _on_leave ignores INFERIOR events."""
-        from src.quick_actions import QuickActionsPanel
         import gi
+
+        from src.quick_actions import QuickActionsPanel
 
         gi.require_version("Gdk", "3.0")
         from gi.repository import Gdk

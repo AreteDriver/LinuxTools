@@ -304,8 +304,8 @@ class TestScrollCaptureManagerToolChecks:
 
     def test_check_wtype_not_found(self):
         """Test _check_wtype returns False when wtype not found."""
+
         from src.scroll_capture import ScrollCaptureManager
-        import subprocess
 
         with patch("src.scroll_capture.detect_display_server"):
             with patch("src.scroll_capture.config.check_tool_available", return_value=False):
@@ -316,8 +316,9 @@ class TestScrollCaptureManagerToolChecks:
 
     def test_check_wtype_timeout(self):
         """Test _check_wtype returns False on timeout."""
-        from src.scroll_capture import ScrollCaptureManager
         import subprocess
+
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.detect_display_server"):
             with patch("src.scroll_capture.config.check_tool_available", return_value=False):
@@ -346,13 +347,17 @@ class TestScrollCaptureManagerIsAvailableScenarios:
 
     def test_is_available_x11_without_xdotool(self):
         """Test is_available on X11 without xdotool."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
-                with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.X11):
-                    with patch("src.scroll_capture.config.check_tool_available", return_value=False):
+                with patch(
+                    "src.scroll_capture.detect_display_server", return_value=DisplayServer.X11
+                ):
+                    with patch(
+                        "src.scroll_capture.config.check_tool_available", return_value=False
+                    ):
                         with patch("subprocess.run", side_effect=FileNotFoundError):
                             manager = ScrollCaptureManager()
                             available, error = manager.is_available()
@@ -362,12 +367,14 @@ class TestScrollCaptureManagerIsAvailableScenarios:
 
     def test_is_available_x11_with_xdotool(self):
         """Test is_available on X11 with xdotool."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
-                with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.X11):
+                with patch(
+                    "src.scroll_capture.detect_display_server", return_value=DisplayServer.X11
+                ):
                     with patch("src.scroll_capture.config.check_tool_available", return_value=True):
                         with patch("subprocess.run"):
                             manager = ScrollCaptureManager()
@@ -378,12 +385,14 @@ class TestScrollCaptureManagerIsAvailableScenarios:
 
     def test_is_available_wayland_with_ydotool(self):
         """Test is_available on Wayland with ydotool."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
-                with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.WAYLAND):
+                with patch(
+                    "src.scroll_capture.detect_display_server", return_value=DisplayServer.WAYLAND
+                ):
                     with patch("src.scroll_capture.config.check_tool_available", return_value=True):
                         with patch("subprocess.run"):
                             manager = ScrollCaptureManager()
@@ -393,13 +402,17 @@ class TestScrollCaptureManagerIsAvailableScenarios:
 
     def test_is_available_wayland_without_tools(self):
         """Test is_available on Wayland without scroll tools."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
-                with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.WAYLAND):
-                    with patch("src.scroll_capture.config.check_tool_available", return_value=False):
+                with patch(
+                    "src.scroll_capture.detect_display_server", return_value=DisplayServer.WAYLAND
+                ):
+                    with patch(
+                        "src.scroll_capture.config.check_tool_available", return_value=False
+                    ):
                         with patch("subprocess.run", side_effect=FileNotFoundError):
                             manager = ScrollCaptureManager()
                             available, error = manager.is_available()
@@ -414,7 +427,9 @@ class TestScrollCaptureManagerIsAvailableScenarios:
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
                 with patch("src.scroll_capture.detect_display_server", return_value=None):
-                    with patch("src.scroll_capture.config.check_tool_available", return_value=False):
+                    with patch(
+                        "src.scroll_capture.config.check_tool_available", return_value=False
+                    ):
                         with patch("subprocess.run", side_effect=FileNotFoundError):
                             manager = ScrollCaptureManager()
                             available, error = manager.is_available()
@@ -443,12 +458,14 @@ class TestScrollCaptureManagerStartCapture:
 
     def test_start_capture_region_too_small(self):
         """Test start_capture fails with region too small."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
-                with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.X11):
+                with patch(
+                    "src.scroll_capture.detect_display_server", return_value=DisplayServer.X11
+                ):
                     with patch("src.scroll_capture.config.check_tool_available", return_value=True):
                         with patch("subprocess.run"):
                             manager = ScrollCaptureManager()
@@ -465,12 +482,14 @@ class TestScrollCaptureManagerStartCapture:
 
     def test_start_capture_sets_region(self):
         """Test start_capture sets the region correctly."""
-        from src.scroll_capture import ScrollCaptureManager, ScrollState
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager, ScrollState
 
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
-                with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.X11):
+                with patch(
+                    "src.scroll_capture.detect_display_server", return_value=DisplayServer.X11
+                ):
                     with patch("src.scroll_capture.config.check_tool_available", return_value=True):
                         with patch("subprocess.run"):
                             manager = ScrollCaptureManager()
@@ -657,8 +676,8 @@ class TestScrollCaptureManagerScrollDown:
 
     def test_scroll_down_x11(self):
         """Test scroll_down on X11 uses xdotool."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.X11):
             with patch("src.scroll_capture.config.check_tool_available", return_value=True):
@@ -673,13 +692,13 @@ class TestScrollCaptureManagerScrollDown:
 
     def test_scroll_down_x11_exception(self):
         """Test scroll_down on X11 handles exceptions."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.X11):
             with patch("src.scroll_capture.config.check_tool_available", return_value=True):
                 # Let init succeed, then patch subprocess.run for scroll_down
-                with patch("subprocess.run") as mock_run:
+                with patch("subprocess.run"):
                     manager = ScrollCaptureManager()
 
                 # Now patch to throw exception during scroll
@@ -690,12 +709,12 @@ class TestScrollCaptureManagerScrollDown:
 
     def test_scroll_down_wayland_ydotool(self):
         """Test scroll_down on Wayland uses ydotool first."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         with patch("src.scroll_capture.detect_display_server", return_value=DisplayServer.WAYLAND):
             with patch("src.scroll_capture.config.check_tool_available", return_value=True):
-                with patch("subprocess.run") as mock_run:
+                with patch("subprocess.run"):
                     manager = ScrollCaptureManager()
 
                     result = manager.scroll_down()
@@ -704,8 +723,8 @@ class TestScrollCaptureManagerScrollDown:
 
     def test_scroll_down_wayland_fallback_wtype(self):
         """Test scroll_down on Wayland falls back to wtype."""
-        from src.scroll_capture import ScrollCaptureManager
         from src.capture import DisplayServer
+        from src.scroll_capture import ScrollCaptureManager
 
         def mock_check(cmd):
             # ydotool not available, wtype is
@@ -735,7 +754,7 @@ class TestScrollCaptureManagerScrollDown:
 
         with patch("src.scroll_capture.detect_display_server", return_value=None):
             with patch("src.scroll_capture.config.check_tool_available", return_value=True):
-                with patch("subprocess.run") as mock_run:
+                with patch("subprocess.run"):
                     manager = ScrollCaptureManager()
 
                     result = manager.scroll_down()
@@ -943,7 +962,9 @@ class TestScrollCaptureFunctional:
     @patch("src.scroll_capture.detect_display_server")
     @patch("src.scroll_capture.config.check_tool_available")
     @patch("subprocess.run")
-    def test_find_overlap_returns_zero_no_opencv(self, mock_run, mock_check, mock_detect, gtk_setup):
+    def test_find_overlap_returns_zero_no_opencv(
+        self, mock_run, mock_check, mock_detect, gtk_setup
+    ):
         """Test _find_overlap returns 0 when opencv not available."""
         from src.scroll_capture import DisplayServer, ScrollCaptureManager
 
@@ -1002,8 +1023,7 @@ class TestScrollCaptureFunctional:
 
         # Fill with max frames (default 50)
         manager.frames = [
-            GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 100)
-            for _ in range(50)
+            GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 100, 100) for _ in range(50)
         ]
 
         with patch("src.scroll_capture.config.load_config", return_value={"scroll_max_frames": 50}):
@@ -1033,9 +1053,7 @@ class TestScrollCaptureFunctional:
         with patch("src.scroll_capture.GTK_AVAILABLE", True):
             with patch("src.scroll_capture._ensure_opencv", return_value=True):
                 success, error = manager.start_capture(
-                    0, 0, 800, 600,
-                    on_progress=progress_callback,
-                    on_complete=complete_callback
+                    0, 0, 800, 600, on_progress=progress_callback, on_complete=complete_callback
                 )
 
         assert success is True

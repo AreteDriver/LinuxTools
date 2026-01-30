@@ -1,7 +1,7 @@
 """Tests for notification module."""
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,30 +13,36 @@ class TestNotificationModuleAvailability:
 
     def test_notification_module_imports(self):
         from src import notification
+
         assert notification is not None
 
     def test_show_notification_function_exists(self):
         from src import notification
+
         assert hasattr(notification, "show_notification")
         assert callable(notification.show_notification)
 
     def test_show_screenshot_saved_exists(self):
         from src import notification
+
         assert hasattr(notification, "show_screenshot_saved")
         assert callable(notification.show_screenshot_saved)
 
     def test_show_screenshot_copied_exists(self):
         from src import notification
+
         assert hasattr(notification, "show_screenshot_copied")
         assert callable(notification.show_screenshot_copied)
 
     def test_show_upload_success_exists(self):
         from src import notification
+
         assert hasattr(notification, "show_upload_success")
         assert callable(notification.show_upload_success)
 
     def test_show_upload_error_exists(self):
         from src import notification
+
         assert hasattr(notification, "show_upload_error")
         assert callable(notification.show_upload_error)
 
@@ -49,6 +55,7 @@ class TestShowNotificationFallback:
         # Make GI import fail by patching
         with patch.dict("sys.modules", {"gi": None}):
             from src import notification
+
             # Can't easily reload to trigger import error, so test subprocess path directly
             mock_run.return_value = MagicMock(returncode=0)
 
@@ -72,11 +79,7 @@ class TestShowNotificationFallback:
 
         mock_run.return_value = MagicMock(returncode=0)
         result = show_notification(
-            "Title",
-            "Body",
-            icon="custom-icon",
-            urgency="critical",
-            timeout=10000
+            "Title", "Body", icon="custom-icon", urgency="critical", timeout=10000
         )
         assert isinstance(result, bool)
 

@@ -19,14 +19,17 @@ class TestCommandPaletteModuleAvailability:
 
     def test_command_palette_module_imports(self):
         from src import command_palette
+
         assert command_palette is not None
 
     def test_gtk_available_flag_exists(self):
         from src.command_palette import GTK_AVAILABLE
+
         assert isinstance(GTK_AVAILABLE, bool)
 
     def test_command_palette_class_exists(self):
         from src.command_palette import CommandPalette
+
         assert CommandPalette is not None
 
 
@@ -49,6 +52,7 @@ class TestCommandPaletteInit:
     def test_init_stores_commands(self):
         """Test that commands are stored."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return  # Skip if GTK not available
 
@@ -69,6 +73,7 @@ class TestCommandPaletteInit:
     def test_init_sets_selected_index(self):
         """Test initial selected index is 0."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -86,54 +91,67 @@ class TestCommandPaletteAttributes:
 
     def test_has_setup_window(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_setup_window")
 
     def test_has_build_ui(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_build_ui")
 
     def test_has_apply_css(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_apply_css")
 
     def test_has_connect_signals(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_connect_signals")
 
     def test_has_populate_list(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_populate_list")
 
     def test_has_create_command_row(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_create_command_row")
 
     def test_has_on_search_changed(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_on_search_changed")
 
     def test_has_on_key_press(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_on_key_press")
 
     def test_has_move_selection(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_move_selection")
 
     def test_has_execute_selected(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_execute_selected")
 
     def test_has_on_row_activated(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_on_row_activated")
 
     def test_has_on_focus_out(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "_on_focus_out")
 
     def test_has_show_centered(self):
         from src.command_palette import CommandPalette
+
         assert hasattr(CommandPalette, "show_centered")
 
 
@@ -143,6 +161,7 @@ class TestCommandPaletteFiltering:
     def test_empty_query_shows_all(self):
         """Empty query should show all commands."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -167,6 +186,7 @@ class TestCommandPaletteFiltering:
     def test_filter_by_name(self):
         """Should filter commands by name."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -192,6 +212,7 @@ class TestCommandPaletteFiltering:
     def test_filter_by_keyword(self):
         """Should filter commands by keyword."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -221,6 +242,7 @@ class TestCommandPaletteNavigation:
     def test_move_selection_down(self):
         """Test moving selection down."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -247,6 +269,7 @@ class TestCommandPaletteNavigation:
     def test_move_selection_up(self):
         """Test moving selection up."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -269,6 +292,7 @@ class TestCommandPaletteNavigation:
     def test_move_selection_wraps_around(self):
         """Test selection wraps around list."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -296,6 +320,7 @@ class TestCommandPaletteNavigation:
     def test_move_selection_empty_list(self):
         """Test moving selection with empty list."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -315,6 +340,7 @@ class TestCommandPaletteExecution:
     def test_execute_selected_calls_callback(self):
         """Test that execute_selected calls the command callback."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -341,6 +367,7 @@ class TestCommandPaletteExecution:
     def test_execute_selected_no_selection(self):
         """Test execute_selected with no selection."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -358,6 +385,7 @@ class TestCommandPaletteExecution:
     def test_on_row_activated_calls_callback(self):
         """Test that row activation calls callback."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -386,6 +414,7 @@ class TestCommandPaletteKeyHandling:
     def test_escape_hides_palette(self):
         """Test Escape key hides palette."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -409,6 +438,7 @@ class TestCommandPaletteKeyHandling:
     def test_return_executes_selected(self):
         """Test Return key executes selected command."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -432,6 +462,7 @@ class TestCommandPaletteKeyHandling:
     def test_up_moves_selection_up(self):
         """Test Up arrow moves selection up."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -454,6 +485,7 @@ class TestCommandPaletteKeyHandling:
     def test_down_moves_selection_down(self):
         """Test Down arrow moves selection down."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -476,6 +508,7 @@ class TestCommandPaletteKeyHandling:
     def test_tab_moves_selection_down(self):
         """Test Tab moves selection down."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -498,6 +531,7 @@ class TestCommandPaletteKeyHandling:
     def test_other_key_returns_false(self):
         """Test other keys return False."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -521,6 +555,7 @@ class TestCommandPaletteEdgeCases:
     def test_filter_case_insensitive(self):
         """Test filtering is case insensitive."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -544,6 +579,7 @@ class TestCommandPaletteEdgeCases:
     def test_empty_commands_list(self):
         """Test with empty commands list."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 
@@ -558,6 +594,7 @@ class TestCommandPaletteEdgeCases:
     def test_command_without_callback(self):
         """Test command without callback doesn't crash."""
         from src.command_palette import GTK_AVAILABLE
+
         if not GTK_AVAILABLE:
             return
 

@@ -42,9 +42,7 @@ if GTK_AVAILABLE:
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "requires_gtk: mark test as requiring GTK")
-    config.addinivalue_line(
-        "markers", "requires_appindicator: mark test as requiring AppIndicator"
-    )
+    config.addinivalue_line("markers", "requires_appindicator: mark test as requiring AppIndicator")
 
 
 def pytest_collection_modifyitems(config, items):
