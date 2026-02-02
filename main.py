@@ -36,6 +36,7 @@ def acquire_single_instance_lock():
     """
     LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
 
+    lock_fd = None
     try:
         lock_fd = open(LOCK_FILE, "w")
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -43,6 +44,8 @@ def acquire_single_instance_lock():
         lock_fd.flush()
         return lock_fd
     except OSError:
+        if lock_fd is not None:
+            lock_fd.close()
         return None
 
 

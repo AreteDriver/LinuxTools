@@ -248,6 +248,17 @@ class ScrollCaptureManager:
     def _scroll_x11(self) -> bool:
         """Scroll down using xdotool (X11)."""
         try:
+            # Move mouse to center of capture region first
+            x, y, width, height = self.region
+            center_x = x + width // 2
+            center_y = y + height // 2
+
+            subprocess.run(
+                ["xdotool", "mousemove", str(center_x), str(center_y)],
+                capture_output=True,
+                timeout=1,
+            )
+
             # Use mouse wheel scroll (button 5 = scroll down)
             # Multiple clicks for more scroll distance
             for _ in range(3):
@@ -262,11 +273,31 @@ class ScrollCaptureManager:
 
     def _scroll_wayland(self) -> bool:
         """Scroll down using ydotool or wtype (Wayland)."""
+        # Move mouse to center of capture region first
+        x, y, width, height = self.region
+        center_x = x + width // 2
+        center_y = y + height // 2
+
         # Try ydotool first (most universal)
         if self.ydotool_available:
             try:
+                # Move mouse to capture region center (absolute positioning)
+                subprocess.run(
+                    [
+                        "ydotool",
+                        "mousemove",
+                        "--absolute",
+                        "-x",
+                        str(center_x),
+                        "-y",
+                        str(center_y),
+                    ],
+                    capture_output=True,
+                    timeout=1,
+                )
+
                 # ydotool uses mouse wheel events
-                # -120 is one scroll down step (negative = down)
+                # -3 is scroll down steps (negative = down)
                 for _ in range(3):
                     subprocess.run(
                         ["ydotool", "mousemove", "--wheel", "--", "-3"],
@@ -278,6 +309,7 @@ class ScrollCaptureManager:
                 pass
 
         # Fall back to wtype (wlroots/Sway) using Page_Down
+        # Note: wtype sends keystrokes, so focus matters more than mouse position
         if self.wtype_available:
             try:
                 subprocess.run(

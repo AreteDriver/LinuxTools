@@ -325,9 +325,7 @@ def capture_region_wayland(
     # Try grim with geometry
     try:
         geometry = f"{x},{y} {width}x{height}"
-        result = subprocess.run(
-            ["grim", "-g", geometry, temp_file], capture_output=True, timeout=5
-        )
+        result = subprocess.run(["grim", "-g", geometry, temp_file], capture_output=True, timeout=5)
         if result.returncode == 0 and os.path.exists(temp_file):
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
             os.unlink(temp_file)
@@ -339,9 +337,7 @@ def capture_region_wayland(
     full_result = capture_fullscreen_wayland(0)
     if full_result.success and full_result.pixbuf:
         try:
-            cropped = GdkPixbuf.Pixbuf.new(
-                GdkPixbuf.Colorspace.RGB, True, 8, width, height
-            )
+            cropped = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
             full_result.pixbuf.copy_area(x, y, width, height, cropped, 0, 0)
             return CaptureResult(True, pixbuf=cropped)
         except Exception as e:
@@ -353,9 +349,7 @@ def capture_region_wayland(
     return CaptureResult(False, error="Region capture failed on Wayland")
 
 
-def capture_region(
-    x: int, y: int, width: int, height: int, delay: int = 0
-) -> CaptureResult:
+def capture_region(x: int, y: int, width: int, height: int, delay: int = 0) -> CaptureResult:
     """Capture a specific region of the screen.
 
     Args:
@@ -475,7 +469,10 @@ def _get_active_window_id() -> Tuple[Optional[int], Optional[str]]:
     )
     if result.returncode != 0:
         return None, "Could not get active window. Is xdotool installed?"
-    return int(result.stdout.strip()), None
+    try:
+        return int(result.stdout.strip()), None
+    except ValueError:
+        return None, f"Invalid window ID from xdotool: {result.stdout.strip()}"
 
 
 def _get_window_geometry(window_id: int) -> Tuple[Optional[dict], Optional[str]]:
@@ -502,8 +499,10 @@ def _get_window_geometry(window_id: int) -> Tuple[Optional[dict], Optional[str]]
             except ValueError:
                 pass
 
-    if "X" not in geometry or "Y" not in geometry:
-        return None, "Invalid geometry data"
+    required_keys = {"X", "Y", "WIDTH", "HEIGHT"}
+    if not required_keys.issubset(geometry.keys()):
+        missing = required_keys - geometry.keys()
+        return None, f"Invalid geometry data, missing: {missing}"
 
     return geometry, None
 
@@ -605,17 +604,22 @@ def save_capture(
 
 def _copy_wayland_clipboard(temp_file: str) -> bool:
     """Copy image to Wayland clipboard using wl-copy."""
-    with open(temp_file, "rb") as f:
-        proc = subprocess.Popen(
-            ["wl-copy", "--type", "image/png"],
-            stdin=f,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        proc.wait(timeout=5)
-        if proc.returncode == 0:
-            os.unlink(temp_file)
-            return True
+    try:
+        with open(temp_file, "rb") as f:
+            proc = subprocess.Popen(
+                ["wl-copy", "--type", "image/png"],
+                stdin=f,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            proc.wait(timeout=5)
+            if proc.returncode == 0:
+                os.unlink(temp_file)
+                return True
+    except subprocess.TimeoutExpired:
+        proc.kill()
+    except OSError:
+        pass
     return False
 
 
