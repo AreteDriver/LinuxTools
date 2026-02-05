@@ -43,3 +43,8 @@ htmlcov/
 tmp/
 *.log
 *.tmp
+
+# Environment files
+.env
+.env.*
+.env.local
