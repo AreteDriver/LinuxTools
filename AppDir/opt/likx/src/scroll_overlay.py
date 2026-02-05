@@ -163,9 +163,7 @@ class ScrollCaptureOverlay:
 
         # Size to fit around region with border
         border_width = 3
-        self.border_window.set_default_size(
-            width + border_width * 2, height + border_width * 2
-        )
+        self.border_window.set_default_size(width + border_width * 2, height + border_width * 2)
         self.border_window.move(x - border_width, y - border_width)
 
         # Store dimensions for drawing

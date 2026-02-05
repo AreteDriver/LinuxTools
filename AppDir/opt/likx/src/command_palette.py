@@ -286,9 +286,7 @@ class CommandPalette(Gtk.Window):
         if not self.filtered_commands:
             return
 
-        self.selected_index = (self.selected_index + delta) % len(
-            self.filtered_commands
-        )
+        self.selected_index = (self.selected_index + delta) % len(self.filtered_commands)
         row = self.listbox.get_row_at_index(self.selected_index)
         if row:
             self.listbox.select_row(row)
