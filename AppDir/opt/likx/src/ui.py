@@ -1977,8 +1977,8 @@ class MainWindow:
             on_stop=self._on_scroll_stop, region=(x, y, width, height)
         )
 
-        # Start capture loop
-        self._scroll_capture_loop()
+        # Start capture loop after a short delay to let overlay render
+        GLib.idle_add(self._scroll_capture_loop)
 
     def _scroll_capture_loop(self) -> None:
         """Main capture loop - captures frame, scrolls, repeats."""

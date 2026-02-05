@@ -248,7 +248,22 @@ class ScrollCaptureManager:
     def _scroll_x11(self) -> bool:
         """Scroll down using xdotool (X11)."""
         try:
-            # Move mouse to center of capture region first
+            # Save current mouse position
+            result = subprocess.run(
+                ["xdotool", "getmouselocation", "--shell"],
+                capture_output=True,
+                text=True,
+                timeout=1,
+            )
+            orig_x, orig_y = None, None
+            if result.returncode == 0:
+                for line in result.stdout.split("\n"):
+                    if line.startswith("X="):
+                        orig_x = line.split("=")[1]
+                    elif line.startswith("Y="):
+                        orig_y = line.split("=")[1]
+
+            # Move mouse to center of capture region
             x, y, width, height = self.region
             center_x = x + width // 2
             center_y = y + height // 2
@@ -267,6 +282,15 @@ class ScrollCaptureManager:
                     capture_output=True,
                     timeout=1,
                 )
+
+            # Restore original mouse position
+            if orig_x is not None and orig_y is not None:
+                subprocess.run(
+                    ["xdotool", "mousemove", orig_x, orig_y],
+                    capture_output=True,
+                    timeout=1,
+                )
+
             return True
         except (subprocess.TimeoutExpired, Exception):
             return False

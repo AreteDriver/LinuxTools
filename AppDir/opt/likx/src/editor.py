@@ -590,9 +590,7 @@ class EditorState:
 
         return (min(xs), min(ys), max(xs), max(ys))
 
-    def _hit_test_handles(
-        self, x: float, y: float, margin: float = 8.0
-    ) -> Optional[str]:
+    def _hit_test_handles(self, x: float, y: float, margin: float = 8.0) -> Optional[str]:
         """Check if point hits a resize handle. Returns handle name or None."""
         # Only show resize handles for single selection
         if len(self.selected_indices) != 1:
@@ -673,8 +671,14 @@ class EditorState:
         return x1, center_y - new_height / 2, x2, center_y + new_height / 2
 
     def _apply_aspect_ratio_corner(
-        self, handle: str, x1: float, y1: float, x2: float, y2: float,
-        orig_width: float, orig_height: float
+        self,
+        handle: str,
+        x1: float,
+        y1: float,
+        x2: float,
+        y2: float,
+        orig_width: float,
+        orig_height: float,
     ) -> Tuple[float, float, float, float]:
         """Apply aspect ratio lock for corner handles."""
         new_width = abs(x2 - x1)
@@ -731,7 +735,9 @@ class EditorState:
             if handle in ("n", "s", "e", "w"):
                 x1, y1, x2, y2 = self._apply_aspect_ratio_edge(handle, x1, y1, x2, y2, aspect_ratio)
             else:
-                x1, y1, x2, y2 = self._apply_aspect_ratio_corner(handle, x1, y1, x2, y2, orig_width, orig_height)
+                x1, y1, x2, y2 = self._apply_aspect_ratio_corner(
+                    handle, x1, y1, x2, y2, orig_width, orig_height
+                )
 
         if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
             return False
@@ -1379,7 +1385,9 @@ class EditorState:
 
         return True
 
-    def _get_unlocked_selected_points(self) -> Tuple[List[Tuple[int, DrawingElement]], List[float], List[float]]:
+    def _get_unlocked_selected_points(
+        self,
+    ) -> Tuple[List[Tuple[int, DrawingElement]], List[float], List[float]]:
         """Get unlocked selected elements and their point coordinates.
 
         Returns:
@@ -1416,23 +1424,27 @@ class EditorState:
         self.undo_stack.append([copy.deepcopy(e) for e in self.elements])
         self.redo_stack.clear()
 
-        for idx, elem in elements:
+        for _idx, elem in elements:
             transform_fn(elem, center_x, center_y)
 
         return True
 
     def flip_horizontal(self) -> bool:
         """Flip selected elements horizontally (mirror on vertical axis)."""
+
         def transform(elem, center_x, center_y):
             for p in elem.points:
                 p.x = center_x + (center_x - p.x)
+
         return self._transform_selected(transform)
 
     def flip_vertical(self) -> bool:
         """Flip selected elements vertically (mirror on horizontal axis)."""
+
         def transform(elem, center_x, center_y):
             for p in elem.points:
                 p.y = center_y + (center_y - p.y)
+
         return self._transform_selected(transform)
 
     def rotate_selected(self, angle_degrees: float) -> bool:
@@ -1614,9 +1626,7 @@ class EditorState:
 
         return h_lines, v_lines
 
-    def _apply_snap(
-        self, elem_bbox: Tuple[float, float, float, float]
-    ) -> Tuple[float, float]:
+    def _apply_snap(self, elem_bbox: Tuple[float, float, float, float]) -> Tuple[float, float]:
         """Calculate snap offset for the element.
 
         Args:
@@ -2007,9 +2017,7 @@ def _render_arrow(ctx: Any, element: DrawingElement) -> None:
     # For DOUBLE style, also draw arrowhead at start (pointing backward)
     if style == ArrowStyle.DOUBLE:
         reverse_angle = angle + math.pi  # Point in opposite direction
-        _draw_arrowhead(
-            ctx, start.x, start.y, reverse_angle, arrow_length, ArrowStyle.OPEN
-        )
+        _draw_arrowhead(ctx, start.x, start.y, reverse_angle, arrow_length, ArrowStyle.OPEN)
 
 
 def _render_rectangle(ctx: Any, element: DrawingElement) -> None:
