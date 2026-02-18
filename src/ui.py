@@ -2093,7 +2093,7 @@ class MainWindow:
         dialog.set_version(__version__)
         dialog.set_comments("A powerful screenshot capture and annotation tool for Linux")
         dialog.set_website("https://github.com/AreteDriver/LikX")
-        dialog.set_license_type(Gtk.License.MIT_X11)
+        dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_authors(["LikX Contributors"])
 
         from .capture import detect_display_server
