@@ -70,7 +70,7 @@ class AppMatcherWidget(QWidget):
         self.current_profile: Profile | None = None
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the widget UI."""
         layout = QVBoxLayout(self)
 
@@ -148,12 +148,12 @@ class AppMatcherWidget(QWidget):
         # Connect selection change
         self.pattern_list.currentRowChanged.connect(self._on_selection_changed)
 
-    def load_profile(self, profile: Profile):
+    def load_profile(self, profile: Profile) -> None:
         """Load a profile's app matching settings."""
         self.current_profile = profile
         self._refresh_ui()
 
-    def _refresh_ui(self):
+    def _refresh_ui(self) -> None:
         """Refresh UI from current profile."""
         self.pattern_list.clear()
 
@@ -172,11 +172,11 @@ class AppMatcherWidget(QWidget):
         # Load default setting
         self.default_check.setChecked(self.current_profile.is_default)
 
-    def _on_selection_changed(self, row: int):
+    def _on_selection_changed(self, row: int) -> None:
         """Handle pattern selection change."""
         self.remove_btn.setEnabled(row >= 0)
 
-    def _add_pattern(self):
+    def _add_pattern(self) -> None:
         """Add a new app pattern."""
         if not self.current_profile:
             return
@@ -194,7 +194,7 @@ class AppMatcherWidget(QWidget):
                 self._refresh_ui()
                 self.patterns_changed.emit()
 
-    def _remove_pattern(self):
+    def _remove_pattern(self) -> None:
         """Remove the selected pattern."""
         if not self.current_profile:
             return
@@ -209,7 +209,7 @@ class AppMatcherWidget(QWidget):
             self._refresh_ui()
             self.patterns_changed.emit()
 
-    def _on_default_changed(self, checked: bool):
+    def _on_default_changed(self, checked: bool) -> None:
         """Handle default checkbox change."""
         if not self.current_profile:
             return
@@ -217,7 +217,7 @@ class AppMatcherWidget(QWidget):
         self.current_profile.is_default = checked
         self.patterns_changed.emit()
 
-    def _test_detection(self):
+    def _test_detection(self) -> None:
         """Test window detection."""
         try:
             watcher = AppWatcher()
@@ -259,7 +259,7 @@ class AppMatcherWidget(QWidget):
                 "color: #ff6b6b; padding: 8px; background: #1a1a1a; border-radius: 4px;"
             )
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear the widget."""
         self.current_profile = None
         self.pattern_list.clear()

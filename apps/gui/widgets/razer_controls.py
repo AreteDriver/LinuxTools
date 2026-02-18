@@ -31,7 +31,7 @@ class ColorButton(QPushButton):
         self.clicked.connect(self._pick_color)
         self.setMinimumSize(60, 30)
 
-    def _update_style(self):
+    def _update_style(self) -> None:
         """Update button style to show current color."""
         r, g, b = self._color
         # Choose text color based on brightness
@@ -45,7 +45,7 @@ class ColorButton(QPushButton):
         )
         self.setText(f"#{r:02x}{g:02x}{b:02x}")
 
-    def _pick_color(self):
+    def _pick_color(self) -> None:
         """Open color picker dialog."""
         current = QColor(*self._color)
         color = QColorDialog.getColor(current, self, "Select Color")
@@ -58,7 +58,7 @@ class ColorButton(QPushButton):
         """Get current color as (r, g, b)."""
         return self._color
 
-    def set_color(self, color: tuple):
+    def set_color(self, color: tuple) -> None:
         """Set the color."""
         self._color = color
         self._update_style()
@@ -75,7 +75,7 @@ class RazerControlsWidget(QWidget):
         self.current_device: RazerDevice | None = None
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the widget UI."""
         layout = QVBoxLayout(self)
 
@@ -109,7 +109,7 @@ class RazerControlsWidget(QWidget):
 
         layout.addStretch()
 
-    def _setup_lighting_controls(self):
+    def _setup_lighting_controls(self) -> None:
         """Set up lighting control widgets."""
         layout = QGridLayout(self.lighting_group)
 
@@ -142,7 +142,7 @@ class RazerControlsWidget(QWidget):
         self.apply_lighting_btn.clicked.connect(self._apply_lighting)
         layout.addWidget(self.apply_lighting_btn, 3, 0, 1, 3)
 
-    def _setup_dpi_controls(self):
+    def _setup_dpi_controls(self) -> None:
         """Set up DPI control widgets."""
         layout = QGridLayout(self.dpi_group)
 
@@ -168,7 +168,7 @@ class RazerControlsWidget(QWidget):
         self.apply_dpi_btn.clicked.connect(self._apply_dpi)
         layout.addWidget(self.apply_dpi_btn, 2, 0, 1, 2)
 
-    def _setup_info_panel(self):
+    def _setup_info_panel(self) -> None:
         """Set up device info panel."""
         layout = QGridLayout(self.info_group)
 
@@ -188,7 +188,7 @@ class RazerControlsWidget(QWidget):
         self.info_battery = QLabel("-")
         layout.addWidget(self.info_battery, 3, 1)
 
-    def refresh_devices(self):
+    def refresh_devices(self) -> None:
         """Refresh the device list."""
         self.device_combo.clear()
         devices = self.bridge.discover_devices()
@@ -206,7 +206,7 @@ class RazerControlsWidget(QWidget):
         if self.device_combo.count() > 0:
             self.device_combo.setCurrentIndex(0)
 
-    def _on_device_changed(self, index: int):
+    def _on_device_changed(self, index: int) -> None:
         """Handle device selection change."""
         if index < 0:
             return
@@ -221,7 +221,7 @@ class RazerControlsWidget(QWidget):
             self._update_ui_for_device(device)
             self.device_selected.emit(device)
 
-    def _update_ui_for_device(self, device: RazerDevice):
+    def _update_ui_for_device(self, device: RazerDevice) -> None:
         """Update UI for selected device."""
         # Update info panel
         self.info_name.setText(device.name)
@@ -243,26 +243,26 @@ class RazerControlsWidget(QWidget):
         if device.has_dpi:
             self.dpi_spin.setValue(device.dpi[0])
 
-    def _set_controls_enabled(self, enabled: bool):
+    def _set_controls_enabled(self, enabled: bool) -> None:
         """Enable or disable all controls."""
         self.lighting_group.setEnabled(enabled)
         self.dpi_group.setEnabled(enabled)
 
-    def _on_brightness_changed(self, value: int):
+    def _on_brightness_changed(self, value: int) -> None:
         """Handle brightness slider change."""
         self.brightness_label.setText(f"{value}%")
 
-    def _on_effect_changed(self, effect: str):
+    def _on_effect_changed(self, effect: str) -> None:
         """Handle effect selection change."""
         # Enable/disable color button based on effect
         needs_color = effect in ("Static", "Breathing", "Reactive")
         self.color_btn.setEnabled(needs_color)
 
-    def _on_color_changed(self, color: tuple):
+    def _on_color_changed(self, color: tuple) -> None:
         """Handle color change."""
         pass  # Will be applied when user clicks Apply
 
-    def _apply_lighting(self):
+    def _apply_lighting(self) -> None:
         """Apply current lighting settings."""
         if not self.current_device:
             return
@@ -286,7 +286,7 @@ class RazerControlsWidget(QWidget):
         elif effect == "Off":
             self.bridge.set_brightness(serial, 0)
 
-    def _apply_dpi(self):
+    def _apply_dpi(self) -> None:
         """Apply current DPI setting."""
         if not self.current_device:
             return

@@ -24,11 +24,14 @@ A Synapse-like control center for Razer devices on Linux. Configure button remap
   <em>Left: Button remapping and macro configuration. Right: RGB lighting and DPI control via OpenRazer.</em>
 </p>
 
-<!-- TODO: Add screenshots by running the GUI and capturing:
-     1. Bindings tab with a few configured bindings
-     2. Lighting & DPI tab showing color picker
-     3. Device view with visual button overlay
-     Save to docs/screenshots/ -->
+<p align="center">
+  <img src="docs/screenshots/device-view.png" alt="Device View" width="45%">
+  <img src="docs/screenshots/zone-lighting.png" alt="Zone Lighting" width="45%">
+</p>
+
+<p align="center">
+  <em>Left: Interactive device view with button overlays. Right: Per-zone RGB lighting editor.</em>
+</p>
 
 ---
 

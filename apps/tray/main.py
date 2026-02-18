@@ -9,6 +9,7 @@ Provides:
 
 import atexit
 import fcntl
+import logging
 import os
 import shutil
 import subprocess
@@ -29,6 +30,8 @@ from crates.profile_schema import ProfileLoader, SettingsManager
 from services.openrazer_bridge import OpenRazerBridge
 
 from .hotkeys import HotkeyListener
+
+logger = logging.getLogger(__name__)
 
 # Single-instance lock
 LOCK_FILE = Path.home() / ".cache" / "razer-tray.lock"
@@ -751,8 +754,7 @@ def main():
 
     # Check if system tray is available
     if not QSystemTrayIcon.isSystemTrayAvailable():
-        print("Error: System tray not available")
-        print("Make sure you have a system tray/panel running")
+        logger.error("System tray not available. Make sure you have a system tray/panel running.")
         sys.exit(1)
 
     # Create tray icon
