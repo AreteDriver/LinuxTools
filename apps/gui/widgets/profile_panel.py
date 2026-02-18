@@ -87,7 +87,7 @@ class ProfilePanel(QWidget):
         self.profile_loader: ProfileLoader | None = None
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the widget UI."""
         layout = QVBoxLayout(self)
 
@@ -140,7 +140,7 @@ class ProfilePanel(QWidget):
         self.active_label.setStyleSheet("color: #2da05a; padding: 4px;")
         layout.addWidget(self.active_label)
 
-    def load_profiles(self, loader: ProfileLoader):
+    def load_profiles(self, loader: ProfileLoader) -> None:
         """Load profiles from the loader."""
         self.profile_loader = loader
         self.profile_list.clear()
@@ -165,12 +165,12 @@ class ProfilePanel(QWidget):
         if not profile_ids:
             self.active_label.setText("Active: None")
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh the profile list from the current loader."""
         if self.profile_loader:
             self.load_profiles(self.profile_loader)
 
-    def _on_profile_selected(self, row: int):
+    def _on_profile_selected(self, row: int) -> None:
         """Handle profile selection."""
         if row < 0:
             self.delete_btn.setEnabled(False)
@@ -186,7 +186,7 @@ class ProfilePanel(QWidget):
             self.export_btn.setEnabled(True)
             self.profile_selected.emit(profile_id)
 
-    def _create_profile(self):
+    def _create_profile(self) -> None:
         """Create a new profile."""
         dialog = NewProfileDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -194,7 +194,7 @@ class ProfilePanel(QWidget):
             if profile:
                 self.profile_created.emit(profile)
 
-    def _delete_profile(self):
+    def _delete_profile(self) -> None:
         """Delete the selected profile."""
         item = self.profile_list.currentItem()
         if not item:
@@ -213,7 +213,7 @@ class ProfilePanel(QWidget):
             if self.profile_loader:
                 self.load_profiles(self.profile_loader)
 
-    def _activate_profile(self):
+    def _activate_profile(self) -> None:
         """Set the selected profile as active."""
         item = self.profile_list.currentItem()
         if not item or not self.profile_loader:
@@ -223,7 +223,7 @@ class ProfilePanel(QWidget):
         self.profile_loader.set_active_profile(profile_id)
         self.load_profiles(self.profile_loader)
 
-    def _import_profile(self):
+    def _import_profile(self) -> None:
         """Import a profile from a file."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -280,7 +280,7 @@ class ProfilePanel(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Import Error", f"Failed to import profile:\n{e}")
 
-    def _export_profile(self):
+    def _export_profile(self) -> None:
         """Export the selected profile to a file."""
         item = self.profile_list.currentItem()
         if not item or not self.profile_loader:

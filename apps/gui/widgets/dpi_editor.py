@@ -34,7 +34,7 @@ class DPIStageItem(QFrame):
         self.setGraphicsEffect(RazerEffects.shadow_small())
         self._setup_ui(dpi)
 
-    def _setup_ui(self, dpi: int):
+    def _setup_ui(self, dpi: int) -> None:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(10)
@@ -76,7 +76,7 @@ class DPIStageItem(QFrame):
         self.remove_btn.clicked.connect(self.remove_requested.emit)
         layout.addWidget(self.remove_btn)
 
-    def _on_slider_changed(self, value: int):
+    def _on_slider_changed(self, value: int) -> None:
         """Handle slider value change."""
         # Round to nearest 100
         rounded = round(value / 100) * 100
@@ -92,7 +92,7 @@ class DPIStageItem(QFrame):
         self._update_bar_color(value)
         self.changed.emit()
 
-    def _on_spin_changed(self, value: int):
+    def _on_spin_changed(self, value: int) -> None:
         """Handle spin box value change."""
         self.slider.blockSignals(True)
         self.slider.setValue(value)
@@ -100,7 +100,7 @@ class DPIStageItem(QFrame):
         self._update_bar_color(value)
         self.changed.emit()
 
-    def _update_bar_color(self, dpi: int):
+    def _update_bar_color(self, dpi: int) -> None:
         """Update bar color based on DPI level."""
         ratio = dpi / self.max_dpi
         if ratio < 0.25:
@@ -149,7 +149,7 @@ class DPIStageEditor(QWidget):
 
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
         # Header
@@ -240,7 +240,7 @@ class DPIStageEditor(QWidget):
 
         layout.addStretch()
 
-    def set_device(self, device: RazerDevice | None):
+    def set_device(self, device: RazerDevice | None) -> None:
         """Set the current device to configure."""
         self.current_device = device
 
@@ -276,7 +276,7 @@ class DPIStageEditor(QWidget):
             for btn in self.stage_buttons:
                 btn.setVisible(False)
 
-    def set_config(self, config: DPIConfig):
+    def set_config(self, config: DPIConfig) -> None:
         """Load DPI config into editor."""
         if not self.current_device:
             return
@@ -314,7 +314,7 @@ class DPIStageEditor(QWidget):
 
         return item
 
-    def _add_stage(self):
+    def _add_stage(self) -> None:
         """Add a new DPI stage."""
         if len(self._stage_items) >= self.MAX_STAGES:
             QMessageBox.information(
@@ -336,7 +336,7 @@ class DPIStageEditor(QWidget):
         self._update_stage_buttons()
         self._on_stage_changed()
 
-    def _remove_stage(self, item: DPIStageItem):
+    def _remove_stage(self, item: DPIStageItem) -> None:
         """Remove a DPI stage."""
         if len(self._stage_items) <= 1:
             QMessageBox.warning(self, "Cannot Remove", "At least one DPI stage is required.")
@@ -357,7 +357,7 @@ class DPIStageEditor(QWidget):
         self._update_stage_buttons()
         self._on_stage_changed()
 
-    def _update_stage_buttons(self):
+    def _update_stage_buttons(self) -> None:
         """Update stage selector buttons."""
         for i, btn in enumerate(self.stage_buttons):
             if i < len(self._stage_items):
@@ -366,7 +366,7 @@ class DPIStageEditor(QWidget):
             else:
                 btn.setVisible(False)
 
-    def _set_active_stage(self, index: int):
+    def _set_active_stage(self, index: int) -> None:
         """Set the active DPI stage."""
         if index >= len(self._stage_items):
             return
@@ -387,7 +387,7 @@ class DPIStageEditor(QWidget):
 
         self.active_stage_changed.emit(index)
 
-    def _on_stage_changed(self):
+    def _on_stage_changed(self) -> None:
         """Handle stage value change."""
         stages = [item.get_dpi() for item in self._stage_items]
         self.stages_changed.emit(stages)
@@ -397,7 +397,7 @@ class DPIStageEditor(QWidget):
             dpi = self._stage_items[self._active_stage].get_dpi()
             self.current_dpi_label.setText(f"Current: {dpi} DPI")
 
-    def _apply_preset(self, stages: list[int]):
+    def _apply_preset(self, stages: list[int]) -> None:
         """Apply a preset DPI configuration."""
         if not self.current_device:
             return
@@ -416,7 +416,7 @@ class DPIStageEditor(QWidget):
         self._set_active_stage(0)
         self._on_stage_changed()
 
-    def _apply_to_device(self):
+    def _apply_to_device(self) -> None:
         """Apply current active stage DPI to device."""
         if not self.current_device or not self._stage_items:
             return

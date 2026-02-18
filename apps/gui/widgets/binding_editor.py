@@ -407,7 +407,7 @@ class BindingEditorWidget(QWidget):
         self.current_profile: Profile | None = None
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the widget UI."""
         layout = QVBoxLayout(self)
 
@@ -425,7 +425,7 @@ class BindingEditorWidget(QWidget):
         self._setup_macros_tab(macros_widget)
         self.tabs.addTab(macros_widget, "Macros")
 
-    def _setup_bindings_tab(self, widget):
+    def _setup_bindings_tab(self, widget) -> None:
         """Set up the bindings tab with device visual."""
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -535,7 +535,7 @@ class BindingEditorWidget(QWidget):
 
         layout.addWidget(splitter, 1)
 
-    def _setup_macros_tab(self, widget):
+    def _setup_macros_tab(self, widget) -> None:
         """Set up the macros tab."""
         layout = QVBoxLayout(widget)
 
@@ -615,7 +615,7 @@ class BindingEditorWidget(QWidget):
             self.device_visual.set_layout(layout)
             self._sync_device_button_bindings()
 
-    def load_profile(self, profile: Profile):
+    def load_profile(self, profile: Profile) -> None:
         """Load a profile into the editor."""
         self.current_profile = profile
 
@@ -631,7 +631,7 @@ class BindingEditorWidget(QWidget):
         if self.layer_combo.count() > 0:
             self.layer_combo.setCurrentIndex(0)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear the editor."""
         self.current_profile = None
         self.layer_combo.clear()
@@ -761,13 +761,13 @@ class BindingEditorWidget(QWidget):
                 return layer
         return None
 
-    def _on_layer_changed(self):
+    def _on_layer_changed(self) -> None:
         """Handle layer selection change."""
         self._refresh_bindings()
         self._update_layer_info()
         self._sync_device_button_bindings()
 
-    def _update_layer_info(self):
+    def _update_layer_info(self) -> None:
         """Update the layer info label."""
         layer = self._get_current_layer()
         if not layer:
@@ -787,7 +787,7 @@ class BindingEditorWidget(QWidget):
         else:
             self.layer_info_label.setText("No hold modifier set - edit layer to add one")
 
-    def _refresh_bindings(self):
+    def _refresh_bindings(self) -> None:
         """Refresh the bindings list."""
         self.bindings_list.clear()
         layer = self._get_current_layer()
@@ -800,7 +800,7 @@ class BindingEditorWidget(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, binding)
             self.bindings_list.addItem(item)
 
-    def _refresh_macros(self):
+    def _refresh_macros(self) -> None:
         """Refresh the macros list."""
         self.macros_list.clear()
         if not self.current_profile:
@@ -829,7 +829,7 @@ class BindingEditorWidget(QWidget):
         else:
             return f"{input_name} -> (disabled)"
 
-    def _add_layer(self):
+    def _add_layer(self) -> None:
         """Add a new layer with Hypershift support."""
         if not self.current_profile:
             return
@@ -853,7 +853,7 @@ class BindingEditorWidget(QWidget):
             self.layer_combo.setCurrentIndex(self.layer_combo.count() - 1)
             self.bindings_changed.emit()
 
-    def _edit_layer(self):
+    def _edit_layer(self) -> None:
         """Edit the current layer's properties."""
         layer = self._get_current_layer()
         if not layer:
@@ -874,7 +874,7 @@ class BindingEditorWidget(QWidget):
             self._update_layer_info()
             self.bindings_changed.emit()
 
-    def _delete_layer(self):
+    def _delete_layer(self) -> None:
         """Delete the current layer."""
         layer = self._get_current_layer()
         if not layer or layer.id == "base":
@@ -896,7 +896,7 @@ class BindingEditorWidget(QWidget):
             self.layer_combo.removeItem(idx)
             self.bindings_changed.emit()
 
-    def _add_binding(self):
+    def _add_binding(self) -> None:
         """Add a new binding."""
         layer = self._get_current_layer()
         if not layer:
@@ -911,13 +911,13 @@ class BindingEditorWidget(QWidget):
                 self._refresh_bindings()
                 self.bindings_changed.emit()
 
-    def _edit_binding(self, item: QListWidgetItem):
+    def _edit_binding(self, item: QListWidgetItem) -> None:
         """Edit a binding from double-click."""
         binding = item.data(Qt.ItemDataRole.UserRole)
         if binding:
             self._edit_binding_dialog(binding)
 
-    def _edit_selected_binding(self):
+    def _edit_selected_binding(self) -> None:
         """Edit the selected binding."""
         item = self.bindings_list.currentItem()
         if item:
@@ -925,7 +925,7 @@ class BindingEditorWidget(QWidget):
             if binding:
                 self._edit_binding_dialog(binding)
 
-    def _edit_binding_dialog(self, binding: Binding):
+    def _edit_binding_dialog(self, binding: Binding) -> None:
         """Open dialog to edit a binding."""
         layer = self._get_current_layer()
         if not layer:
@@ -942,7 +942,7 @@ class BindingEditorWidget(QWidget):
                 self._refresh_bindings()
                 self.bindings_changed.emit()
 
-    def _remove_binding(self):
+    def _remove_binding(self) -> None:
         """Remove the selected binding."""
         layer = self._get_current_layer()
         if not layer:
@@ -956,7 +956,7 @@ class BindingEditorWidget(QWidget):
                 self._refresh_bindings()
                 self.bindings_changed.emit()
 
-    def _add_macro(self):
+    def _add_macro(self) -> None:
         """Add a new macro."""
         if not self.current_profile:
             return
@@ -969,13 +969,13 @@ class BindingEditorWidget(QWidget):
                 self._refresh_macros()
                 self.bindings_changed.emit()
 
-    def _edit_macro(self, item: QListWidgetItem):
+    def _edit_macro(self, item: QListWidgetItem) -> None:
         """Edit a macro from double-click."""
         macro = item.data(Qt.ItemDataRole.UserRole)
         if macro:
             self._edit_macro_dialog(macro)
 
-    def _edit_selected_macro(self):
+    def _edit_selected_macro(self) -> None:
         """Edit the selected macro."""
         item = self.macros_list.currentItem()
         if item:
@@ -983,7 +983,7 @@ class BindingEditorWidget(QWidget):
             if macro:
                 self._edit_macro_dialog(macro)
 
-    def _edit_macro_dialog(self, macro: MacroAction):
+    def _edit_macro_dialog(self, macro: MacroAction) -> None:
         """Open dialog to edit a macro."""
         if not self.current_profile:
             return
@@ -999,7 +999,7 @@ class BindingEditorWidget(QWidget):
                 self._refresh_macros()
                 self.bindings_changed.emit()
 
-    def _remove_macro(self):
+    def _remove_macro(self) -> None:
         """Remove the selected macro."""
         if not self.current_profile:
             return
