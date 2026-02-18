@@ -14,7 +14,7 @@ echo "=== Building $APP_NAME AppImage v$VERSION ==="
 
 # Clean previous build
 rm -rf "${APPDIR}/opt" "${APPDIR}/usr"
-mkdir -p "${APPDIR}/opt/likx/src" "${APPDIR}/opt/likx/resources"
+mkdir -p "${APPDIR}/opt/likx/src" "${APPDIR}/opt/likx/resources" "${APPDIR}/opt/likx/locale"
 mkdir -p "${APPDIR}/usr/bin"
 mkdir -p "${APPDIR}/usr/share/applications"
 mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
@@ -24,6 +24,13 @@ echo "Copying application files..."
 cp main.py "${APPDIR}/opt/likx/"
 cp -r src/* "${APPDIR}/opt/likx/src/"
 cp -r resources/* "${APPDIR}/opt/likx/resources/"
+# Copy locale files for i18n support
+for lang_dir in locale/*/LC_MESSAGES; do
+    if [ -d "$lang_dir" ]; then
+        mkdir -p "${APPDIR}/opt/likx/${lang_dir}"
+        cp "$lang_dir"/*.mo "${APPDIR}/opt/likx/${lang_dir}/" 2>/dev/null || true
+    fi
+done
 
 # Copy desktop file and icon
 cp "${APPDIR}/likx.desktop" "${APPDIR}/usr/share/applications/"
