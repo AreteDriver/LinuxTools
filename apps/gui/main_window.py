@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.refresh_timer.timeout.connect(self._refresh_device_status)
         self.refresh_timer.start(5000)  # Every 5 seconds
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the main UI."""
         central = QWidget()
         self.setCentralWidget(central)
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         # Menu bar
         self._setup_menu()
 
-    def _setup_menu(self):
+    def _setup_menu(self) -> None:
         """Set up the menu bar."""
         menubar = self.menuBar()
 
@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         about_action = help_menu.addAction("About")
         about_action.triggered.connect(self._show_about)
 
-    def _run_setup_wizard(self):
+    def _run_setup_wizard(self) -> None:
         """Open the setup wizard."""
         from .widgets.setup_wizard import SetupWizard
 
@@ -225,7 +225,7 @@ class MainWindow(QMainWindow):
         # Refresh profiles after wizard
         self.profile_panel.refresh()
 
-    def _show_about(self):
+    def _show_about(self) -> None:
         """Show about dialog."""
         QMessageBox.about(
             self,
@@ -236,14 +236,14 @@ class MainWindow(QMainWindow):
             "https://github.com/AreteDriver/Razer_Controls",
         )
 
-    def _configure_hotkeys(self):
+    def _configure_hotkeys(self) -> None:
         """Open the hotkey configuration dialog."""
         from .widgets.hotkey_editor import HotkeyEditorDialog
 
         dialog = HotkeyEditorDialog(self)
         dialog.exec()
 
-    def _setup_devices_tab(self):
+    def _setup_devices_tab(self) -> None:
         """Set up the devices configuration tab."""
         layout = QVBoxLayout(self.devices_tab)
 
@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
         info.setStyleSheet("color: #888888; padding: 8px;")
         layout.addWidget(info)
 
-    def _setup_bindings_tab(self):
+    def _setup_bindings_tab(self) -> None:
         """Set up the bindings editor tab."""
         layout = QVBoxLayout(self.bindings_tab)
 
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
         self.binding_editor.bindings_changed.connect(self._on_bindings_changed)
         layout.addWidget(self.binding_editor)
 
-    def _setup_device_view_tab(self):
+    def _setup_device_view_tab(self) -> None:
         """Set up the device view tab with visual device layout."""
         layout = QVBoxLayout(self.device_view_tab)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -319,7 +319,7 @@ class MainWindow(QMainWindow):
         self.device_visual.zone_clicked.connect(self._on_device_zone_clicked)
         layout.addWidget(self.device_visual, 1)
 
-    def _on_device_view_changed(self, index: int):
+    def _on_device_view_changed(self, index: int) -> None:
         """Handle device selection in Device View tab."""
         if index < 0:
             return
@@ -334,7 +334,7 @@ class MainWindow(QMainWindow):
             # Start monitoring input events for button highlighting
             self._start_input_monitoring(device.name)
 
-    def _start_input_monitoring(self, device_name: str):
+    def _start_input_monitoring(self, device_name: str) -> None:
         """Find and monitor the evdev input device for button highlighting."""
         # Search device registry for matching device
         devices = self.device_registry.scan_devices()
@@ -348,7 +348,7 @@ class MainWindow(QMainWindow):
         # Fallback: stop monitoring if no match
         self.input_monitor.stop_monitoring()
 
-    def _test_button_highlighting(self):
+    def _test_button_highlighting(self) -> None:
         """Test button highlighting by cycling through all buttons."""
         layout = self.device_visual.get_layout()
         if not layout:
@@ -375,15 +375,15 @@ class MainWindow(QMainWindow):
 
         highlight_next()
 
-    def _on_device_button_clicked(self, button_id: str, input_code: str):
+    def _on_device_button_clicked(self, button_id: str, input_code: str) -> None:
         """Handle button click on device visual."""
         self.statusbar.showMessage(f"Button clicked: {button_id} ({input_code})")
 
-    def _on_physical_button_pressed(self, input_code: str):
+    def _on_physical_button_pressed(self, input_code: str) -> None:
         """Handle physical button press - highlight in device view."""
         self.device_visual.highlight_button_by_input_code(input_code)
 
-    def _on_device_zone_clicked(self, zone_id: str):
+    def _on_device_zone_clicked(self, zone_id: str) -> None:
         """Handle zone click on device visual - open color picker."""
         from PySide6.QtWidgets import QColorDialog
 
@@ -405,7 +405,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 self.statusbar.showMessage(f"Failed to set color: {e}")
 
-    def _setup_daemon_tab(self):
+    def _setup_daemon_tab(self) -> None:
         """Set up the daemon control tab."""
         layout = QVBoxLayout(self.daemon_tab)
 
@@ -456,13 +456,13 @@ class MainWindow(QMainWindow):
         # Update status
         self._update_daemon_status()
 
-    def _setup_statusbar(self):
+    def _setup_statusbar(self) -> None:
         """Set up the status bar."""
         self.statusbar = QStatusBar()
         self.setStatusBar(self.statusbar)
         self.statusbar.showMessage("Ready")
 
-    def _load_initial_data(self):
+    def _load_initial_data(self) -> None:
         """Load initial data."""
         # Refresh device list
         self.device_list.refresh()
@@ -478,7 +478,7 @@ class MainWindow(QMainWindow):
         else:
             self.statusbar.showMessage("OpenRazer daemon not available", 5000)
 
-    def _populate_device_view_combo(self):
+    def _populate_device_view_combo(self) -> None:
         """Populate the device view combo with discovered devices."""
         self.device_view_combo.clear()
         devices = self.openrazer.discover_devices()
@@ -487,7 +487,7 @@ class MainWindow(QMainWindow):
         if devices:
             self.device_view_combo.setCurrentIndex(0)
 
-    def _on_profile_selected(self, profile_id: str):
+    def _on_profile_selected(self, profile_id: str) -> None:
         """Handle profile selection."""
         profile = self.profile_loader.load_profile(profile_id)
         if profile:
@@ -495,7 +495,7 @@ class MainWindow(QMainWindow):
             self._update_ui_for_profile(profile)
             self.statusbar.showMessage(f"Loaded profile: {profile.name}")
 
-    def _update_ui_for_profile(self, profile: Profile):
+    def _update_ui_for_profile(self, profile: Profile) -> None:
         """Update UI elements for a loaded profile."""
         # Update device selection
         self.device_list.set_selected_devices(profile.input_devices)
@@ -527,13 +527,13 @@ class MainWindow(QMainWindow):
         else:
             self.active_profile_label.setText(profile.name)
 
-    def _on_profile_created(self, profile: Profile):
+    def _on_profile_created(self, profile: Profile) -> None:
         """Handle new profile creation."""
         self.profile_loader.save_profile(profile)
         self.profile_panel.load_profiles(self.profile_loader)
         self.statusbar.showMessage(f"Created profile: {profile.name}")
 
-    def _on_profile_deleted(self, profile_id: str):
+    def _on_profile_deleted(self, profile_id: str) -> None:
         """Handle profile deletion."""
         self.profile_loader.delete_profile(profile_id)
         if self.current_profile and self.current_profile.id == profile_id:
@@ -541,11 +541,11 @@ class MainWindow(QMainWindow):
             self.binding_editor.clear()
         self.statusbar.showMessage("Profile deleted")
 
-    def _on_device_selection_changed(self, selected_ids: list[str]):
+    def _on_device_selection_changed(self, selected_ids: list[str]) -> None:
         """Handle device selection change."""
         pass  # Will be applied when user clicks Apply
 
-    def _apply_device_selection(self):
+    def _apply_device_selection(self) -> None:
         """Apply device selection to current profile."""
         if not self.current_profile:
             QMessageBox.warning(self, "No Profile", "Please select a profile first.")
@@ -556,7 +556,7 @@ class MainWindow(QMainWindow):
         self.profile_loader.save_profile(self.current_profile)
         self.statusbar.showMessage("Device selection saved")
 
-    def _on_bindings_changed(self):
+    def _on_bindings_changed(self) -> None:
         """Handle bindings change."""
         if self.current_profile:
             # Get updated layers from editor
@@ -567,20 +567,20 @@ class MainWindow(QMainWindow):
             self.profile_loader.save_profile(self.current_profile)
             self.statusbar.showMessage("Bindings saved")
 
-    def _on_macros_changed(self, macros: list):
+    def _on_macros_changed(self, macros: list) -> None:
         """Handle macros change."""
         if self.current_profile:
             self.current_profile.macros = macros
             self.profile_loader.save_profile(self.current_profile)
             self.statusbar.showMessage("Macros saved")
 
-    def _on_app_patterns_changed(self):
+    def _on_app_patterns_changed(self) -> None:
         """Handle app pattern change."""
         if self.current_profile:
             self.profile_loader.save_profile(self.current_profile)
             self.statusbar.showMessage("App patterns saved")
 
-    def _on_low_battery(self, device_name: str, level: int):
+    def _on_low_battery(self, device_name: str, level: int) -> None:
         """Handle low battery warning."""
         QMessageBox.warning(
             self,
@@ -588,7 +588,7 @@ class MainWindow(QMainWindow):
             f"{device_name} battery is low ({level}%).\n\nPlease charge your device.",
         )
 
-    def _on_razer_device_selected(self, device):
+    def _on_razer_device_selected(self, device) -> None:
         """Handle Razer device selection - update DPI, zone, binding, and visual editors."""
         self.dpi_editor.set_device(device)
         self.zone_editor.set_device(device)
@@ -606,7 +606,7 @@ class MainWindow(QMainWindow):
             # Update binding editor's device visual too
             self.binding_editor.set_device(device.name, device.device_type)
 
-    def _on_zone_config_changed(self):
+    def _on_zone_config_changed(self) -> None:
         """Handle zone lighting config change."""
         if self.current_profile:
             # Save zone colors to profile
@@ -644,18 +644,18 @@ class MainWindow(QMainWindow):
                 self.profile_loader.save_profile(self.current_profile)
                 self.statusbar.showMessage("Zone lighting saved")
 
-    def _refresh_devices(self):
+    def _refresh_devices(self) -> None:
         """Refresh device list."""
         self.device_list.refresh()
         self.razer_tab.refresh_devices()
         self.battery_monitor.refresh_devices()
         self.statusbar.showMessage("Devices refreshed")
 
-    def _refresh_device_status(self):
+    def _refresh_device_status(self) -> None:
         """Periodic refresh of device status."""
         self._update_daemon_status()
 
-    def _update_daemon_status(self):
+    def _update_daemon_status(self) -> None:
         """Update daemon status display."""
         try:
             result = subprocess.run(
@@ -680,7 +680,7 @@ class MainWindow(QMainWindow):
         self.autostart_check.setChecked(service_path.exists())
         self.autostart_check.blockSignals(False)
 
-    def _start_daemon(self):
+    def _start_daemon(self) -> None:
         """Start the remap daemon."""
         try:
             subprocess.run(
@@ -695,7 +695,7 @@ class MainWindow(QMainWindow):
                 self, "Error", "systemctl not found. Please install the systemd service first."
             )
 
-    def _stop_daemon(self):
+    def _stop_daemon(self) -> None:
         """Stop the remap daemon."""
         try:
             subprocess.run(
@@ -706,7 +706,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to stop daemon: {e}")
 
-    def _restart_daemon(self):
+    def _restart_daemon(self) -> None:
         """Restart the remap daemon."""
         try:
             subprocess.run(
@@ -717,14 +717,14 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to restart daemon: {e}")
 
-    def _toggle_autostart(self, enabled: bool):
+    def _toggle_autostart(self, enabled: bool) -> None:
         """Toggle daemon autostart on login."""
         if enabled:
             self._enable_autostart()
         else:
             self._disable_autostart()
 
-    def _enable_autostart(self):
+    def _enable_autostart(self) -> None:
         """Enable daemon autostart."""
         try:
             subprocess.run(
@@ -734,7 +734,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to enable autostart: {e}")
 
-    def _disable_autostart(self):
+    def _disable_autostart(self) -> None:
         """Disable daemon autostart."""
         try:
             subprocess.run(
@@ -744,7 +744,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to disable autostart: {e}")
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         """Handle window close."""
         self.refresh_timer.stop()
         self.input_monitor.stop_monitoring()

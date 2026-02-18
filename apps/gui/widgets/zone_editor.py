@@ -36,7 +36,7 @@ class ZoneColorButton(QPushButton):
         self.clicked.connect(self._pick_color)
         self.setFixedSize(50, 28)
 
-    def _update_style(self):
+    def _update_style(self) -> None:
         """Update button style to show current color."""
         r, g, b = self._color
         brightness = (r * 299 + g * 587 + b * 114) / 1000
@@ -50,7 +50,7 @@ class ZoneColorButton(QPushButton):
         )
         self.setText(f"#{r:02x}{g:02x}{b:02x}")
 
-    def _pick_color(self):
+    def _pick_color(self) -> None:
         """Open color picker dialog."""
         current = QColor(*self._color)
         color = QColorDialog.getColor(current, self, "Select Zone Color")
@@ -63,7 +63,7 @@ class ZoneColorButton(QPushButton):
         """Get current color as (r, g, b)."""
         return self._color
 
-    def set_color(self, color: tuple):
+    def set_color(self, color: tuple) -> None:
         """Set the color."""
         self._color = color
         self._update_style()
@@ -80,7 +80,7 @@ class ZoneItem(QFrame):
         self._color = (0, 0, 0)
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the zone item UI."""
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
         self.setStyleSheet(
@@ -115,7 +115,7 @@ class ZoneItem(QFrame):
         self.color_btn.color_changed.connect(self._on_color_changed)
         layout.addWidget(self.color_btn)
 
-    def _on_color_changed(self, color: tuple):
+    def _on_color_changed(self, color: tuple) -> None:
         """Handle color change from button."""
         self._color = color
         self.color_changed.emit(self.zone.id, color)
@@ -124,7 +124,7 @@ class ZoneItem(QFrame):
         """Get current zone color."""
         return self._color
 
-    def set_color(self, color: tuple):
+    def set_color(self, color: tuple) -> None:
         """Set the zone color."""
         self._color = color
         self.color_btn.set_color(color)
@@ -143,7 +143,7 @@ class ZoneEditorWidget(QWidget):
         self.zone_items: dict[str, ZoneItem] = {}
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the widget UI."""
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -215,7 +215,7 @@ class ZoneEditorWidget(QWidget):
         # Initially disabled
         self._set_enabled(False)
 
-    def set_device(self, device: RazerDevice | None):
+    def set_device(self, device: RazerDevice | None) -> None:
         """Set the device to edit zones for."""
         self.current_device = device
         self._clear_zone_items()
@@ -245,24 +245,24 @@ class ZoneEditorWidget(QWidget):
 
         self._set_enabled(True)
 
-    def _clear_zone_items(self):
+    def _clear_zone_items(self) -> None:
         """Remove all zone items."""
         for item in self.zone_items.values():
             item.deleteLater()
         self.zone_items.clear()
 
-    def _set_enabled(self, enabled: bool):
+    def _set_enabled(self, enabled: bool) -> None:
         """Enable or disable controls."""
         self.preset_combo.setEnabled(enabled)
         self.fill_all_btn.setEnabled(enabled)
         self.clear_all_btn.setEnabled(enabled)
         self.apply_btn.setEnabled(enabled)
 
-    def _on_zone_color_changed(self, zone_id: str, color: tuple):
+    def _on_zone_color_changed(self, zone_id: str, color: tuple) -> None:
         """Handle zone color change."""
         self.config_changed.emit()
 
-    def _on_preset_changed(self, preset_name: str):
+    def _on_preset_changed(self, preset_name: str) -> None:
         """Apply a preset to all zones."""
         if preset_name == "(Select preset)":
             return
@@ -279,7 +279,7 @@ class ZoneEditorWidget(QWidget):
         self.preset_combo.setCurrentIndex(0)
         self.config_changed.emit()
 
-    def _fill_all_zones(self):
+    def _fill_all_zones(self) -> None:
         """Open color picker and fill all zones with that color."""
         color = QColorDialog.getColor(QColor(0, 255, 0), self, "Select Fill Color")
         if color.isValid():
@@ -288,13 +288,13 @@ class ZoneEditorWidget(QWidget):
                 item.set_color(rgb)
             self.config_changed.emit()
 
-    def _clear_all_zones(self):
+    def _clear_all_zones(self) -> None:
         """Set all zones to black (off)."""
         for item in self.zone_items.values():
             item.set_color((0, 0, 0))
         self.config_changed.emit()
 
-    def _apply_to_device(self):
+    def _apply_to_device(self) -> None:
         """Apply current zone colors to the physical device."""
         if not self.current_device or not self.layout_info:
             return
@@ -322,7 +322,7 @@ class ZoneEditorWidget(QWidget):
         """Get all current zone colors."""
         return {zone_id: item.get_color() for zone_id, item in self.zone_items.items()}
 
-    def set_zone_colors(self, colors: dict[str, tuple[int, int, int]]):
+    def set_zone_colors(self, colors: dict[str, tuple[int, int, int]]) -> None:
         """Set zone colors from a dict."""
         for zone_id, color in colors.items():
             if zone_id in self.zone_items:
