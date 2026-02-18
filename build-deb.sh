@@ -12,8 +12,9 @@ echo "=== Building LikX ${VERSION} .deb package ==="
 # Clean previous builds
 rm -rf "${BUILDDIR}"
 mkdir -p "${BUILDDIR}/DEBIAN"
-mkdir -p "${BUILDDIR}/opt/likx/src"
+mkdir -p "${BUILDDIR}/opt/likx/src/mixins"
 mkdir -p "${BUILDDIR}/opt/likx/resources"
+mkdir -p "${BUILDDIR}/opt/likx/locale"
 mkdir -p "${BUILDDIR}/usr/bin"
 mkdir -p "${BUILDDIR}/usr/share/applications"
 mkdir -p "${BUILDDIR}/usr/share/icons/hicolor/scalable/apps"
@@ -23,7 +24,15 @@ mkdir -p "${BUILDDIR}/usr/share/icons/hicolor/256x256/apps"
 echo "Copying application files..."
 cp main.py "${BUILDDIR}/opt/likx/"
 cp src/*.py "${BUILDDIR}/opt/likx/src/"
+cp src/mixins/*.py "${BUILDDIR}/opt/likx/src/mixins/"
 cp -r resources/* "${BUILDDIR}/opt/likx/resources/"
+# Copy locale files for i18n support
+for lang_dir in locale/*/LC_MESSAGES; do
+    if [ -d "$lang_dir" ]; then
+        mkdir -p "${BUILDDIR}/opt/likx/${lang_dir}"
+        cp "$lang_dir"/*.mo "${BUILDDIR}/opt/likx/${lang_dir}/" 2>/dev/null || true
+    fi
+done
 
 # Create launcher script
 cat > "${BUILDDIR}/usr/bin/likx" << 'EOF'
@@ -46,7 +55,7 @@ Version: ${VERSION}
 Section: graphics
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.8), python3-gi, python3-gi-cairo, python3-cairo, gir1.2-gtk-3.0, gir1.2-gdkpixbuf-2.0, xdotool
+Depends: python3 (>= 3.9), python3-gi, python3-gi-cairo, python3-cairo, gir1.2-gtk-3.0, gir1.2-gdkpixbuf-2.0, xdotool
 Recommends: tesseract-ocr, xclip
 Suggests: tesseract-ocr-eng
 Maintainer: AreteDriver <aretedriver@users.noreply.github.com>

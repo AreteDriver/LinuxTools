@@ -46,8 +46,10 @@ parts:
     source: .
     organize:
       main.py: opt/likx/main.py
-      src/*: opt/likx/src/
+      src/*.py: opt/likx/src/
+      src/mixins/*: opt/likx/src/mixins/
       resources/*: opt/likx/resources/
+      locale/*: opt/likx/locale/
     stage-packages:
       - python3
       - python3-gi
@@ -64,11 +66,11 @@ parts:
       craftctl default
       # Create launcher script
       mkdir -p $CRAFT_PRIME/bin
-      cat > $CRAFT_PRIME/bin/likx << 'EOF'
-      #!/bin/bash
-      cd $SNAP/opt/likx
-      exec python3 main.py "$@"
-      EOF
+      cat > $CRAFT_PRIME/bin/likx << 'LAUNCHER'
+#!/bin/bash
+cd $SNAP/opt/likx
+exec python3 main.py "$@"
+LAUNCHER
       chmod +x $CRAFT_PRIME/bin/likx
       # Desktop entry
       mkdir -p $CRAFT_PRIME/share/applications
