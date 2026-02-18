@@ -16,7 +16,7 @@ class DeviceListWidget(QWidget):
         self.registry = registry
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Set up the widget UI."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -31,7 +31,7 @@ class DeviceListWidget(QWidget):
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         layout.addWidget(self.list_widget)
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh the device list."""
         self.list_widget.clear()
         devices = self.registry.scan_devices()
@@ -77,7 +77,7 @@ class DeviceListWidget(QWidget):
 
         return item
 
-    def _on_selection_changed(self):
+    def _on_selection_changed(self) -> None:
         """Handle selection change."""
         selected = self.get_selected_devices()
         self.selection_changed.emit(selected)

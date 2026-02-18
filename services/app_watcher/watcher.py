@@ -1,6 +1,7 @@
 """App watcher service - monitors active application and switches profiles."""
 
 import fnmatch
+import logging
 import subprocess
 import threading
 import time
@@ -8,6 +9,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 from crates.profile_schema import Profile, ProfileLoader
+
+logger = logging.getLogger(__name__)
 
 
 class ActiveWindowInfo:
@@ -240,15 +243,15 @@ class AppWatcher:
         for backend in backends:
             if backend.is_available():
                 self._backend = backend
-                print(f"App watcher using backend: {backend.__class__.__name__}")
+                logger.info("App watcher using backend: %s", backend.__class__.__name__)
                 return
 
-        print("Warning: No window monitoring backend available")
+        logger.warning("No window monitoring backend available")
 
     def start(self) -> bool:
         """Start the app watcher thread."""
         if not self._backend:
-            print("Cannot start app watcher: no backend available")
+            logger.warning("Cannot start app watcher: no backend available")
             return False
 
         if self._running:
@@ -257,7 +260,7 @@ class AppWatcher:
         self._running = True
         self._thread = threading.Thread(target=self._watch_loop, daemon=True)
         self._thread.start()
-        print("App watcher started")
+        logger.info("App watcher started")
         return True
 
     def stop(self) -> None:
@@ -266,7 +269,7 @@ class AppWatcher:
         if self._thread:
             self._thread.join(timeout=2)
             self._thread = None
-        print("App watcher stopped")
+        logger.info("App watcher stopped")
 
     def _watch_loop(self) -> None:
         """Main watch loop - runs in background thread."""
@@ -274,7 +277,7 @@ class AppWatcher:
             try:
                 self._check_active_window()
             except Exception as e:
-                print(f"App watcher error: {e}")
+                logger.error("App watcher error: %s", e)
 
             time.sleep(self.poll_interval)
 
@@ -302,9 +305,10 @@ class AppWatcher:
 
         if matching_profile and matching_profile.id != self._current_profile_id:
             self._current_profile_id = matching_profile.id
-            print(
-                f"Switching to profile: {matching_profile.name} "
-                f"(matched: {window_info.process_name})"
+            logger.info(
+                "Switching to profile: %s (matched: %s)",
+                matching_profile.name,
+                window_info.process_name,
             )
 
             if self.on_profile_change:

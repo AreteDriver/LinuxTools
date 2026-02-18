@@ -124,7 +124,6 @@ class RemapEngine:
 
             self.state.active_layer = layer_id
             self.state.layer_modifier_held = code
-            # print(f"[Layer] Activated: {layer_id}")
 
         elif value == 0:  # Modifier released - return to base
             if self.state.layer_modifier_held == code:
@@ -133,7 +132,6 @@ class RemapEngine:
 
                 self.state.active_layer = "base"
                 self.state.layer_modifier_held = None
-                # print(f"[Layer] Returned to: base")
 
         # Layer modifiers are consumed (not passed through)
         return True

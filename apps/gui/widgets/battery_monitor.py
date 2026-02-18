@@ -31,7 +31,7 @@ class BatteryDeviceCard(QFrame):
         self.setGraphicsEffect(RazerEffects.shadow_medium())
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
@@ -78,7 +78,7 @@ class BatteryDeviceCard(QFrame):
         # Initial update
         self.update_battery()
 
-    def update_battery(self):
+    def update_battery(self) -> None:
         """Update battery display."""
         level = self.device.battery_level
         is_charging = self.device.is_charging
@@ -154,7 +154,7 @@ class BatteryMonitorWidget(QWidget):
         # Initial refresh
         self.refresh_devices()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
         # Header
@@ -200,11 +200,11 @@ class BatteryMonitorWidget(QWidget):
 
         layout.addStretch()
 
-    def _on_interval_changed(self, value: int):
+    def _on_interval_changed(self, value: int) -> None:
         """Handle refresh interval change."""
         self.refresh_timer.setInterval(value * 1000)
 
-    def refresh_devices(self):
+    def refresh_devices(self) -> None:
         """Refresh device list and rebuild cards."""
         # Clear existing cards
         for card in self._device_cards.values():
@@ -228,7 +228,7 @@ class BatteryMonitorWidget(QWidget):
 
         self.refresh_batteries()
 
-    def refresh_batteries(self):
+    def refresh_batteries(self) -> None:
         """Refresh battery levels for all devices."""
         from datetime import datetime
 
@@ -258,11 +258,11 @@ class BatteryMonitorWidget(QWidget):
         now = datetime.now().strftime("%H:%M:%S")
         self.status_label.setText(f"Last updated: {now}")
 
-    def showEvent(self, event):
+    def showEvent(self, event) -> None:
         """Refresh when widget becomes visible."""
         super().showEvent(event)
         self.refresh_batteries()
 
-    def hideEvent(self, event):
+    def hideEvent(self, event) -> None:
         """Called when widget is hidden."""
         super().hideEvent(event)

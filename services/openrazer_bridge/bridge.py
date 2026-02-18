@@ -1,9 +1,12 @@
 """OpenRazer bridge - discover and control Razer devices via DBus."""
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 
 from pydbus import SessionBus
+
+logger = logging.getLogger(__name__)
 
 
 class LightingEffect(Enum):
@@ -92,7 +95,7 @@ class OpenRazerBridge:
             self._daemon = self._bus.get(self.DBUS_INTERFACE, self.DAEMON_PATH)
             return True
         except Exception as e:
-            print(f"Failed to connect to OpenRazer daemon: {e}")
+            logger.error("Failed to connect to OpenRazer daemon: %s", e)
             return False
 
     def is_connected(self) -> bool:
@@ -119,7 +122,7 @@ class OpenRazerBridge:
                     self._devices[device.serial] = device
 
         except Exception as e:
-            print(f"Error discovering devices: {e}")
+            logger.error("Error discovering devices: %s", e)
 
         return devices
 
@@ -157,7 +160,7 @@ class OpenRazerBridge:
             return device
 
         except Exception as e:
-            print(f"Error getting device info for {object_path}: {e}")
+            logger.error("Error getting device info for %s: %s", object_path, e)
             return None
 
     def _detect_capabilities(self, dbus_dev, device: RazerDevice) -> None:
@@ -316,7 +319,7 @@ class OpenRazerBridge:
             device.brightness = brightness
             return True
         except Exception as e:
-            print(f"Error setting brightness: {e}")
+            logger.error("Error setting brightness: %s", e)
             return False
 
     def set_static_color(self, serial: str, r: int, g: int, b: int) -> bool:
@@ -349,7 +352,7 @@ class OpenRazerBridge:
                     raise Exception("No static color method available")
             return True
         except Exception as e:
-            print(f"Error setting color: {e}")
+            logger.error("Error setting color: %s", e)
             return False
 
     def set_dpi(self, serial: str, dpi_x: int, dpi_y: int | None = None) -> bool:
@@ -367,7 +370,7 @@ class OpenRazerBridge:
             device.dpi = (dpi_x, dpi_y)
             return True
         except Exception as e:
-            print(f"Error setting DPI: {e}")
+            logger.error("Error setting DPI: %s", e)
             return False
 
     def set_spectrum_effect(self, serial: str) -> bool:
@@ -381,7 +384,7 @@ class OpenRazerBridge:
             dev.setSpectrum()
             return True
         except Exception as e:
-            print(f"Error setting spectrum: {e}")
+            logger.error("Error setting spectrum: %s", e)
             return False
 
     def set_breathing_effect(self, serial: str, r: int, g: int, b: int) -> bool:
@@ -395,7 +398,7 @@ class OpenRazerBridge:
             dev.setBreathSingle(r, g, b)
             return True
         except Exception as e:
-            print(f"Error setting breathing: {e}")
+            logger.error("Error setting breathing: %s", e)
             return False
 
     def set_breathing_dual(
@@ -411,7 +414,7 @@ class OpenRazerBridge:
             dev.setBreathDual(r1, g1, b1, r2, g2, b2)
             return True
         except Exception as e:
-            print(f"Error setting breathing dual: {e}")
+            logger.error("Error setting breathing dual: %s", e)
             return False
 
     def set_breathing_random(self, serial: str) -> bool:
@@ -425,7 +428,7 @@ class OpenRazerBridge:
             dev.setBreathRandom()
             return True
         except Exception as e:
-            print(f"Error setting breathing random: {e}")
+            logger.error("Error setting breathing random: %s", e)
             return False
 
     def set_wave_effect(self, serial: str, direction: WaveDirection = WaveDirection.RIGHT) -> bool:
@@ -439,7 +442,7 @@ class OpenRazerBridge:
             dev.setWave(direction.value)
             return True
         except Exception as e:
-            print(f"Error setting wave: {e}")
+            logger.error("Error setting wave: %s", e)
             return False
 
     def set_reactive_effect(
@@ -455,7 +458,7 @@ class OpenRazerBridge:
             dev.setReactive(r, g, b, speed.value)
             return True
         except Exception as e:
-            print(f"Error setting reactive: {e}")
+            logger.error("Error setting reactive: %s", e)
             return False
 
     def set_starlight_effect(
@@ -476,7 +479,7 @@ class OpenRazerBridge:
             dev.setStarlight(r, g, b, speed.value)
             return True
         except Exception as e:
-            print(f"Error setting starlight: {e}")
+            logger.error("Error setting starlight: %s", e)
             return False
 
     def set_none_effect(self, serial: str) -> bool:
@@ -490,7 +493,7 @@ class OpenRazerBridge:
             dev.setNone()
             return True
         except Exception as e:
-            print(f"Error turning off lighting: {e}")
+            logger.error("Error turning off lighting: %s", e)
             return False
 
     def set_poll_rate(self, serial: str, poll_rate: int) -> bool:
@@ -500,7 +503,7 @@ class OpenRazerBridge:
             return False
 
         if poll_rate not in [125, 500, 1000]:
-            print(f"Invalid poll rate: {poll_rate}. Use 125, 500, or 1000.")
+            logger.warning("Invalid poll rate: %s. Use 125, 500, or 1000.", poll_rate)
             return False
 
         try:
@@ -509,7 +512,7 @@ class OpenRazerBridge:
             device.poll_rate = poll_rate
             return True
         except Exception as e:
-            print(f"Error setting poll rate: {e}")
+            logger.error("Error setting poll rate: %s", e)
             return False
 
     def get_poll_rate(self, serial: str) -> int | None:
@@ -524,7 +527,7 @@ class OpenRazerBridge:
             device.poll_rate = rate
             return rate
         except Exception as e:
-            print(f"Error getting poll rate: {e}")
+            logger.error("Error getting poll rate: %s", e)
             return None
 
     def get_dpi(self, serial: str) -> tuple[int, int] | None:
@@ -539,7 +542,7 @@ class OpenRazerBridge:
             device.dpi = (dpi[0], dpi[1]) if len(dpi) >= 2 else (dpi[0], dpi[0])
             return device.dpi
         except Exception as e:
-            print(f"Error getting DPI: {e}")
+            logger.error("Error getting DPI: %s", e)
             return None
 
     def get_brightness(self, serial: str) -> int | None:
@@ -554,7 +557,7 @@ class OpenRazerBridge:
             device.brightness = brightness
             return brightness
         except Exception as e:
-            print(f"Error getting brightness: {e}")
+            logger.error("Error getting brightness: %s", e)
             return None
 
     def get_battery(self, serial: str) -> dict | None:
@@ -576,7 +579,7 @@ class OpenRazerBridge:
 
             return {"level": level, "charging": charging}
         except Exception as e:
-            print(f"Error getting battery: {e}")
+            logger.error("Error getting battery: %s", e)
             return None
 
     def set_logo_brightness(self, serial: str, brightness: int) -> bool:
@@ -590,7 +593,7 @@ class OpenRazerBridge:
             dev.setLogoBrightness(brightness)
             return True
         except Exception as e:
-            print(f"Error setting logo brightness: {e}")
+            logger.error("Error setting logo brightness: %s", e)
             return False
 
     def set_scroll_brightness(self, serial: str, brightness: int) -> bool:
@@ -604,7 +607,7 @@ class OpenRazerBridge:
             dev.setScrollBrightness(brightness)
             return True
         except Exception as e:
-            print(f"Error setting scroll brightness: {e}")
+            logger.error("Error setting scroll brightness: %s", e)
             return False
 
     def set_logo_static(self, serial: str, r: int, g: int, b: int) -> bool:
@@ -618,7 +621,7 @@ class OpenRazerBridge:
             dev.setLogoStatic(r, g, b)
             return True
         except Exception as e:
-            print(f"Error setting logo color: {e}")
+            logger.error("Error setting logo color: %s", e)
             return False
 
     def set_scroll_static(self, serial: str, r: int, g: int, b: int) -> bool:
@@ -632,7 +635,7 @@ class OpenRazerBridge:
             dev.setScrollStatic(r, g, b)
             return True
         except Exception as e:
-            print(f"Error setting scroll color: {e}")
+            logger.error("Error setting scroll color: %s", e)
             return False
 
     # --- Matrix (Per-Key RGB) Methods ---
@@ -667,7 +670,7 @@ class OpenRazerBridge:
             dev.setKeyRow(payload)
             return True
         except Exception as e:
-            print(f"Error setting key row: {e}")
+            logger.error("Error setting key row: %s", e)
             return False
 
     def set_custom_frame(self, serial: str) -> bool:
@@ -684,7 +687,7 @@ class OpenRazerBridge:
             dev.setCustom()
             return True
         except Exception as e:
-            print(f"Error setting custom frame: {e}")
+            logger.error("Error setting custom frame: %s", e)
             return False
 
     def set_matrix_colors(self, serial: str, matrix: list[list[tuple[int, int, int]]]) -> bool:
@@ -737,7 +740,7 @@ class OpenRazerBridge:
             self._detect_capabilities(dev, device)
             return device
         except Exception as e:
-            print(f"Error refreshing device: {e}")
+            logger.error("Error refreshing device: %s", e)
             return None
 
     def get_device_mode(self, serial: str) -> str | None:
@@ -754,7 +757,7 @@ class OpenRazerBridge:
             dev = self._bus.get(self.DBUS_INTERFACE, device.object_path)
             return dev.getDeviceMode()
         except Exception as e:
-            print(f"Error getting device mode: {e}")
+            logger.error("Error getting device mode: %s", e)
             return None
 
     def set_device_mode(self, serial: str, mode1: int = 0, mode2: int = 0) -> bool:
@@ -781,7 +784,7 @@ class OpenRazerBridge:
             dev.setDeviceMode(mode1, mode2)
             return True
         except Exception as e:
-            print(f"Error setting device mode: {e}")
+            logger.error("Error setting device mode: %s", e)
             return False
 
     def set_driver_mode(self, serial: str) -> bool:

@@ -102,7 +102,7 @@ class RecordingDialog(QDialog):
         self._setup_ui()
         self._populate_devices()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
         # Device selection
@@ -172,7 +172,7 @@ class RecordingDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
-    def _populate_devices(self):
+    def _populate_devices(self) -> None:
         """Find available input devices."""
         self.device_combo.clear()
 
@@ -198,7 +198,7 @@ class RecordingDialog(QDialog):
             self.device_combo.addItem("No input devices found", None)
             self.start_btn.setEnabled(False)
 
-    def _start_recording(self):
+    def _start_recording(self) -> None:
         """Start the recording worker."""
         device_path = self.device_combo.currentData()
         if not device_path:
@@ -227,20 +227,20 @@ class RecordingDialog(QDialog):
         self._worker.error_occurred.connect(self._on_error)
         self._worker.start()
 
-    def _stop_recording(self):
+    def _stop_recording(self) -> None:
         """Stop the recording worker."""
         if self._worker and self._worker.isRunning():
             self._worker.stop()
             self._worker.wait(2000)
 
-    def _on_step_recorded(self, key_text: str):
+    def _on_step_recorded(self, key_text: str) -> None:
         """Handle a key being recorded."""
         self.key_log.append(key_text)
         # Auto-scroll to bottom
         scrollbar = self.key_log.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
-    def _on_recording_finished(self, macro: MacroAction):
+    def _on_recording_finished(self, macro: MacroAction) -> None:
         """Handle recording completion."""
         self._recorded_macro = macro
         step_count = len(macro.steps) if macro else 0
@@ -254,7 +254,7 @@ class RecordingDialog(QDialog):
         self.timeout_spin.setEnabled(True)
         self.accept_btn.setEnabled(step_count > 0)
 
-    def _on_error(self, error_msg: str):
+    def _on_error(self, error_msg: str) -> None:
         """Handle recording error."""
         self.status_label.setText("Error")
         self.status_label.setStyleSheet("color: red; font-weight: bold;")
@@ -285,7 +285,7 @@ class StepEditorDialog(QDialog):
         if step:
             self._load_step(step)
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QFormLayout(self)
 
         # Step type
@@ -327,7 +327,7 @@ class StepEditorDialog(QDialog):
 
         self._on_type_changed()
 
-    def _on_type_changed(self):
+    def _on_type_changed(self) -> None:
         """Show/hide fields based on step type."""
         step_type = self.type_combo.currentData()
 
@@ -343,7 +343,7 @@ class StepEditorDialog(QDialog):
         self.delay_spin.setVisible(is_delay)
         self.text_input.setVisible(is_text)
 
-    def _load_step(self, step: MacroStep):
+    def _load_step(self, step: MacroStep) -> None:
         """Load step data into dialog."""
         # Set type
         for i in range(self.type_combo.count()):
@@ -397,7 +397,7 @@ class MacroEditorWidget(QWidget):
 
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QHBoxLayout(self)
 
         # Left side - macro list
@@ -520,7 +520,7 @@ class MacroEditorWidget(QWidget):
         # Disable editor initially
         self._set_editor_enabled(False)
 
-    def set_macros(self, macros: list[MacroAction]):
+    def set_macros(self, macros: list[MacroAction]) -> None:
         """Set the list of macros to edit."""
         self._macros = macros
         self._refresh_macro_list()
@@ -529,7 +529,7 @@ class MacroEditorWidget(QWidget):
         """Get the current macro list."""
         return self._macros
 
-    def _refresh_macro_list(self):
+    def _refresh_macro_list(self) -> None:
         """Refresh the macro list widget."""
         self.macro_list.clear()
         for macro in self._macros:
@@ -537,7 +537,7 @@ class MacroEditorWidget(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, macro.id)
             self.macro_list.addItem(item)
 
-    def _on_macro_selected(self, current, previous):
+    def _on_macro_selected(self, current, previous) -> None:
         """Handle macro selection change."""
         if current:
             macro_id = current.data(Qt.ItemDataRole.UserRole)
@@ -550,7 +550,7 @@ class MacroEditorWidget(QWidget):
             self._set_editor_enabled(False)
             self.delete_macro_btn.setEnabled(False)
 
-    def _load_macro(self, macro: MacroAction | None):
+    def _load_macro(self, macro: MacroAction | None) -> None:
         """Load macro data into editor."""
         if not macro:
             return
@@ -570,7 +570,7 @@ class MacroEditorWidget(QWidget):
         self._refresh_steps_list()
         self.test_btn.setEnabled(len(macro.steps) > 0)
 
-    def _refresh_steps_list(self):
+    def _refresh_steps_list(self) -> None:
         """Refresh the steps list widget."""
         self.steps_list.clear()
         if not self._current_macro:
@@ -596,7 +596,7 @@ class MacroEditorWidget(QWidget):
             return f'Type "{step.text}"'
         return str(step.type)
 
-    def _set_editor_enabled(self, enabled: bool):
+    def _set_editor_enabled(self, enabled: bool) -> None:
         """Enable/disable the editor panel."""
         self.name_input.setEnabled(enabled)
         self.repeat_spin.setEnabled(enabled)
@@ -605,13 +605,13 @@ class MacroEditorWidget(QWidget):
         self.add_step_btn.setEnabled(enabled)
         self.record_btn.setEnabled(enabled)
 
-    def _on_step_selected(self, current, previous):
+    def _on_step_selected(self, current, previous) -> None:
         """Handle step selection change."""
         has_selection = current is not None
         self.edit_step_btn.setEnabled(has_selection)
         self.delete_step_btn.setEnabled(has_selection)
 
-    def _add_macro(self):
+    def _add_macro(self) -> None:
         """Add a new macro."""
         macro = MacroAction(
             id=str(uuid.uuid4())[:8],
@@ -625,7 +625,7 @@ class MacroEditorWidget(QWidget):
         self.macro_list.setCurrentRow(len(self._macros) - 1)
         self.macros_updated.emit(self._macros)
 
-    def _delete_macro(self):
+    def _delete_macro(self) -> None:
         """Delete the selected macro."""
         if not self._current_macro:
             return
@@ -643,7 +643,7 @@ class MacroEditorWidget(QWidget):
             self._refresh_macro_list()
             self.macros_updated.emit(self._macros)
 
-    def _add_step(self):
+    def _add_step(self) -> None:
         """Add a new step to the current macro."""
         if not self._current_macro:
             return
@@ -656,7 +656,7 @@ class MacroEditorWidget(QWidget):
             self._emit_macro_changed()
             self.test_btn.setEnabled(True)
 
-    def _edit_step(self):
+    def _edit_step(self) -> None:
         """Edit the selected step."""
         if not self._current_macro:
             return
@@ -674,7 +674,7 @@ class MacroEditorWidget(QWidget):
             self._refresh_steps_list()
             self._emit_macro_changed()
 
-    def _delete_step(self):
+    def _delete_step(self) -> None:
         """Delete the selected step."""
         if not self._current_macro:
             return
@@ -689,7 +689,7 @@ class MacroEditorWidget(QWidget):
         self._emit_macro_changed()
         self.test_btn.setEnabled(len(self._current_macro.steps) > 0)
 
-    def _on_steps_reordered(self):
+    def _on_steps_reordered(self) -> None:
         """Handle steps being reordered via drag-drop."""
         if not self._current_macro:
             return
@@ -705,7 +705,7 @@ class MacroEditorWidget(QWidget):
         self._refresh_steps_list()
         self._emit_macro_changed()
 
-    def _on_name_changed(self, text: str):
+    def _on_name_changed(self, text: str) -> None:
         """Handle macro name change."""
         if self._current_macro:
             self._current_macro.name = text
@@ -715,32 +715,32 @@ class MacroEditorWidget(QWidget):
                 current.setText(text)
             self._emit_macro_changed()
 
-    def _on_repeat_changed(self, value: int):
+    def _on_repeat_changed(self, value: int) -> None:
         """Handle repeat count change."""
         if self._current_macro:
             self._current_macro.repeat_count = value
             self._emit_macro_changed()
 
-    def _on_repeat_delay_changed(self, value: int):
+    def _on_repeat_delay_changed(self, value: int) -> None:
         """Handle repeat delay change."""
         if self._current_macro:
             self._current_macro.repeat_delay_ms = value
             self._emit_macro_changed()
 
-    def _emit_macro_changed(self):
+    def _emit_macro_changed(self) -> None:
         """Emit signal that macro was modified."""
         if self._current_macro:
             self.macro_changed.emit(self._current_macro)
             self.macros_updated.emit(self._macros)
 
-    def _toggle_recording(self):
+    def _toggle_recording(self) -> None:
         """Toggle macro recording mode."""
         if self._recording:
             self._stop_recording()
         else:
             self._start_recording()
 
-    def _start_recording(self):
+    def _start_recording(self) -> None:
         """Start recording macro from device input."""
         if not self._current_macro:
             return
@@ -768,7 +768,7 @@ class MacroEditorWidget(QWidget):
         # Reset button state
         self.record_btn.setChecked(False)
 
-    def _stop_recording(self):
+    def _stop_recording(self) -> None:
         """Stop recording (legacy, kept for compatibility)."""
         self._recording = False
         self.record_btn.setText("Record from Device")
@@ -776,7 +776,7 @@ class MacroEditorWidget(QWidget):
         self.record_status.setText("")
         self.record_status.setStyleSheet("")
 
-    def _test_macro(self):
+    def _test_macro(self) -> None:
         """Test the current macro."""
         if not self._current_macro or not self._current_macro.steps:
             return
