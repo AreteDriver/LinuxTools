@@ -1,0 +1,62 @@
+[project]
+name = "likx"
+version = "3.30.0"
+description = "GTK3 screenshot tool for Linux with annotation, OCR, and cloud upload"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+requires-python = ">=3.9"
+dependencies = [
+    "pycairo>=1.27.0",
+    "numpy>=1.26.0,<3.0.0",
+    "opencv-python-headless>=4.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "src/ui.py",
+    "*/__pycache__/*",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "C4", "UP"]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "UP006",  # Use list instead of List (TODO: migrate typing imports)
+    "UP007",  # Use X | Y instead of Union (requires Python 3.10+)
+    "UP035",  # Deprecated typing imports (TODO: migrate to builtin generics)
+    "UP045",  # Use X | None instead of Optional (requires Python 3.10+)
+]
