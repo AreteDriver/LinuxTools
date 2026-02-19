@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=G13 Linux
+Comment=Configure Logitech G13 Gaming Keyboard
+Exec=g13-linux-gui
+Icon=g13-linux
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;
+Keywords=logitech;g13;gaming;keyboard;macro;
+StartupNotify=true

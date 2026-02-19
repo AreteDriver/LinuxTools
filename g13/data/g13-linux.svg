@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- G13 keypad body -->
+  <rect x="8" y="12" width="48" height="40" rx="6" fill="#2a2a2a" stroke="#444" stroke-width="2"/>
+
+  <!-- Keys grid (3x4) -->
+  <g fill="#3a3a3a" stroke="#555" stroke-width="1">
+    <rect x="14" y="18" width="10" height="8" rx="2"/>
+    <rect x="27" y="18" width="10" height="8" rx="2"/>
+    <rect x="40" y="18" width="10" height="8" rx="2"/>
+    <rect x="14" y="29" width="10" height="8" rx="2"/>
+    <rect x="27" y="29" width="10" height="8" rx="2"/>
+    <rect x="40" y="29" width="10" height="8" rx="2"/>
+    <rect x="14" y="40" width="10" height="8" rx="2"/>
+    <rect x="27" y="40" width="10" height="8" rx="2"/>
+    <rect x="40" y="40" width="10" height="8" rx="2"/>
+  </g>
+
+  <!-- Backlight glow effect -->
+  <rect x="14" y="18" width="10" height="8" rx="2" fill="#00bfff" opacity="0.6"/>
+  <rect x="27" y="29" width="10" height="8" rx="2" fill="#00bfff" opacity="0.6"/>
+  <rect x="40" y="40" width="10" height="8" rx="2" fill="#00bfff" opacity="0.6"/>
+
+  <!-- LCD screen indicator -->
+  <rect x="20" y="6" width="24" height="4" rx="1" fill="#1a3a1a" stroke="#2a5a2a" stroke-width="1"/>
+</svg>

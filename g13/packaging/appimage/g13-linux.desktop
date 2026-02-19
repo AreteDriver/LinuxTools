@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=G13 Linux
+Comment=Logitech G13 Gaming Keypad Configuration
+Exec=g13-linux-gui
+Icon=g13-linux
+Categories=Settings;HardwareSettings;Game;
+Keywords=logitech;g13;gaming;keypad;macro;
+Terminal=false
+StartupNotify=true

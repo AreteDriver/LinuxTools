@@ -1,0 +1,21 @@
+#!/bin/bash
+# AppRun - Entry point for G13 Linux AppImage
+
+SELF=$(readlink -f "$0")
+HERE=${SELF%/*}
+
+# Find Python version
+PYTHON_VERSION=$(ls "${HERE}/usr/lib/" | grep -oP 'python\d+\.\d+' | head -1)
+
+# Set up environment
+export PATH="${HERE}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+export PYTHONHOME="${HERE}/usr"
+export PYTHONPATH="${HERE}/usr/lib/${PYTHON_VERSION}/site-packages"
+
+# Qt platform plugin path
+export QT_PLUGIN_PATH="${HERE}/usr/lib/${PYTHON_VERSION}/site-packages/PyQt6/Qt6/plugins"
+export QT_QPA_PLATFORM_PLUGIN_PATH="${QT_PLUGIN_PATH}/platforms"
+
+# Run the GUI
+exec "${HERE}/usr/bin/python3" -m g13_linux.gui.main "$@"
