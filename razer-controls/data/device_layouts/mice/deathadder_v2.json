@@ -1,0 +1,114 @@
+{
+  "id": "razer_deathadder_v2",
+  "name": "Razer DeathAdder V2",
+  "category": "mouse",
+  "device_name_patterns": [
+    ".*deathadder.*v2.*",
+    ".*DeathAdder V2.*",
+    ".*DeathAdder.*V2.*Pro.*",
+    ".*DeathAdder.*V2.*Mini.*",
+    ".*DeathAdder.*V2.*Lite.*",
+    ".*DeathAdder.*V2.*X.*",
+    ".*deathadder.*essential.*"
+  ],
+  "base_width": 200,
+  "base_height": 400,
+  "image_path": "device_images/mice/deathadder_v2.png",
+  "outline_path": [
+    [0.5, 0.0],
+    [0.78, 0.08],
+    [0.92, 0.22],
+    [1.0, 0.42],
+    [0.98, 0.62],
+    [0.88, 0.82],
+    [0.72, 0.94],
+    [0.5, 1.0],
+    [0.28, 0.94],
+    [0.12, 0.82],
+    [0.02, 0.62],
+    [0.0, 0.42],
+    [0.08, 0.22],
+    [0.22, 0.08]
+  ],
+  "buttons": [
+    {
+      "id": "left_click",
+      "label": "Left",
+      "x": 0.175,
+      "y": 0.04,
+      "width": 0.30,
+      "height": 0.32,
+      "shape_type": "rect",
+      "input_code": "BTN_LEFT"
+    },
+    {
+      "id": "right_click",
+      "label": "Right",
+      "x": 0.525,
+      "y": 0.04,
+      "width": 0.30,
+      "height": 0.32,
+      "shape_type": "rect",
+      "input_code": "BTN_RIGHT"
+    },
+    {
+      "id": "scroll_wheel",
+      "label": "Scroll",
+      "x": 0.425,
+      "y": 0.15,
+      "width": 0.15,
+      "height": 0.12,
+      "shape_type": "ellipse",
+      "input_code": "BTN_MIDDLE"
+    },
+    {
+      "id": "dpi_button",
+      "label": "DPI",
+      "x": 0.44,
+      "y": 0.305,
+      "width": 0.12,
+      "height": 0.05,
+      "shape_type": "ellipse"
+    },
+    {
+      "id": "side_forward",
+      "label": "M5",
+      "x": 0.09,
+      "y": 0.40,
+      "width": 0.06,
+      "height": 0.09,
+      "shape_type": "rect",
+      "input_code": "BTN_FORWARD"
+    },
+    {
+      "id": "side_back",
+      "label": "M4",
+      "x": 0.09,
+      "y": 0.50,
+      "width": 0.06,
+      "height": 0.09,
+      "shape_type": "rect",
+      "input_code": "BTN_BACK"
+    },
+    {
+      "id": "logo_zone",
+      "label": "Logo",
+      "x": 0.375,
+      "y": 0.66,
+      "width": 0.25,
+      "height": 0.08,
+      "shape_type": "ellipse",
+      "is_zone": true
+    },
+    {
+      "id": "underglow_zone",
+      "label": "Underglow",
+      "x": 0.25,
+      "y": 0.90,
+      "width": 0.50,
+      "height": 0.05,
+      "shape_type": "rect",
+      "is_zone": true
+    }
+  ]
+}

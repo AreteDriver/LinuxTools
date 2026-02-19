@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.AreteDriver.RazerControls</id>
+  <name>Razer Control Center</name>
+  <summary>Configure Razer devices on Linux</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.aretedriver">
+    <name>AreteDriver</name>
+  </developer>
+
+  <description>
+    <p>
+      A Synapse-like control center for Razer devices on Linux. Configure button
+      remapping, macros, RGB lighting, and DPI settings.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Button remapping - Remap mouse buttons and keyboard keys</li>
+      <li>Macro support - Create and execute macro sequences</li>
+      <li>Multi-layer bindings - Support for Hypershift-like hold modifiers</li>
+      <li>Profile management - Multiple profiles with per-application switching</li>
+      <li>OpenRazer integration - Control RGB lighting, brightness, and DPI</li>
+      <li>Global hotkeys - Switch profiles with Ctrl+Shift+1-9</li>
+      <li>System tray - Quick access and notifications</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.AreteDriver.RazerControls.desktop</launchable>
+
+  <url type="homepage">https://github.com/AreteDriver/RazerControls</url>
+  <url type="bugtracker">https://github.com/AreteDriver/RazerControls/issues</url>
+  <url type="vcs-browser">https://github.com/AreteDriver/RazerControls</url>
+
+  <provides>
+    <binary>razer-control-center</binary>
+    <binary>razer-tray</binary>
+  </provides>
+
+  <requires>
+    <display_length compare="ge">800</display_length>
+  </requires>
+
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+
+  <categories>
+    <category>Settings</category>
+    <category>HardwareSettings</category>
+  </categories>
+
+  <keywords>
+    <keyword>razer</keyword>
+    <keyword>mouse</keyword>
+    <keyword>keyboard</keyword>
+    <keyword>gaming</keyword>
+    <keyword>macro</keyword>
+    <keyword>rgb</keyword>
+    <keyword>dpi</keyword>
+    <keyword>openrazer</keyword>
+  </keywords>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main window with profile and binding configuration</caption>
+      <image>https://raw.githubusercontent.com/AreteDriver/RazerControls/main/docs/screenshots/main-window.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="1.9.8" date="2026-01-11">
+      <description>
+        <ul>
+          <li>SVG icon system with tab and action icons</li>
+          <li>Button highlighting for physical press feedback</li>
+          <li>OpenRazer bridge zone-specific lighting fixes</li>
+          <li>Flatpak build improvements</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.9.5" date="2026-01-04">
+      <description>
+        <ul>
+          <li>Single-instance enforcement for GUI and tray</li>
+          <li>Code quality improvements and deprecation fixes</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.9.0" date="2026-01-03">
+      <description>
+        <ul>
+          <li>Device visual integration in binding editor</li>
+          <li>Interactive button mapping on device images</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.8.0" date="2026-01-02">
+      <description>
+        <ul>
+          <li>Visual device layout system with interactive buttons</li>
+          <li>Click-to-bind on device images</li>
+          <li>Improved test coverage (99%, 1539 tests)</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.7.0" date="2025-12-31">
+      <description>
+        <ul>
+          <li>Zone-based RGB editor widget</li>
+          <li>Per-key RGB matrix lighting support</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.6.0" date="2025-12-30">
+      <description>
+        <ul>
+          <li>Profile import/export with YAML support</li>
+          <li>Improved PyGObject integration</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.5.0" date="2025-12-29">
+      <description>
+        <ul>
+          <li>Hotkey backend status in tray menu</li>
+          <li>Auto-reload hotkeys when settings change</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+</component>
