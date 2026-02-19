@@ -1,0 +1,7 @@
+# Python dependencies for LikX
+# Most dependencies are system packages (GTK, GObject) installed via apt/dnf/pacman
+# See setup.sh for full system dependency installation
+
+pycairo>=1.27.0
+numpy>=1.26.0,<3.0.0
+opencv-python-headless>=4.10.0
