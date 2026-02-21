@@ -29,6 +29,12 @@ LinuxTools/
 └── elm/                     # EVE Online Linux launcher (Rust)
 ```
 
+### G13 Documentation
+
+> **Getting started with the G13?** See the [Installation Guide](g13/INSTALLATION.md) for setup (udev rules, pip install, systemd service) and the [Troubleshooting Guide](g13/TROUBLESHOOTING.md) if you hit issues. Full docs: [Button Mapping Guide](g13/BUTTON_MAPPING_GUIDE.md) | [Background Image Setup](g13/BACKGROUND_IMAGE_SETUP.md)
+
+---
+
 ## Install
 
 ```bash
