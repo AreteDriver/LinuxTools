@@ -104,7 +104,7 @@ def _run_gui_mode():
         from src.ui import run_app
 
         run_app()
-    except Exception as e:
+    except (ImportError, RuntimeError, OSError) as e:
         print(f"Error launching GUI: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
@@ -169,7 +169,7 @@ def _open_editor(result, output_path):
 
         EditorWindow(result)
         Gtk.main()
-    except Exception as e:
+    except (ImportError, RuntimeError, OSError) as e:
         print(f"Editor failed: {e}", file=sys.stderr)
         result = save_capture(result, output_path)
         if result.success:
@@ -201,7 +201,7 @@ def main():
             if mode == CaptureMode.REGION
             else capture(mode, delay=args.delay)
         )
-    except Exception as e:
+    except (ImportError, RuntimeError, OSError) as e:
         print(f"Error during capture: {e}", file=sys.stderr)
         sys.exit(1)
 

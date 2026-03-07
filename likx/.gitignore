@@ -88,3 +88,5 @@ repo/
 *.AppImage
 !appimagetool*.AppImage
 squashfs-root/
+AppDir/opt/
+AppDir/usr/

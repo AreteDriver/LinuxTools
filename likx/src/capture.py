@@ -20,6 +20,7 @@ except (ImportError, ValueError):
     GTK_AVAILABLE = False
 
 from . import config
+from .clipboard import copy_to_clipboard  # noqa: F401
 
 
 class CaptureMode(Enum):
@@ -600,110 +601,6 @@ def save_capture(
 
     except Exception as e:
         return CaptureResult(False, error=f"Failed to save: {str(e)}")
-
-
-def _copy_wayland_clipboard(temp_file: str) -> bool:
-    """Copy image to Wayland clipboard using wl-copy."""
-    try:
-        with open(temp_file, "rb") as f:
-            proc = subprocess.Popen(
-                ["wl-copy", "--type", "image/png"],
-                stdin=f,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            proc.wait(timeout=5)
-            if proc.returncode == 0:
-                os.unlink(temp_file)
-                return True
-    except subprocess.TimeoutExpired:
-        proc.kill()
-    except OSError:
-        pass
-    return False
-
-
-def _copy_x11_clipboard(temp_file: str) -> bool:
-    """Copy image to X11 clipboard using xclip."""
-    proc = subprocess.Popen(
-        ["xclip", "-selection", "clipboard", "-t", "image/png", temp_file],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    time.sleep(0.1)  # Brief wait for xclip to read file
-    # Keep temp file for xclip to serve (cleaned up by /tmp)
-    return proc.poll() is None or proc.returncode == 0
-
-
-def _copy_gtk_clipboard(pixbuf) -> bool:
-    """Copy image to GTK clipboard."""
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
-
-    if not Gtk.init_check()[0]:
-        Gtk.init([])
-
-    clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-    clipboard.set_image(pixbuf)
-    clipboard.store()
-
-    while Gtk.events_pending():
-        Gtk.main_iteration_do(False)
-
-    return True
-
-
-def _try_external_clipboard(pixbuf, display_server: DisplayServer) -> Tuple[bool, str]:
-    """Try copying to clipboard using external tools.
-
-    Returns:
-        Tuple of (success, temp_file_path)
-    """
-    temp_file = f"/tmp/likx_clip_{int(time.time())}.png"
-    pixbuf.savev(temp_file, "png", [], [])
-
-    if display_server == DisplayServer.WAYLAND:
-        if _copy_wayland_clipboard(temp_file):
-            return True, temp_file
-    elif _copy_x11_clipboard(temp_file):
-        return True, temp_file
-
-    return False, temp_file
-
-
-def copy_to_clipboard(result: CaptureResult, use_gtk: bool = True) -> bool:
-    """Copy a captured screenshot to the clipboard.
-
-    Args:
-        result: The CaptureResult containing the pixbuf.
-        use_gtk: If True, try GTK clipboard first. Set False for CLI mode.
-
-    Returns:
-        True if successful, False otherwise.
-    """
-    if not result.success or result.pixbuf is None:
-        return False
-
-    display_server = detect_display_server()
-    temp_file = None
-
-    try:
-        success, temp_file = _try_external_clipboard(result.pixbuf, display_server)
-        if success:
-            return True
-    except (FileNotFoundError, Exception):
-        pass
-
-    if temp_file and os.path.exists(temp_file):
-        os.unlink(temp_file)
-
-    if use_gtk and GTK_AVAILABLE:
-        try:
-            return _copy_gtk_clipboard(result.pixbuf)
-        except Exception:
-            pass
-
-    return False
 
 
 def capture(

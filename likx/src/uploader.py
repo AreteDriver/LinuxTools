@@ -8,11 +8,56 @@ from typing import Optional, Tuple
 from . import config
 
 
+def _get_secret(key: str) -> str:
+    """Retrieve a secret from system keyring, falling back to config.
+
+    Uses the Secret Service API (GNOME Keyring / KDE Wallet) when available.
+    Falls back to config.json for backwards compatibility.
+    """
+    try:
+        import keyring
+
+        value = keyring.get_password("likx", key)
+        if value:
+            return value
+    except ImportError:
+        pass
+
+    # Fallback to config (legacy / no keyring installed)
+    cfg = config.load_config()
+    return cfg.get(key, "")
+
+
+def _set_secret(key: str, value: str) -> bool:
+    """Store a secret in system keyring.
+
+    Returns True if stored in keyring, False if falling back to config.
+    """
+    try:
+        import keyring
+
+        keyring.set_password("likx", key, value)
+        return True
+    except ImportError:
+        # No keyring available — store in config (with warning)
+        cfg = config.load_config()
+        cfg[key] = value
+        config.save_config(cfg)
+        return False
+
+
 class Uploader:
     """Handles uploading screenshots to cloud services."""
 
     def __init__(self):
-        self.imgur_client_id = "546c25a59c58ad7"  # Anonymous Imgur uploads
+        import os
+
+        cfg = config.load_config()
+        self.imgur_client_id = (
+            os.environ.get("LIKX_IMGUR_CLIENT_ID")
+            or cfg.get("imgur_client_id")
+            or "546c25a59c58ad7"
+        )
 
     def upload(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload image using configured service.
@@ -41,6 +86,68 @@ class Uploader:
         else:
             return False, None, f"Unknown upload service: {service}"
 
+    def _http_upload(
+        self,
+        url: str,
+        *,
+        method: str = "POST",
+        headers: Optional[dict] = None,
+        data: Optional[bytes] = None,
+        files: Optional[dict] = None,
+        json_body: Optional[dict] = None,
+        timeout: int = 30,
+    ) -> Tuple[int, dict]:
+        """HTTP upload using urllib (stdlib). Returns (status_code, response_json).
+
+        Falls back to curl only if absolutely necessary.
+        """
+        import urllib.error
+        import urllib.request
+
+        req_headers = headers or {}
+
+        if json_body is not None:
+            body = json.dumps(json_body).encode("utf-8")
+            req_headers.setdefault("Content-Type", "application/json")
+        elif files is not None:
+            # Multipart form data
+            boundary = "----LikXBoundary"
+            parts = []
+            for field_name, (filename, file_data, content_type) in files.items():
+                parts.append(f"--{boundary}\r\n".encode())
+                parts.append(
+                    f'Content-Disposition: form-data; name="{field_name}"; '
+                    f'filename="{filename}"\r\n'.encode()
+                )
+                parts.append(f"Content-Type: {content_type}\r\n\r\n".encode())
+                parts.append(file_data)
+                parts.append(b"\r\n")
+            parts.append(f"--{boundary}--\r\n".encode())
+            body = b"".join(parts)
+            req_headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
+        elif data is not None:
+            body = data
+        else:
+            body = None
+
+        req = urllib.request.Request(url, data=body, headers=req_headers, method=method)
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                response_body = resp.read().decode("utf-8")
+                try:
+                    return resp.status, json.loads(response_body)
+                except json.JSONDecodeError:
+                    return resp.status, {"raw": response_body}
+        except urllib.error.HTTPError as e:
+            response_body = e.read().decode("utf-8", errors="replace")
+            try:
+                return e.code, json.loads(response_body)
+            except json.JSONDecodeError:
+                return e.code, {"error": response_body}
+        except urllib.error.URLError as e:
+            return 0, {"error": str(e.reason)}
+
     def upload_to_imgur(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload image to Imgur.
 
@@ -53,42 +160,25 @@ class Uploader:
         try:
             import base64
 
-            # Read image and encode
             with open(filepath, "rb") as f:
                 image_data = base64.b64encode(f.read()).decode("utf-8")
 
-            # Use curl to upload
-            result = subprocess.run(
-                [
-                    "curl",
-                    "-X",
-                    "POST",
-                    "-H",
-                    f"Authorization: Client-ID {self.imgur_client_id}",
-                    "-F",
-                    f"image={image_data}",
-                    "https://api.imgur.com/3/image",
-                ],
-                capture_output=True,
-                text=True,
+            status, response = self._http_upload(
+                "https://api.imgur.com/3/image",
+                headers={"Authorization": f"Client-ID {self.imgur_client_id}"},
+                data=f"image={image_data}".encode(),
                 timeout=30,
             )
 
-            if result.returncode == 0:
-                response = json.loads(result.stdout)
-                if response.get("success"):
-                    url = response["data"]["link"]
-                    return True, url, None
-                else:
-                    return False, None, "Imgur API returned error"
+            if response.get("success"):
+                url = response["data"]["link"]
+                return True, url, None
             else:
-                return False, None, "Upload request failed"
+                return False, None, "Imgur API returned error"
 
-        except subprocess.TimeoutExpired:
-            return False, None, "Upload timed out"
         except FileNotFoundError:
-            return False, None, "curl not installed"
-        except Exception as e:
+            return False, None, f"Image file not found: {filepath}"
+        except OSError as e:
             return False, None, str(e)
 
     def upload_to_file_io(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
@@ -101,28 +191,24 @@ class Uploader:
             Tuple of (success, url, error_message)
         """
         try:
-            result = subprocess.run(
-                ["curl", "-F", f"file=@{filepath}", "https://file.io"],
-                capture_output=True,
-                text=True,
+            with open(filepath, "rb") as f:
+                file_data = f.read()
+
+            status, response = self._http_upload(
+                "https://file.io",
+                files={"file": (filepath.name, file_data, "application/octet-stream")},
                 timeout=30,
             )
 
-            if result.returncode == 0:
-                response = json.loads(result.stdout)
-                if response.get("success"):
-                    url = response["link"]
-                    return True, url, None
-                else:
-                    return False, None, "file.io returned error"
+            if response.get("success"):
+                url = response.get("link", "")
+                return True, url, None
             else:
-                return False, None, "Upload failed"
+                return False, None, "file.io returned error"
 
-        except subprocess.TimeoutExpired:
-            return False, None, "Upload timed out"
         except FileNotFoundError:
-            return False, None, "curl not installed"
-        except Exception as e:
+            return False, None, f"Image file not found: {filepath}"
+        except OSError as e:
             return False, None, str(e)
 
     def upload_to_s3(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
@@ -148,10 +234,8 @@ class Uploader:
             return False, None, "S3 bucket not configured in settings"
 
         try:
-            # Build S3 key (filename in bucket)
             s3_key = f"screenshots/{filepath.name}"
 
-            # Build aws s3 cp command
             cmd = [
                 "aws",
                 "s3",
@@ -170,10 +254,10 @@ class Uploader:
                 capture_output=True,
                 text=True,
                 timeout=60,
+                shell=False,
             )
 
             if result.returncode == 0:
-                # Construct public URL
                 if make_public:
                     url = f"https://{bucket}.s3.{region}.amazonaws.com/{s3_key}"
                 else:
@@ -191,61 +275,47 @@ class Uploader:
                 None,
                 "AWS CLI not installed. Install with: pip install awscli",
             )
-        except Exception as e:
+        except OSError as e:
             return False, None, str(e)
 
     def _dropbox_upload_file(
         self, filepath: Path, access_token: str, dropbox_path: str
     ) -> Tuple[bool, Optional[str]]:
         """Upload file to Dropbox. Returns (success, error_message)."""
-        result = subprocess.run(
-            [
-                "curl",
-                "-X",
-                "POST",
-                "https://content.dropboxapi.com/2/files/upload",
-                "-H",
-                f"Authorization: Bearer {access_token}",
-                "-H",
-                "Content-Type: application/octet-stream",
-                "-H",
-                f'Dropbox-API-Arg: {{"path": "{dropbox_path}", "mode": "add"}}',
-                "--data-binary",
-                f"@{filepath}",
-            ],
-            capture_output=True,
-            text=True,
+        with open(filepath, "rb") as f:
+            file_data = f.read()
+
+        # Use json.dumps for safe serialization (prevents JSON injection)
+        api_arg = json.dumps({"path": dropbox_path, "mode": "add"})
+
+        status, response = self._http_upload(
+            "https://content.dropboxapi.com/2/files/upload",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/octet-stream",
+                "Dropbox-API-Arg": api_arg,
+            },
+            data=file_data,
             timeout=60,
         )
-        if result.returncode != 0:
-            return False, "Dropbox upload request failed"
-        response = json.loads(result.stdout)
+
         if "error" in response:
             return False, response.get("error_summary", "Upload failed")
+        if status == 0:
+            return False, response.get("error", "Upload request failed")
         return True, None
 
     def _dropbox_create_share_link(self, access_token: str, dropbox_path: str) -> Optional[str]:
         """Create Dropbox shared link. Returns URL or None."""
-        result = subprocess.run(
-            [
-                "curl",
-                "-X",
-                "POST",
-                "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
-                "-H",
-                f"Authorization: Bearer {access_token}",
-                "-H",
-                "Content-Type: application/json",
-                "-d",
-                json.dumps({"path": dropbox_path}),
-            ],
-            capture_output=True,
-            text=True,
+        status, response = self._http_upload(
+            "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+            },
+            json_body={"path": dropbox_path},
             timeout=30,
         )
-        if result.returncode != 0:
-            return None
-        response = json.loads(result.stdout)
+
         if "url" in response:
             return response["url"].replace("dl=0", "dl=1")
         if "shared_link_already_exists" in str(response):
@@ -261,8 +331,7 @@ class Uploader:
 
     def upload_to_dropbox(self, filepath: Path) -> Tuple[bool, Optional[str], Optional[str]]:
         """Upload image to Dropbox."""
-        cfg = config.load_config()
-        access_token = cfg.get("dropbox_token", "")
+        access_token = _get_secret("dropbox_token")
 
         if not access_token:
             return (
@@ -281,13 +350,9 @@ class Uploader:
             url = self._dropbox_create_share_link(access_token, dropbox_path)
             return True, url or f"Uploaded to Dropbox: {dropbox_path}", None
 
-        except subprocess.TimeoutExpired:
-            return False, None, "Upload timed out"
-        except FileNotFoundError:
-            return False, None, "curl not installed"
         except json.JSONDecodeError:
             return False, None, "Invalid response from Dropbox"
-        except Exception as e:
+        except OSError as e:
             return False, None, str(e)
 
     def _gdrive_upload_with_gdrive(
@@ -298,7 +363,7 @@ class Uploader:
         if folder_id:
             cmd.extend(["--parent", folder_id])
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, shell=False)
 
         if result.returncode == 0:
             output = result.stdout
@@ -325,6 +390,7 @@ class Uploader:
             capture_output=True,
             text=True,
             timeout=60,
+            shell=False,
         )
 
         if result.returncode != 0:
@@ -335,6 +401,7 @@ class Uploader:
             capture_output=True,
             text=True,
             timeout=30,
+            shell=False,
         )
         if link_result.returncode == 0 and link_result.stdout.strip():
             return True, link_result.stdout.strip(), None
@@ -362,7 +429,7 @@ class Uploader:
             )
         except subprocess.TimeoutExpired:
             return False, None, "Upload timed out"
-        except Exception as e:
+        except OSError as e:
             return False, None, str(e)
 
     def copy_url_to_clipboard(self, url: str) -> bool:
@@ -375,15 +442,23 @@ class Uploader:
             True if successful
         """
         try:
-            # Try xclip first
-            subprocess.run(["xclip", "-selection", "clipboard"], input=url.encode(), check=True)
+            subprocess.run(
+                ["xclip", "-selection", "clipboard"],
+                input=url.encode(),
+                check=True,
+                shell=False,
+            )
             return True
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
         try:
-            # Try xsel
-            subprocess.run(["xsel", "--clipboard", "--input"], input=url.encode(), check=True)
+            subprocess.run(
+                ["xsel", "--clipboard", "--input"],
+                input=url.encode(),
+                check=True,
+                shell=False,
+            )
             return True
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
