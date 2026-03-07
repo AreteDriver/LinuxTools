@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: snap
-          path: ${{ steps.snapcraft.outputs.snap }}
+          path: "*.snap"
 
   release:
     needs: [build-deb, build-appimage, build-snap]
