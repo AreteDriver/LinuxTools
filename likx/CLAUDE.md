@@ -1,166 +1,168 @@
-# LikX - Claude Code Instructions
+# CLAUDE.md — likx
 
 ## Project Overview
-LikX is a GTK3/Python screenshot tool for Linux with annotation, OCR, and cloud upload.
+
+GTK3 screenshot tool for Linux with annotation, OCR, and cloud upload
+
+## Current State
+
+- **Version**: 3.30.0
+- **Language**: Python
+- **Files**: 195 across 3 languages
+- **Lines**: 68,666
 
 ## Architecture
-- **Entry point**: `main.py`
-- **Core modules**: `src/*.py`
-- **GUI**: GTK3 via PyGObject (python3-gi)
-- **Config**: `~/.config/likx/config.json`
 
-## Development Commands
-
-```bash
-# Run application
-python3 main.py
-
-# Lint and format
-ruff check src/ main.py
-ruff format src/ main.py
-
-# Build packages
-./build-deb.sh          # Debian package
-./build-appimage.sh     # AppImage
-
-# Snap build (requires snapcraft)
-cd snap && snapcraft
+```
+likx/
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   └── workflows/
+├── AppDir/
+│   ├── opt/
+│   └── usr/
+├── assets/
+├── debian/
+│   └── source/
+├── docs/
+│   └── images/
+├── flatpak/
+├── locale/
+│   ├── de/
+│   ├── es/
+│   ├── fr/
+│   ├── it/
+│   ├── ja/
+│   ├── pt/
+│   └── ru/
+├── resources/
+│   └── icons/
+├── scripts/
+├── snap/
+│   └── gui/
+├── src/
+│   ├── dialogs/
+│   ├── mixins/
+│   └── widgets/
+├── tests/
+├── .gitignore
+├── .pre-commit-config.yaml
+├── CHANGELOG.md
+├── CLAUDE.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md
+├── build-appimage.sh
+├── build-deb.sh
+├── build-flatpak.sh
+├── com.github.aretedriver.likx.yml
+├── install-app.sh
+├── likx.desktop
+├── main.py
+├── pyproject.toml
+├── requirements.txt
+├── setup.sh
 ```
 
-## Key Files
-| File | Purpose |
-|------|---------|
-| `src/capture.py` | Screenshot capture (X11/Wayland) |
-| `src/editor.py` | Annotation drawing tools |
-| `src/ui.py` | Main window and dialogs |
-| `src/ocr.py` | Tesseract OCR integration |
-| `src/pinned.py` | Pin-to-desktop floating window |
-| `src/effects.py` | Shadow, border, round corners |
-| `src/config.py` | User settings persistence |
-| `src/uploader.py` | Cloud upload (Imgur, S3, Dropbox, Google Drive) |
-| `src/command_palette.py` | Ctrl+Shift+P searchable command interface |
-| `src/commands.py` | Command registry for palette |
-| `src/radial_menu.py` | Right-click radial tool selector |
-| `src/i18n.py` | Internationalization (gettext) |
-| `src/recorder.py` | GIF recording (ffmpeg/wf-recorder) |
-| `src/recording_overlay.py` | GIF recording progress UI |
-| `src/scroll_capture.py` | Scrolling screenshot capture |
-| `src/scroll_overlay.py` | Scroll capture progress UI |
+## Tech Stack
 
-## Keyboard Shortcuts
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+P` | Command Palette (search all commands) |
-| `Ctrl+S` | Save |
-| `Ctrl+C` | Copy selected annotations (or image if none selected) |
-| `Ctrl+V` | Paste annotations |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+]` | Bring selected to front |
-| `Ctrl+[` | Send selected to back |
-| `Ctrl+D` | Duplicate selected annotations |
-| `Ctrl+Shift+H` | Distribute selected horizontally (3+ elements) |
-| `Ctrl+Shift+J` | Distribute selected vertically (3+ elements) |
-| `Ctrl+Alt+L` | Align selected left (2+ elements) |
-| `Ctrl+Alt+R` | Align selected right (2+ elements) |
-| `Ctrl+Alt+T` | Align selected top (2+ elements) |
-| `Ctrl+Alt+B` | Align selected bottom (2+ elements) |
-| `Ctrl+Alt+C` | Align selected center horizontal (2+ elements) |
-| `Ctrl+Alt+M` | Align selected center vertical (2+ elements) |
-| `Ctrl+G` | Group selected elements (2+ elements) |
-| `Ctrl+Shift+G` | Ungroup selected elements |
-| `Ctrl+Alt+W` | Match width to first selected (2+ elements) |
-| `Ctrl+Alt+E` | Match height to first selected (2+ elements) |
-| `Ctrl+Alt+S` | Match size to first selected (2+ elements) |
-| `Ctrl+Shift+F` | Flip selected horizontally |
-| `Ctrl+Alt+F` | Flip selected vertically |
-| `Ctrl+R` | Rotate selected 90° clockwise |
-| `Ctrl+Shift+R` | Rotate selected 90° counter-clockwise |
-| `Shift+]` | Increase opacity 10% |
-| `Shift+[` | Decrease opacity 10% |
-| `Ctrl+L` | Lock/unlock selected elements |
-| `Ctrl+'` | Toggle grid snap |
-| `+` / `-` / `0` | Zoom in / out / reset |
-| `Delete` / `Backspace` | Delete selected annotation |
-| `Arrow keys` | Nudge selected annotation 1px |
-| `Shift+Arrow keys` | Nudge selected annotation 10px |
-| `Escape` | Deselect / Cancel |
-| `V` | Select tool (move/resize with snap guides, Shift=lock aspect) |
-| `Shift+Click` | Add to / toggle selection (multi-select) |
-| `P` | Pen tool |
-| `H` | Highlighter |
-| `L` | Line |
-| `A` | Arrow (select style from toolbar: open/filled/double) |
-| `R` | Rectangle |
-| `E` | Ellipse |
-| `T` | Text (use toolbar for bold/italic/font) |
-| `B` | Blur |
-| `X` | Pixelate |
-| `M` | Measure |
-| `N` | Number marker |
-| `I` | Color picker (eyedropper) |
-| `S` | Stamp tool |
-| `Z` | Zoom tool (scroll to zoom) |
-| `K` | Callout/speech bubble |
-| `C` | Crop (hold Shift for 1:1 square) |
-| `G` | GIF recording |
-| Right-click | Radial menu for quick tool selection |
+- **Language**: Python, Shell, CSS
+- **Package Manager**: pip
+- **Linters**: ruff
+- **Formatters**: ruff
+- **Test Frameworks**: pytest
+- **CI/CD**: GitHub Actions
 
-### Global Hotkeys (configurable)
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+F` | Fullscreen capture |
-| `Ctrl+Shift+R` | Region capture |
-| `Ctrl+Shift+W` | Window capture |
-| `Ctrl+Alt+G` | Record GIF |
-| `Ctrl+Alt+S` | Scrolling screenshot |
+## Coding Standards
 
-## Tool Features
+- **Naming**: snake_case
+- **Quote Style**: double quotes
+- **Type Hints**: present
+- **Docstrings**: google style
+- **Imports**: mixed
+- **Path Handling**: pathlib
+- **Line Length (p95)**: 73 characters
 
-### Measurement Tool (`M`)
-- Shows pixel distance between two points
-- Displays width × height dimensions for non-diagonal lines
-- Shows angle (∠) for non-axis-aligned lines
-- Dashed extension lines for horizontal/vertical measurements
+## Common Commands
 
-### Stamp Tool (`S`)
-16 preset stamps in 2 rows:
-- Row 1: ✓ ✗ ⚠ ❓ ⭐ ❤ 👍 👎 (common)
-- Row 2: ➡ ⬆ ⬇ ⬅ ● ■ ▲ ℹ (arrows & shapes)
-
-### Grid Snap (`Ctrl+'`)
-- Configure grid size (5-100px) in Settings → Editor tab
-- Elements snap to grid when moving/resizing
-- Arrow keys nudge to nearest grid line when enabled
-
-## Packaging
-- **Snap**: `snap/snapcraft.yaml` - builds with `snapcraft`
-- **AppImage**: `AppDir/` + `build-appimage.sh`
-- **Debian**: `debian/` + `build-deb.sh`
-
-## Code Conventions
-- Python 3.8+ compatibility
-- Type hints encouraged
-- GTK signal handlers: `_on_<widget>_<signal>`
-- Use `src/config.py` for all settings
-- Wrap user-visible strings with `_()` for translation
-
-## Internationalization
-- Translation function: `from src.i18n import _`
-- Template file: `locale/likx.pot`
-- Translations: `locale/<lang>/LC_MESSAGES/likx.po`
-- Available: en, es, fr, de, pt, it, ru, ja (8 languages)
-- Extract strings: `./scripts/extract_strings.sh`
-- Compile: `msgfmt locale/<lang>/LC_MESSAGES/likx.po -o locale/<lang>/LC_MESSAGES/likx.mo`
-
-## Testing
 ```bash
+# test
 pytest tests/ -v
+# lint
+ruff check src/ tests/
+# format
+ruff format src/ tests/
+# coverage
+pytest --cov=src/ tests/
 ```
 
-## Release Process
-1. Update version in `src/__init__.py`, `debian/changelog`, `snap/snapcraft.yaml`, `build-*.sh`
-2. Commit and tag: `git tag v3.0.0`
-3. Push tag: `git push origin v3.0.0`
-4. CI builds and uploads to GitHub Releases
-5. Snap auto-publishes to Snap Store (requires SNAP_STORE_TOKEN secret)
+## Anti-Patterns (Do NOT Do)
+
+- Do NOT commit secrets, API keys, or credentials
+- Do NOT skip writing tests for new code
+- Do NOT use `os.path` — use `pathlib.Path` everywhere
+- Do NOT use bare `except:` — catch specific exceptions
+- Do NOT use mutable default arguments
+- Do NOT use `print()` for logging — use the `logging` module
+
+## Dependencies
+
+### Core
+- pycairo
+- numpy
+- 
+- opencv-python-headless
+
+### Dev
+- pytest
+- pytest-cov
+- ruff
+
+## Domain Context
+
+### Key Models/Classes
+- `ArrowStyle`
+- `CaptureMode`
+- `CaptureQueue`
+- `CaptureResult`
+- `Color`
+- `Command`
+- `CommandPalette`
+- `DisplayServer`
+- `DrawingElement`
+- `DrawingMixin`
+- `EditorState`
+- `EditorWindow`
+- `EditorWindowEnhancements`
+- `GifRecorder`
+- `HistoryEntry`
+
+### Domain Terms
+- Adding Translations
+- CI
+- Cloud Upload
+- Color Picker
+- Command Palette
+- Editor Shortcuts
+- From Source
+- GIF
+- GNOME
+- GTK
+
+### Enums/Constants
+- `ACTIVE`
+- `ARROW`
+- `BLUR`
+- `CALLOUT`
+- `CAPTURING`
+- `COLORPICKER`
+- `COMPLETED`
+- `CONFIG_KEY`
+- `CROP`
+- `DOMAIN`
+
+## Git Conventions
+
+- Commit messages: Conventional commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`)
+- Branch naming: `feat/description`, `fix/description`
+- Run tests before committing
