@@ -43,14 +43,17 @@ jobs:
             ${{ runner.os }}-pip-lint-
             ${{ runner.os }}-pip-
 
-      - name: Install ruff
-        run: pip install ruff
+      - name: Install lint tools
+        run: pip install ruff pip-audit
 
       - name: Lint with ruff
         run: ruff check src/ main.py
 
       - name: Check formatting
         run: ruff format --check src/ main.py
+
+      - name: Audit dependencies
+        run: pip-audit --strict --desc on 2>/dev/null || pip-audit --desc on
 
   test:
     runs-on: ubuntu-latest

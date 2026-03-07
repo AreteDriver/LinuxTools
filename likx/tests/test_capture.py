@@ -192,9 +192,10 @@ class TestCaptureMainFunction:
         assert result.success is False
         assert "Region not specified" in result.error
 
+    @patch("src.capture.copy_to_clipboard")
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_fullscreen")
-    def test_capture_fullscreen_mode(self, mock_fullscreen, mock_config):
+    def test_capture_fullscreen_mode(self, mock_fullscreen, mock_config, _mock_clip):
         from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
@@ -203,9 +204,10 @@ class TestCaptureMainFunction:
         capture(CaptureMode.FULLSCREEN)
         mock_fullscreen.assert_called_once()
 
+    @patch("src.capture.copy_to_clipboard")
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_region")
-    def test_capture_region_mode(self, mock_region, mock_config):
+    def test_capture_region_mode(self, mock_region, mock_config, _mock_clip):
         from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
@@ -214,9 +216,10 @@ class TestCaptureMainFunction:
         capture(CaptureMode.REGION, region=(0, 0, 100, 100))
         mock_region.assert_called_once()
 
+    @patch("src.capture.copy_to_clipboard")
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_window")
-    def test_capture_window_mode(self, mock_window, mock_config):
+    def test_capture_window_mode(self, mock_window, mock_config, _mock_clip):
         from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}
@@ -234,10 +237,11 @@ class TestCaptureMainFunction:
         result = capture("invalid_mode")
         assert result.success is False
 
+    @patch("src.capture.copy_to_clipboard")
     @patch("src.capture.config.load_config")
     @patch("src.capture.capture_fullscreen")
     @patch("src.capture.save_capture")
-    def test_capture_with_auto_save(self, mock_save, mock_fullscreen, mock_config):
+    def test_capture_with_auto_save(self, mock_save, mock_fullscreen, mock_config, _mock_clip):
         from src.capture import CaptureMode, CaptureResult, capture
 
         mock_config.return_value = {}

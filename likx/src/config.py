@@ -22,12 +22,13 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "theme": "system",
     "upload_service": "imgur",  # imgur, fileio, s3, dropbox, gdrive, none
     "auto_upload": False,
+    "imgur_client_id": "",  # Override default Imgur client ID (env: LIKX_IMGUR_CLIENT_ID)
     # S3 settings
     "s3_bucket": "",
     "s3_region": "us-east-1",
     "s3_public": True,  # Make uploaded files public
-    # Dropbox settings
-    "dropbox_token": "",  # Access token from https://www.dropbox.com/developers/apps
+    # Dropbox settings (token stored in system keyring via src/uploader.py)
+    # Legacy: "dropbox_token" may exist in old configs — migrated to keyring on first use
     # Google Drive settings
     "gdrive_folder_id": "",  # Optional folder ID to upload to
     "gdrive_rclone_remote": "gdrive",  # rclone remote name if using rclone
@@ -84,9 +85,10 @@ def get_config_file() -> Path:
 
 
 def ensure_config_dir() -> bool:
-    """Ensure the configuration directory exists."""
+    """Ensure the configuration directory exists with restricted permissions."""
     try:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_DIR.chmod(0o700)
         return True
     except OSError:
         return False
@@ -108,13 +110,15 @@ def load_config() -> Dict[str, Any]:
 
 
 def save_config(config: Dict[str, Any]) -> bool:
-    """Save configuration to file."""
+    """Save configuration to file with restricted permissions."""
     if not ensure_config_dir():
         return False
 
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
+        # Restrict permissions: owner read/write only
+        CONFIG_FILE.chmod(0o600)
         return True
     except OSError:
         return False
