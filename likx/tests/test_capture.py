@@ -467,13 +467,13 @@ class TestSaveCaptureExtended:
 class TestCopyToClipboardExtended:
     """Extended tests for copy_to_clipboard function."""
 
-    @patch("src.capture.detect_display_server")
-    @patch("src.capture.subprocess.Popen")
-    @patch("src.capture.os.unlink")
+    @patch("src.clipboard._detect_display_server")
+    @patch("src.clipboard.subprocess.Popen")
+    @patch("src.clipboard.os.unlink")
     def test_wayland_wl_copy_success(self, mock_unlink, mock_popen, mock_detect):
-        from src.capture import CaptureResult, DisplayServer, copy_to_clipboard
+        from src.capture import CaptureResult, copy_to_clipboard
 
-        mock_detect.return_value = DisplayServer.WAYLAND
+        mock_detect.return_value = "wayland"
         mock_pixbuf = MagicMock()
         result = CaptureResult(success=True, pixbuf=mock_pixbuf)
 
@@ -486,43 +486,42 @@ class TestCopyToClipboardExtended:
             success = copy_to_clipboard(result)
             assert success is True
 
-    @patch("src.capture.detect_display_server")
-    @patch("src.capture.subprocess.Popen")
-    @patch("src.capture.time.sleep")
-    def test_x11_xclip_success(self, mock_sleep, mock_popen, mock_detect):
-        from src.capture import CaptureResult, DisplayServer, copy_to_clipboard
+    @patch("src.clipboard._detect_display_server")
+    @patch("src.clipboard.subprocess.Popen")
+    def test_x11_xclip_success(self, mock_popen, mock_detect):
+        from src.capture import CaptureResult, copy_to_clipboard
 
-        mock_detect.return_value = DisplayServer.X11
+        mock_detect.return_value = "x11"
         mock_pixbuf = MagicMock()
         result = CaptureResult(success=True, pixbuf=mock_pixbuf)
 
         mock_proc = MagicMock()
-        mock_proc.poll.return_value = None  # Still running (backgrounded)
+        mock_proc.wait.return_value = None
+        mock_proc.returncode = 0
         mock_popen.return_value = mock_proc
 
         success = copy_to_clipboard(result)
         assert success is True
+        mock_proc.wait.assert_called_once_with(timeout=5)
 
-    @patch("src.capture.detect_display_server")
-    @patch("src.capture.subprocess.Popen")
-    @patch("src.capture.os.path.exists")
-    @patch("src.capture.os.unlink")
+    @patch("src.clipboard._detect_display_server")
+    @patch("src.clipboard.subprocess.Popen")
+    @patch("src.clipboard.os.path.exists")
+    @patch("src.clipboard.os.unlink")
     def test_external_tools_fail_fallback_to_gtk(
         self, mock_unlink, mock_exists, mock_popen, mock_detect
     ):
-        from src.capture import CaptureResult, DisplayServer, copy_to_clipboard
+        from src.capture import CaptureResult, copy_to_clipboard
 
-        mock_detect.return_value = DisplayServer.X11
+        mock_detect.return_value = "x11"
         mock_pixbuf = MagicMock()
         result = CaptureResult(success=True, pixbuf=mock_pixbuf)
 
         mock_popen.side_effect = FileNotFoundError("xclip not found")
         mock_exists.return_value = True
 
-        # GTK is imported inside the function, not at module level
-        # Just test that external tools failing doesn't crash
-        success = copy_to_clipboard(result, use_gtk=False)
         # Should fail since external tools are mocked to fail and use_gtk=False
+        success = copy_to_clipboard(result, use_gtk=False)
         assert success is False
 
 

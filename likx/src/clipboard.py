@@ -39,15 +39,22 @@ def _copy_wayland_clipboard(temp_file: str) -> bool:
 
 def _copy_x11_clipboard(temp_file: str) -> bool:
     """Copy image to X11 clipboard using xclip."""
-    proc = subprocess.Popen(
-        ["xclip", "-selection", "clipboard", "-t", "image/png", temp_file],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        shell=False,
-    )
-    time.sleep(0.1)  # Brief wait for xclip to read file
-    # Keep temp file for xclip to serve (cleaned up by /tmp)
-    return proc.poll() is None or proc.returncode == 0
+    try:
+        proc = subprocess.Popen(
+            ["xclip", "-selection", "clipboard", "-t", "image/png", temp_file],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=False,
+        )
+        proc.wait(timeout=5)
+        if proc.returncode == 0:
+            return True
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+    except OSError:
+        pass
+    return False
 
 
 def _copy_gtk_clipboard(pixbuf) -> bool:

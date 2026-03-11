@@ -6,11 +6,11 @@ GTK3/Python screenshot capture and annotation tool for Linux with OCR, cloud upl
 
 ## Current State
 
-- **Version**: 3.31.0
-- **Tests**: 1,752 (pytest)
+- **Version**: 3.31.0 (3.31.1 tagged, release blocked — see Known Issues)
+- **Tests**: 1,752 (pytest, all passing)
 - **Coverage**: ~80%
-- **CI**: GitHub Actions (lint, test, build)
-- **Packaging**: AppImage, .deb, Snap, Flatpak
+- **CI**: GitHub Actions (lint, test, build, CodeQL)
+- **Packaging**: AppImage, .deb, Snap, Flatpak, PyPI (`pip install likx`)
 
 ## Architecture
 
@@ -45,11 +45,18 @@ likx/
 │   ├── quick_actions.py       ← Quick action toolbar
 │   ├── minimap.py             ← Minimap navigation widget
 │   ├── undo_history.py        ← Undo/redo stack
+│   ├── ui_enhanced.py         ← Enhanced UI components
 │   ├── mixins/
-│   │   └── drawing_mixin.py   ← Drawing tool logic (extracted from editor)
+│   │   ├── drawing_mixin.py   ← Drawing tool logic (extracted from editor)
+│   │   ├── input_mixin.py     ← Mouse/input event handling
+│   │   ├── keyboard_mixin.py  ← Keyboard shortcut dispatch
+│   │   └── ui_setup_mixin.py  ← UI initialization
 │   ├── widgets/
-│   │   └── save_handler.py    ← Save dialog and file operations
-│   └── dialogs/               ← Settings dialogs
+│   │   ├── save_handler.py    ← Save dialog and file operations
+│   │   ├── color_picker.py    ← Color selection widget
+│   │   └── tab_manager.py     ← Tab management
+│   └── dialogs/
+│       └── settings.py        ← Settings configuration dialog
 ├── tests/                     ← 1,752 tests
 ├── locale/                    ← Translations (en, es, fr, de, pt, it, ru, ja)
 ├── resources/icons/           ← App icons (SVG + PNG)
@@ -104,7 +111,7 @@ ruff format src/ tests/ main.py
 
 ## Code Conventions
 
-- **Python 3.8+** compatibility (but runs on 3.12+)
+- **Python 3.9+** (per pyproject.toml `requires-python`)
 - **snake_case** naming throughout
 - **Type hints** encouraged on all public functions
 - **GTK signal handlers**: `_on_<widget>_<signal>`
@@ -182,13 +189,23 @@ ruff format src/ tests/ main.py
 - Extract: `./scripts/extract_strings.sh`
 - Compile: `msgfmt locale/<lang>/LC_MESSAGES/likx.po -o locale/<lang>/LC_MESSAGES/likx.mo`
 
+## Known Issues
+
+### PyPI Trusted Publisher Mismatch (v3.31.1 release blocked)
+The `publish-pypi` job fails because PyPI trusted publisher still points to the old standalone `LikX` repo. Fix: update trusted publisher on pypi.org to `AreteDriver/LinuxTools`, workflow `likx-release.yml`, environment `pypi`. Then re-tag or re-run.
+
+### xclip Clipboard Hang (src/clipboard.py)
+`_copy_x11_clipboard()` uses fire-and-forget `Popen()` with **no timeout**. xclip holds the X selection open until another app reads it — if nothing reads, the process hangs indefinitely. This caused 3 stale processes stuck since the previous day. The Wayland path (`_copy_wayland_clipboard`) correctly uses `proc.wait(timeout=5)`. The X11 path needs the same treatment.
+
 ## Known Gotchas
 
 - `GdkPixbuf.new_from_data()` holds a reference to the data buffer — if the source (cairo surface) is GC'd, the pixbuf becomes invalid. Always copy with `bytes(surface.get_data())` first.
 - GTK3 is single-threaded — all UI updates must happen on the main thread via `GLib.idle_add()`
 - Wayland capture requires external tools (grim, gnome-screenshot, spectacle) since there's no direct screen grab API
 - `subprocess.run()` without `timeout` can hang the UI — always set timeouts
+- `_copy_x11_clipboard()` xclip Popen has no timeout — can hang indefinitely (see Known Issues)
 - Scroll capture overlap detection uses OpenCV template matching — false positives possible with repetitive content
+- Temp files from xclip (`/tmp/likx_clip_*.png`) may accumulate if process is killed before cleanup
 
 ## Release Process
 
@@ -198,12 +215,26 @@ ruff format src/ tests/ main.py
 4. CI builds and uploads to GitHub Releases
 5. Snap auto-publishes to Snap Store
 
-## New in v3.31.0
+## Changelog
 
+### v3.31.0
 - **PyPI distribution**: `pip install likx` (entry point: `main:main`)
 - **Clipboard image paste**: Ctrl+V with no annotation clipboard pastes system clipboard image as new tab
 - **Wayland region selector**: uses `slurp` natively on Wayland, falls back to GTK overlay
 - **Release pipeline**: tag push builds .deb + AppImage + Snap + publishes to PyPI
+
+### v3.31.1 (tagged, release blocked)
+- Color persistence, KDE hotkeys, root CI workflows
+- Release blocked by PyPI trusted publisher mismatch (see Known Issues)
+
+## CI/CD
+
+- **Root monorepo workflows** (`.github/workflows/likx-ci.yml`, `likx-release.yml`) — triggered by path filter `likx/**`
+- **Sub-project workflows** (`likx/.github/workflows/`) — ci.yml, tests.yml, release.yml, codeql.yml
+- **CI**: ruff check + format, pytest on Python 3.10/3.11/3.12 with xvfb, Codecov upload
+- **Release**: tag `v*` → build .deb + AppImage → publish PyPI (trusted publisher) → GitHub Release
+- **Security**: CodeQL scanning, dependabot (all 8 alerts resolved), gitleaks pre-commit
+- **Code scanning**: Not enabled at root level (consider enabling)
 
 ## Anti-Patterns (Do NOT Do)
 
