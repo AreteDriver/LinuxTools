@@ -118,10 +118,97 @@ class HotkeyManager:
         return False
 
     def _register_kde_hotkey(self, key_combo: str, command: str, hotkey_id: str) -> bool:
-        """Register hotkey in KDE."""
-        # KDE uses kglobalaccel, more complex to implement
-        # Would require D-Bus integration
+        """Register hotkey in KDE Plasma via custom .desktop shortcut files.
+
+        Creates a .desktop file in ~/.local/share/kglobalaccel/ and registers
+        the shortcut via kwriteconfig5/kwriteconfig6.
+        """
+        try:
+            from pathlib import Path
+
+            # Convert GTK accelerator to KDE format
+            kde_combo = self._gtk_to_kde_shortcut(key_combo)
+            if not kde_combo:
+                return False
+
+            # Write a .desktop service file for the action
+            desktop_dir = Path.home() / ".local" / "share" / "applications"
+            desktop_dir.mkdir(parents=True, exist_ok=True)
+            desktop_file = desktop_dir / f"likx-{hotkey_id}.desktop"
+            desktop_file.write_text(
+                f"[Desktop Entry]\n"
+                f"Type=Application\n"
+                f"Name=LikX {hotkey_id.replace('-', ' ').title()}\n"
+                f"Exec={command}\n"
+                f"NoDisplay=true\n"
+                f"X-KDE-GlobalAccel={kde_combo}\n",
+                encoding="utf-8",
+            )
+
+            # Try kwriteconfig6 first (Plasma 6), fallback to kwriteconfig5
+            config_tool = self._find_kde_config_tool()
+            if not config_tool:
+                return False
+
+            # Register in kglobalshortcutsrc
+            service_name = f"likx-{hotkey_id}.desktop"
+            result = subprocess.run(
+                [
+                    config_tool,
+                    "--file",
+                    "kglobalshortcutsrc",
+                    "--group",
+                    service_name,
+                    "--key",
+                    "_launch",
+                    f"{kde_combo},none,LikX {hotkey_id.replace('-', ' ').title()}",
+                ],
+                capture_output=True,
+                timeout=5,
+            )
+
+            if result.returncode == 0:
+                if hotkey_id not in self._registered_paths:
+                    self._registered_paths.append(hotkey_id)
+                return True
+        except Exception as e:
+            logging.warning("Failed to register KDE hotkey '%s': %s", hotkey_id, e)
+
         return False
+
+    @staticmethod
+    def _gtk_to_kde_shortcut(gtk_combo: str) -> str:
+        """Convert GTK accelerator format to KDE shortcut format.
+
+        Example: '<Super><Shift>S' -> 'Meta+Shift+S'
+        """
+        mapping = {
+            "<Control>": "Ctrl+",
+            "<Ctrl>": "Ctrl+",
+            "<Shift>": "Shift+",
+            "<Alt>": "Alt+",
+            "<Super>": "Meta+",
+            "<Meta>": "Meta+",
+        }
+
+        result = gtk_combo
+        for gtk_mod, kde_mod in mapping.items():
+            result = result.replace(gtk_mod, kde_mod)
+
+        # Clean up: remove angle brackets from key name if any remain
+        result = result.replace("<", "").replace(">", "")
+        return result if result else ""
+
+    @staticmethod
+    def _find_kde_config_tool() -> str:
+        """Find available KDE config tool (kwriteconfig6 or kwriteconfig5)."""
+        for tool in ["kwriteconfig6", "kwriteconfig5"]:
+            try:
+                subprocess.run([tool, "--help"], capture_output=True, timeout=2)
+                return tool
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+        return ""
 
     def update_hotkey(self, hotkey_id: str, key_combo: str) -> bool:
         """Update an existing hotkey binding without re-registering command.
@@ -152,23 +239,21 @@ class HotkeyManager:
         """Unregister all LikX hotkeys."""
         if self.desktop_env == "gnome":
             try:
-                # Get current custom keybindings
                 result = subprocess.run(
                     ["gsettings", "get", self.GNOME_SCHEMA, "custom-keybindings"],
                     capture_output=True,
                     text=True,
+                    timeout=5,
                 )
 
                 if result.returncode == 0:
                     current = result.stdout.strip()
 
-                    # Remove all likx- paths
                     for path in self._registered_paths:
                         current = current.replace(f"'{path}', ", "")
                         current = current.replace(f", '{path}'", "")
                         current = current.replace(f"'{path}'", "")
 
-                    # Clean up empty array or malformed result
                     if current in ("[]", "[@as ]", ""):
                         current = "@as []"
 
@@ -179,11 +264,43 @@ class HotkeyManager:
                             self.GNOME_SCHEMA,
                             "custom-keybindings",
                             current,
-                        ]
+                        ],
+                        timeout=5,
                     )
 
-                self._registered_paths.clear()
-                self.hotkeys.clear()
-
             except Exception as e:
-                logging.warning("Failed to unregister hotkeys: %s", e)
+                logging.warning("Failed to unregister GNOME hotkeys: %s", e)
+
+        elif self.desktop_env == "kde":
+            try:
+                from pathlib import Path
+
+                desktop_dir = Path.home() / ".local" / "share" / "applications"
+                config_tool = self._find_kde_config_tool()
+
+                for hotkey_id in self._registered_paths:
+                    # Remove .desktop file
+                    desktop_file = desktop_dir / f"likx-{hotkey_id}.desktop"
+                    if desktop_file.exists():
+                        desktop_file.unlink()
+
+                    # Remove from kglobalshortcutsrc
+                    if config_tool:
+                        subprocess.run(
+                            [
+                                config_tool,
+                                "--file",
+                                "kglobalshortcutsrc",
+                                "--group",
+                                f"likx-{hotkey_id}.desktop",
+                                "--delete",
+                                "_launch",
+                            ],
+                            capture_output=True,
+                            timeout=5,
+                        )
+            except Exception as e:
+                logging.warning("Failed to unregister KDE hotkeys: %s", e)
+
+        self._registered_paths.clear()
+        self.hotkeys.clear()

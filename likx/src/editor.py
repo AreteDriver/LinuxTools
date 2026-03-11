@@ -167,7 +167,7 @@ class EditorState:
         self.redo_stack: List[List[DrawingElement]] = []
         self.current_tool = ToolType.PEN
         self.current_color = COLORS["red"]
-        self.recent_colors: List[Color] = []  # Last 8 used colors
+        self.recent_colors: List[Color] = self._load_recent_colors()
         self.max_recent_colors = 8
         self.stroke_width = 2.0
         self.is_drawing = False
@@ -230,9 +230,40 @@ class EditorState:
         if len(self.recent_colors) > self.max_recent_colors:
             self.recent_colors = self.recent_colors[: self.max_recent_colors]
 
+        # Persist to config
+        self._save_recent_colors()
+
     def get_recent_colors(self) -> List[Color]:
         """Get list of recently used colors (most recent first)."""
         return self.recent_colors.copy()
+
+    @staticmethod
+    def _load_recent_colors() -> List[Color]:
+        """Load recent colors from config."""
+        try:
+            from . import config
+
+            cfg = config.load_config()
+            saved = cfg.get("recent_colors", [])
+            colors = []
+            for entry in saved:
+                if isinstance(entry, list) and len(entry) >= 3:
+                    r, g, b = entry[0], entry[1], entry[2]
+                    a = entry[3] if len(entry) > 3 else 1.0
+                    colors.append(Color(r=r, g=g, b=b, a=a))
+            return colors
+        except Exception:
+            return []
+
+    def _save_recent_colors(self) -> None:
+        """Persist recent colors to config."""
+        try:
+            from . import config
+
+            serialized = [[c.r, c.g, c.b, c.a] for c in self.recent_colors]
+            config.set_setting("recent_colors", serialized)
+        except Exception:
+            pass
 
     def set_stroke_width(self, width: float) -> None:
         """Set the stroke width."""
