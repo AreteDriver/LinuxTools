@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import tempfile
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -208,45 +209,49 @@ def capture_fullscreen_wayland(delay: int = 0) -> CaptureResult:
     if delay > 0:
         time.sleep(delay)
 
-    temp_file = f"/tmp/likx_{int(time.time())}.png"
+    fd, temp_file = tempfile.mkstemp(suffix=".png", prefix="likx_")
+    os.close(fd)
 
-    # Try grim (wlroots compositors like Sway)
     try:
-        result = subprocess.run(["grim", temp_file], capture_output=True, timeout=5)
-        if result.returncode == 0 and os.path.exists(temp_file):
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
-            os.unlink(temp_file)
-            return CaptureResult(True, pixbuf=pixbuf)
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
+        # Try grim (wlroots compositors like Sway)
+        try:
+            result = subprocess.run(["grim", temp_file], capture_output=True, timeout=5)
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
 
-    # Try gnome-screenshot
-    try:
-        result = subprocess.run(
-            ["gnome-screenshot", "-f", temp_file], capture_output=True, timeout=5
-        )
-        if result.returncode == 0 and os.path.exists(temp_file):
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
-            os.unlink(temp_file)
-            return CaptureResult(True, pixbuf=pixbuf)
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
+        # Try gnome-screenshot
+        try:
+            result = subprocess.run(
+                ["gnome-screenshot", "-f", temp_file], capture_output=True, timeout=5
+            )
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
 
-    # Try spectacle (KDE)
-    try:
-        result = subprocess.run(
-            ["spectacle", "-b", "-n", "-o", temp_file], capture_output=True, timeout=5
-        )
-        if result.returncode == 0 and os.path.exists(temp_file):
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+        # Try spectacle (KDE)
+        try:
+            result = subprocess.run(
+                ["spectacle", "-b", "-n", "-o", temp_file], capture_output=True, timeout=5
+            )
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
+    finally:
+        # Always clean up temp file
+        try:
             os.unlink(temp_file)
-            return CaptureResult(True, pixbuf=pixbuf)
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
-
-    # Cleanup temp file if it exists
-    if os.path.exists(temp_file):
-        os.unlink(temp_file)
+        except OSError:
+            pass
 
     return CaptureResult(
         False,
@@ -321,31 +326,49 @@ def capture_region_wayland(
     if delay > 0:
         time.sleep(delay)
 
-    temp_file = f"/tmp/likx_{int(time.time())}.png"
+    fd, temp_file = tempfile.mkstemp(suffix=".png", prefix="likx_")
+    os.close(fd)
 
-    # Try grim with geometry
     try:
-        geometry = f"{x},{y} {width}x{height}"
-        result = subprocess.run(["grim", "-g", geometry, temp_file], capture_output=True, timeout=5)
-        if result.returncode == 0 and os.path.exists(temp_file):
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
-            os.unlink(temp_file)
-            return CaptureResult(True, pixbuf=pixbuf)
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
-
-    # Fallback: capture full screen and crop
-    full_result = capture_fullscreen_wayland(0)
-    if full_result.success and full_result.pixbuf:
+        # Try grim with geometry (works with slurp output)
         try:
-            cropped = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
-            full_result.pixbuf.copy_area(x, y, width, height, cropped, 0, 0)
-            return CaptureResult(True, pixbuf=cropped)
-        except Exception as e:
-            return CaptureResult(False, error=f"Failed to crop: {str(e)}")
+            geometry = f"{x},{y} {width}x{height}"
+            result = subprocess.run(
+                ["grim", "-g", geometry, temp_file], capture_output=True, timeout=5
+            )
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
 
-    if os.path.exists(temp_file):
-        os.unlink(temp_file)
+        # Try gnome-screenshot with area (GNOME Wayland)
+        try:
+            result = subprocess.run(
+                ["gnome-screenshot", "-a", "-f", temp_file], capture_output=True, timeout=30
+            )
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
+
+        # Fallback: capture full screen and crop
+        full_result = capture_fullscreen_wayland(0)
+        if full_result.success and full_result.pixbuf:
+            try:
+                cropped = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
+                full_result.pixbuf.copy_area(x, y, width, height, cropped, 0, 0)
+                return CaptureResult(True, pixbuf=cropped)
+            except Exception as e:
+                return CaptureResult(False, error=f"Failed to crop: {str(e)}")
+    finally:
+        try:
+            os.unlink(temp_file)
+        except OSError:
+            pass
 
     return CaptureResult(False, error="Region capture failed on Wayland")
 
@@ -419,36 +442,40 @@ def capture_window_wayland(delay: int = 0) -> CaptureResult:
     if delay > 0:
         time.sleep(delay)
 
-    temp_file = f"/tmp/likx_{int(time.time())}.png"
+    fd, temp_file = tempfile.mkstemp(suffix=".png", prefix="likx_")
+    os.close(fd)
 
-    # Try gnome-screenshot with window flag
     try:
-        result = subprocess.run(
-            ["gnome-screenshot", "-w", "-f", temp_file], capture_output=True, timeout=5
-        )
-        if result.returncode == 0 and os.path.exists(temp_file):
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
-            os.unlink(temp_file)
-            return CaptureResult(True, pixbuf=pixbuf)
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
+        # Try gnome-screenshot with window flag
+        try:
+            result = subprocess.run(
+                ["gnome-screenshot", "-w", "-f", temp_file], capture_output=True, timeout=5
+            )
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
 
-    # Try spectacle window mode
-    try:
-        result = subprocess.run(
-            ["spectacle", "-a", "-b", "-n", "-o", temp_file],
-            capture_output=True,
-            timeout=5,
-        )
-        if result.returncode == 0 and os.path.exists(temp_file):
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+        # Try spectacle window mode
+        try:
+            result = subprocess.run(
+                ["spectacle", "-a", "-b", "-n", "-o", temp_file],
+                capture_output=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and os.path.exists(temp_file):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(temp_file)
+                if pixbuf is not None:
+                    return CaptureResult(True, pixbuf=pixbuf)
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pass
+    finally:
+        try:
             os.unlink(temp_file)
-            return CaptureResult(True, pixbuf=pixbuf)
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        pass
-
-    if os.path.exists(temp_file):
-        os.unlink(temp_file)
+        except OSError:
+            pass
 
     return CaptureResult(
         False,

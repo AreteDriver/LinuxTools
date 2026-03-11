@@ -57,17 +57,13 @@ class InputMixin:
 
         handle = self.editor_state._hit_test_handles(img_x, img_y)
         if handle and handle in handle_cursors:
-            cursor = Gdk.Cursor.new_for_display(
-                self.window.get_display(), handle_cursors[handle]
-            )
+            cursor = Gdk.Cursor.new_for_display(self.window.get_display(), handle_cursors[handle])
             self.drawing_area.get_window().set_cursor(cursor)
         elif self.editor_state.get_selected():
             # Hovering over selected element - show move cursor
             elem = self.editor_state.get_selected()
             if self.editor_state._hit_test_element(elem, img_x, img_y):
-                cursor = Gdk.Cursor.new_for_display(
-                    self.window.get_display(), Gdk.CursorType.FLEUR
-                )
+                cursor = Gdk.Cursor.new_for_display(self.window.get_display(), Gdk.CursorType.FLEUR)
                 self.drawing_area.get_window().set_cursor(cursor)
             else:
                 self.drawing_area.get_window().set_cursor(None)
@@ -84,9 +80,7 @@ class InputMixin:
                 # Try to select an element at this position
                 # Shift+click adds to selection (multi-select)
                 shift_held = event.state & Gdk.ModifierType.SHIFT_MASK
-                self.editor_state.select_at(
-                    img_x, img_y, add_to_selection=bool(shift_held)
-                )
+                self.editor_state.select_at(img_x, img_y, add_to_selection=bool(shift_held))
                 self.drawing_area.queue_draw()
                 # Show quick actions panel if something was selected
                 if self.editor_state.selected_indices:
@@ -125,9 +119,7 @@ class InputMixin:
             self._show_radial_menu(event.x_root, event.y_root)
         return True
 
-    def _on_button_release(
-        self, widget: Gtk.Widget, event: Gdk.EventButton
-    ) -> bool:
+    def _on_button_release(self, widget: Gtk.Widget, event: Gdk.EventButton) -> bool:
         """Handle mouse button release."""
         img_x, img_y = self._screen_to_image(event.x, event.y)
         if event.button == 1:

@@ -1,5 +1,7 @@
 """Advanced effects for screenshots - shadows, borders, backgrounds."""
 
+import logging
+
 try:
     import gi
 
@@ -42,8 +44,8 @@ def add_shadow(pixbuf, shadow_size: int = 10, opacity: float = 0.5):
         Gdk.cairo_set_source_pixbuf(ctx, pixbuf, shadow_size, shadow_size)
         ctx.paint()
 
-        # Convert back to pixbuf
-        data = surface.get_data()
+        # Convert back to pixbuf (copy data to avoid dangling reference to surface)
+        data = bytes(surface.get_data())
         new_pixbuf = GdkPixbuf.Pixbuf.new_from_data(
             data,
             GdkPixbuf.Colorspace.RGB,
@@ -56,7 +58,7 @@ def add_shadow(pixbuf, shadow_size: int = 10, opacity: float = 0.5):
 
         return new_pixbuf
     except Exception as e:
-        print(f"Shadow effect failed: {e}")
+        logging.warning("Shadow effect failed: %s", e)
         return pixbuf
 
 
@@ -82,7 +84,7 @@ def add_border(pixbuf, border_width: int = 5, color: tuple = (0, 0, 0, 1)):
         Gdk.cairo_set_source_pixbuf(ctx, pixbuf, border_width, border_width)
         ctx.paint()
 
-        data = surface.get_data()
+        data = bytes(surface.get_data())
         new_pixbuf = GdkPixbuf.Pixbuf.new_from_data(
             data,
             GdkPixbuf.Colorspace.RGB,
@@ -95,7 +97,7 @@ def add_border(pixbuf, border_width: int = 5, color: tuple = (0, 0, 0, 1)):
 
         return new_pixbuf
     except Exception as e:
-        print(f"Border effect failed: {e}")
+        logging.warning("Border effect failed: %s", e)
         return pixbuf
 
 
@@ -121,7 +123,7 @@ def add_background(pixbuf, bg_color: tuple = (1, 1, 1, 1), padding: int = 20):
         Gdk.cairo_set_source_pixbuf(ctx, pixbuf, padding, padding)
         ctx.paint()
 
-        data = surface.get_data()
+        data = bytes(surface.get_data())
         new_pixbuf = GdkPixbuf.Pixbuf.new_from_data(
             data,
             GdkPixbuf.Colorspace.RGB,
@@ -134,7 +136,7 @@ def add_background(pixbuf, bg_color: tuple = (1, 1, 1, 1), padding: int = 20):
 
         return new_pixbuf
     except Exception as e:
-        print(f"Background effect failed: {e}")
+        logging.warning("Background effect failed: %s", e)
         return pixbuf
 
 
@@ -166,7 +168,7 @@ def round_corners(pixbuf, radius: int = 10):
         Gdk.cairo_set_source_pixbuf(ctx, pixbuf, 0, 0)
         ctx.paint()
 
-        data = surface.get_data()
+        data = bytes(surface.get_data())
         new_pixbuf = GdkPixbuf.Pixbuf.new_from_data(
             data,
             GdkPixbuf.Colorspace.RGB,
@@ -179,7 +181,7 @@ def round_corners(pixbuf, radius: int = 10):
 
         return new_pixbuf
     except Exception as e:
-        print(f"Round corners failed: {e}")
+        logging.warning("Round corners failed: %s", e)
         return pixbuf
 
 
@@ -241,7 +243,7 @@ def adjust_brightness_contrast(pixbuf, brightness: float = 0.0, contrast: float 
 
         return new_pixbuf
     except Exception as e:
-        print(f"Brightness/contrast adjustment failed: {e}")
+        logging.warning("Brightness/contrast adjustment failed: %s", e)
         return pixbuf
 
 
@@ -278,7 +280,7 @@ def invert_colors(pixbuf):
 
         return new_pixbuf
     except Exception as e:
-        print(f"Invert colors failed: {e}")
+        logging.warning("Invert colors failed: %s", e)
         return pixbuf
 
 
@@ -322,5 +324,5 @@ def grayscale(pixbuf):
 
         return new_pixbuf
     except Exception as e:
-        print(f"Grayscale conversion failed: {e}")
+        logging.warning("Grayscale conversion failed: %s", e)
         return pixbuf

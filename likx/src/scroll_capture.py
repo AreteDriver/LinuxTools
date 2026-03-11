@@ -218,8 +218,8 @@ class ScrollCaptureManager:
                 return False, None
 
             # Check if we're seeing the same content (no scroll happened)
-            if overlap >= height * 0.9:
-                return False, None  # Content didn't change, end reached
+            if overlap >= int(height * 0.9):
+                return False, None  # Nearly identical frames — end of scrollable content
 
             self.overlaps.append(overlap)
             self.frames.append(pixbuf)

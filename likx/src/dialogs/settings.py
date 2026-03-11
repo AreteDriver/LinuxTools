@@ -647,9 +647,9 @@ class SettingsDialog:
 
         # Hotkey definitions: (config_key, label, default)
         hotkeys = [
-            ("hotkey_fullscreen", _("Fullscreen Capture:"), "<Control><Shift>F"),
-            ("hotkey_region", _("Region Capture:"), "<Control><Shift>R"),
-            ("hotkey_window", _("Window Capture:"), "<Control><Shift>W"),
+            ("hotkey_fullscreen", _("Fullscreen Capture:"), "<Super>Print"),
+            ("hotkey_region", _("Region Capture:"), "<Super><Shift>S"),
+            ("hotkey_window", _("Window Capture:"), "<Super><Shift>W"),
             ("hotkey_record_gif", _("Record GIF:"), "<Control><Alt>G"),
             ("hotkey_scroll_capture", _("Scroll Capture:"), "<Control><Alt>S"),
         ]

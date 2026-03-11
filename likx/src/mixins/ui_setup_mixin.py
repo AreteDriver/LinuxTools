@@ -80,9 +80,7 @@ class UISetupMixin:
             cr.stroke()
 
             pixbuf = Gdk.pixbuf_get_from_surface(surface, 0, 0, size, size)
-            self._crosshair_cursor = Gdk.Cursor.new_from_pixbuf(
-                display, pixbuf, center, center
-            )
+            self._crosshair_cursor = Gdk.Cursor.new_from_pixbuf(display, pixbuf, center, center)
         except ImportError:
             self._crosshair_cursor = Gdk.Cursor.new_from_name(display, "crosshair")
 
@@ -412,9 +410,7 @@ class UISetupMixin:
         self.stamp_selector_btn = Gtk.Button(label="✓ ▾")
         self.stamp_selector_btn.set_tooltip_text(_("Select stamp"))
         self.stamp_selector_btn.get_style_context().add_class("ctx-btn")
-        self.stamp_selector_btn.connect(
-            "clicked", lambda b: self.stamp_popover.show_all()
-        )
+        self.stamp_selector_btn.connect("clicked", lambda b: self.stamp_popover.show_all())
         self.ctx_stamp_box.pack_start(self.stamp_selector_btn, False, False, 0)
         bar.pack_start(self.ctx_stamp_box, False, False, 0)
 
@@ -427,15 +423,9 @@ class UISetupMixin:
             on_redo=self._redo,
             on_undo_to=self._undo_to,
             on_redo_to=self._redo_to,
-            get_undo_stack=lambda: (
-                self.editor_state.undo_stack if self.editor_state else []
-            ),
-            get_redo_stack=lambda: (
-                self.editor_state.redo_stack if self.editor_state else []
-            ),
-            get_elements=lambda: (
-                self.editor_state.elements if self.editor_state else []
-            ),
+            get_undo_stack=lambda: self.editor_state.undo_stack if self.editor_state else [],
+            get_redo_stack=lambda: self.editor_state.redo_stack if self.editor_state else [],
+            get_elements=lambda: self.editor_state.elements if self.editor_state else [],
         )
         bar.pack_start(self._undo_redo_buttons.get_widget(), False, False, 0)
 

@@ -4,8 +4,8 @@ Type=Application
 Name=LikX
 GenericName=Screenshot Tool
 Comment=Capture, annotate, and share screenshots
-Exec=python3 /home/arete/projects/LikX/LikX/main.py
-Icon=likx
+Exec=python3 /home/arete/projects/LinuxTools/likx/main.py
+Icon=/home/arete/projects/LinuxTools/likx/resources/icons/likx.svg
 Terminal=false
 Categories=Graphics;Utility;GTK;
 Keywords=screenshot;snip;capture;screen;grab;annotation;
@@ -15,12 +15,12 @@ Actions=fullscreen;region;window;
 
 [Desktop Action fullscreen]
 Name=Capture Fullscreen
-Exec=python3 /home/arete/projects/LikX/LikX/main.py --fullscreen
+Exec=python3 /home/arete/projects/LinuxTools/likx/main.py --fullscreen
 
 [Desktop Action region]
 Name=Capture Region
-Exec=python3 /home/arete/projects/LikX/LikX/main.py --region
+Exec=python3 /home/arete/projects/LinuxTools/likx/main.py --region
 
 [Desktop Action window]
 Name=Capture Window
-Exec=python3 /home/arete/projects/LikX/LikX/main.py --window
+Exec=python3 /home/arete/projects/LinuxTools/likx/main.py --window

@@ -340,11 +340,11 @@ class GifRecorder:
             ]
 
         try:
-            result = subprocess.run(cmd, capture_output=True, timeout=300)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             if result.returncode != 0:
                 return RecordingResult(
                     False,
-                    error=f"Video encoding failed: {result.stderr.decode()[:200]}",
+                    error=f"Video encoding failed: {result.stderr[:200]}",
                 )
 
             return RecordingResult(
@@ -410,11 +410,11 @@ class GifRecorder:
                 str(palette_path),
             ]
 
-            result = subprocess.run(palette_cmd, capture_output=True, timeout=60)
+            result = subprocess.run(palette_cmd, capture_output=True, text=True, timeout=60)
             if result.returncode != 0:
                 return RecordingResult(
                     False,
-                    error=f"Palette generation failed: {result.stderr.decode()[:200]}",
+                    error=f"Palette generation failed: {result.stderr[:200]}",
                 )
 
             # Pass 2: Encode GIF with palette
@@ -432,11 +432,11 @@ class GifRecorder:
                 str(output_path),
             ]
 
-            result = subprocess.run(gif_cmd, capture_output=True, timeout=120)
+            result = subprocess.run(gif_cmd, capture_output=True, text=True, timeout=120)
             if result.returncode != 0:
                 return RecordingResult(
                     False,
-                    error=f"GIF encoding failed: {result.stderr.decode()[:200]}",
+                    error=f"GIF encoding failed: {result.stderr[:200]}",
                 )
 
             # Optional: Optimize with gifsicle
