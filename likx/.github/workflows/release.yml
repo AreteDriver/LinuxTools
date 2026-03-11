@@ -61,8 +61,31 @@ jobs:
           name: snap
           path: "*.snap"
 
+  publish-pypi:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
   release:
-    needs: [build-deb, build-appimage, build-snap]
+    needs: [build-deb, build-appimage, build-snap, publish-pypi]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -90,7 +113,7 @@ jobs:
     needs: [build-snap]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
-    continue-on-error: true  # Don't fail release if SNAP_STORE_TOKEN not set
+    continue-on-error: true
     steps:
       - name: Download snap artifact
         uses: actions/download-artifact@v7

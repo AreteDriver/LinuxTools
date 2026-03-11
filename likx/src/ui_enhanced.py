@@ -323,7 +323,7 @@ class QuickActionsDialog:
         """Quick screenshot workflow."""
         show_notification(
             "Quick Screenshot",
-            "Press Ctrl+Shift+F for fullscreen\nor Ctrl+Shift+R for region",
+            "Press Super+Print for fullscreen\nor Super+Shift+S for region",
         )
 
     def _screenshot_ocr(self):

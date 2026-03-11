@@ -208,9 +208,7 @@ class DrawingMixin:
         handle_size = 8
         cr.set_source_rgba(1, 1, 1, 1)
         for hx, hy in [(left, top), (right, top), (left, bottom), (right, bottom)]:
-            cr.rectangle(
-                hx - handle_size / 2, hy - handle_size / 2, handle_size, handle_size
-            )
+            cr.rectangle(hx - handle_size / 2, hy - handle_size / 2, handle_size, handle_size)
             cr.fill()
 
         # Draw dimension text

@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import gi
 
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk  # noqa: E402
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, Gtk  # noqa: E402
 
+from ..capture import CaptureResult  # noqa: E402
 from ..editor import ToolType  # noqa: E402
 
 if TYPE_CHECKING:
-    import gi
-
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    pass
 
 
 class KeyboardMixin:
@@ -104,19 +104,19 @@ class KeyboardMixin:
         """Handle Ctrl+C (copy)."""
         if self.editor_state.selected_indices:
             if self.editor_state.copy_selected():
-                self._show_toast(
-                    f"Copied {len(self.editor_state.selected_indices)} annotation(s)"
-                )
+                self._show_toast(f"Copied {len(self.editor_state.selected_indices)} annotation(s)")
         else:
             self.save_handler.copy_to_clipboard()
 
     def _ctrl_paste(self) -> None:
-        """Handle Ctrl+V (paste)."""
-        if self.editor_state.paste_annotations():
-            self._show_toast(
-                f"Pasted {len(self.editor_state.selected_indices)} annotation(s)"
-            )
+        """Handle Ctrl+V (paste annotations, or image from system clipboard as new tab)."""
+        if self.editor_state.has_clipboard() and self.editor_state.paste_annotations():
+            self._show_toast(f"Pasted {len(self.editor_state.selected_indices)} annotation(s)")
             self.drawing_area.queue_draw()
+            return
+
+        # No annotation clipboard — try pasting image from system clipboard
+        self._paste_image_from_clipboard()
 
     def _ctrl_lock_toggle(self) -> None:
         """Handle Ctrl+L (lock toggle)."""
@@ -221,9 +221,7 @@ class KeyboardMixin:
         if key != Gdk.KEY_Tab or len(self.tabs) <= 1:
             return key == Gdk.KEY_Tab
         offset = -1 if shift else 1
-        self.notebook.set_current_page(
-            (self.current_tab_index + offset) % len(self.tabs)
-        )
+        self.notebook.set_current_page((self.current_tab_index + offset) % len(self.tabs))
         return True
 
     def _handle_opacity_adjust(self, key: int) -> bool:
@@ -277,9 +275,7 @@ class KeyboardMixin:
             return True
         if not shift and key in (Gdk.KEY_g, Gdk.KEY_G):
             if self.editor_state.group_selected():
-                self._show_toast(
-                    f"Grouped {len(self.editor_state.selected_indices)} elements"
-                )
+                self._show_toast(f"Grouped {len(self.editor_state.selected_indices)} elements")
                 self.drawing_area.queue_draw()
             else:
                 self._show_toast("Select 2+ elements to group")
@@ -350,3 +346,23 @@ class KeyboardMixin:
             return self._handle_escape()
 
         return False
+
+    def _paste_image_from_clipboard(self) -> None:
+        """Paste an image from the system clipboard as a new tab."""
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        pixbuf = clipboard.wait_for_image()
+
+        if pixbuf is None:
+            self._show_toast("No image on clipboard")
+            return
+
+        result = CaptureResult(success=True, pixbuf=pixbuf)
+
+        if hasattr(self, "add_tab"):
+            self.add_tab(result, switch_to=True)
+            # Show tab bar now that we have multiple tabs
+            if hasattr(self, "notebook"):
+                self.notebook.set_show_tabs(True)
+            self._show_toast("Pasted image from clipboard")
+        else:
+            logging.warning("Cannot paste image: add_tab not available")

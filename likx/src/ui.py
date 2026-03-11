@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import subprocess
 import sys
 from pathlib import Path
 from typing import Callable, List, Optional, Union
@@ -70,6 +72,8 @@ class RegionSelector:
     """Overlay window for selecting a screen region.
 
     Features:
+    - On Wayland: uses slurp for native region selection (if available)
+    - On X11: transparent GTK overlay with crosshair cursor
     - Click and drag to select region
     - Shows monitor boundaries with labels
     - Press 1-9 to quick-select monitor (captures full monitor)
@@ -81,6 +85,49 @@ class RegionSelector:
             raise RuntimeError("GTK is not available")
 
         self.callback = callback
+
+        # On Wayland, try slurp first — it provides a native region selector
+        display_server = capture_module.detect_display_server()
+        if display_server == capture_module.DisplayServer.WAYLAND:
+            if self._try_slurp():
+                return  # slurp handled it
+
+        # Fall through to GTK overlay (works on X11, fallback on Wayland)
+        self._init_gtk_overlay()
+
+    def _try_slurp(self) -> bool:
+        """Try using slurp for Wayland region selection.
+
+        Returns True if slurp handled the selection (success or cancel).
+        Returns False if slurp is not available.
+        """
+        try:
+            result = subprocess.run(
+                ["slurp", "-f", "%x %y %w %h"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                parts = result.stdout.strip().split()
+                if len(parts) == 4:
+                    x, y, w, h = (int(p) for p in parts)
+                    if w > 10 and h > 10:
+                        self.callback(x, y, w, h)
+                    return True
+            # returncode != 0 means user cancelled (Escape)
+            return True
+        except FileNotFoundError:
+            # slurp not installed — fall back to GTK overlay
+            return False
+        except subprocess.TimeoutExpired:
+            return True
+        except (ValueError, OSError) as e:
+            logging.warning("slurp failed: %s", e)
+            return False
+
+    def _init_gtk_overlay(self) -> None:
+        """Initialize the GTK transparent overlay for region selection."""
         self.start_x = 0
         self.start_y = 0
         self.end_x = 0
@@ -1314,7 +1361,7 @@ class MainWindow:
         primary_buttons = [
             (
                 "edit-select-all-symbolic",
-                _("Selection (Ctrl+Shift+R)"),
+                _("Region Capture (Super+Shift+S)"),
                 self._on_region,
                 0,
                 0,
@@ -1707,19 +1754,19 @@ class MainWindow:
         script_path = os.path.abspath(sys.argv[0])
 
         self.hotkey_manager.register_hotkey(
-            cfg.get("hotkey_fullscreen", "<Control><Shift>F"),
+            cfg.get("hotkey_fullscreen", "<Super>Print"),
             self._on_fullscreen,
             f"python3 {script_path} --fullscreen --no-edit",
             hotkey_id="fullscreen",
         )
         self.hotkey_manager.register_hotkey(
-            cfg.get("hotkey_region", "<Control><Shift>R"),
+            cfg.get("hotkey_region", "<Super><Shift>S"),
             self._on_region,
             f"python3 {script_path} --region --no-edit",
             hotkey_id="region",
         )
         self.hotkey_manager.register_hotkey(
-            cfg.get("hotkey_window", "<Control><Shift>W"),
+            cfg.get("hotkey_window", "<Super><Shift>W"),
             self._on_window,
             f"python3 {script_path} --window --no-edit",
             hotkey_id="window",

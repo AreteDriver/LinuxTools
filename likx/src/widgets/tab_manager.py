@@ -105,9 +105,7 @@ class TabManager:
 
         # Create drawing area for this tab
         drawing_area = Gtk.DrawingArea()
-        drawing_area.set_size_request(
-            result.pixbuf.get_width(), result.pixbuf.get_height()
-        )
+        drawing_area.set_size_request(result.pixbuf.get_width(), result.pixbuf.get_height())
 
         # Connect events via callback
         self._connect_drawing_area_events(drawing_area)

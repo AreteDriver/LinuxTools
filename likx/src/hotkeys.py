@@ -1,5 +1,6 @@
 """Global keyboard shortcuts for LikX."""
 
+import logging
 import os
 import subprocess
 from typing import Callable, Dict, List, Tuple
@@ -93,23 +94,26 @@ class HotkeyManager:
                             self.GNOME_SCHEMA,
                             "custom-keybindings",
                             new_value,
-                        ]
+                        ],
+                        timeout=5,
                     )
 
                 # Set the binding properties
                 binding_schema = f"{self.GNOME_SCHEMA}.custom-keybinding:{custom_path}"
                 name = f"LikX {hotkey_id.replace('-', ' ').title()}"
 
-                subprocess.run(["gsettings", "set", binding_schema, "name", name])
-                subprocess.run(["gsettings", "set", binding_schema, "command", command])
-                subprocess.run(["gsettings", "set", binding_schema, "binding", key_combo])
+                subprocess.run(["gsettings", "set", binding_schema, "name", name], timeout=5)
+                subprocess.run(["gsettings", "set", binding_schema, "command", command], timeout=5)
+                subprocess.run(
+                    ["gsettings", "set", binding_schema, "binding", key_combo], timeout=5
+                )
 
                 if custom_path not in self._registered_paths:
                     self._registered_paths.append(custom_path)
 
                 return True
         except Exception as e:
-            print(f"Failed to register GNOME hotkey '{hotkey_id}': {e}")
+            logging.warning("Failed to register GNOME hotkey '%s': %s", hotkey_id, e)
 
         return False
 
@@ -140,7 +144,7 @@ class HotkeyManager:
                 )
                 return result.returncode == 0
             except Exception as e:
-                print(f"Failed to update hotkey '{hotkey_id}': {e}")
+                logging.warning("Failed to update hotkey '%s': %s", hotkey_id, e)
                 return False
         return False
 
@@ -182,4 +186,4 @@ class HotkeyManager:
                 self.hotkeys.clear()
 
             except Exception as e:
-                print(f"Failed to unregister hotkeys: {e}")
+                logging.warning("Failed to unregister hotkeys: %s", e)
