@@ -1,0 +1,142 @@
+name: "G13: CI"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'g13/**'
+      - '.github/workflows/g13-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'g13/**'
+      - '.github/workflows/g13-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: g13
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint with ruff
+        run: ruff check src/ tests/
+
+      - name: Check formatting
+        run: ruff format --check src/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Ubuntu test script (coverage enabled)
+        run: ./scripts/test_ubuntu.sh --system-deps
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v5
+        with:
+          file: g13/coverage.xml
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  typecheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libhidapi-dev libhidapi-hidraw0 libusb-1.0-0-dev
+
+      - name: Install package and mypy
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install mypy types-PyYAML
+
+      - name: Type check
+        run: mypy src/g13_linux --ignore-missing-imports --no-error-summary
+        continue-on-error: true
+
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Security audit
+        run: pip-audit -r requirements.txt
+        continue-on-error: true
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: g13-dist
+          path: g13/dist/
