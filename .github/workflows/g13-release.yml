@@ -6,6 +6,9 @@ on:
       - 'g13-v*'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 defaults:
   run:
     working-directory: g13
