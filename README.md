@@ -24,21 +24,8 @@ cd likx/ && ./setup.sh
 # Or AppImage: ./LikX-3.30.0-x86_64.AppImage
 ```
 
-### [G13](g13/) — Logitech G13 Linux Driver
-> Native userspace driver for the Logitech G13 Advanced Gameboard. Zero Linux support from Logitech since forever.
-
-- 22 programmable G-keys with per-app profile switching
-- RGB backlight control + 160×43 LCD display
-- Macro recording with timing
-- Web GUI (React + FastAPI) with live WebSocket device state
-- Analog joystick with configurable dead zones
-- **v1.5.6** · 1209 tests · Python
-
-```bash
-cd g13/ && pip install -e .
-sudo cp udev/99-g13.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
-```
+### G13 — Logitech G13 Linux Driver
+> Moved out of this monorepo into its own repository: **[AreteDriver/G13_Linux](https://github.com/AreteDriver/G13_Linux)** ([PyPI](https://pypi.org/project/g13-linux/)).
 
 ### [SteamProtonHelper](steam-proton-helper/) — Steam/Proton Diagnostics
 > Diagnoses and fixes Steam/Proton gaming issues on Linux. CLI + GUI modes.
@@ -87,10 +74,6 @@ cd razer-controls/ && pip install -e .
 
 ```
 LinuxTools/
-├── g13/                     # Logitech G13 gameboard driver
-│   ├── src/g13_linux/       #   Core: device, hardware, input, lcd, led
-│   ├── gui-web/             #   Web GUI: React + FastAPI + WebSocket
-│   └── configs/profiles/    #   JSON profiles (EVE, DevOps, OBS)
 ├── likx/                    # Screenshot + OCR tool
 │   ├── src/                 #   GTK3 capture, editor, uploader, clipboard
 │   └── resources/           #   Icons, assets
@@ -101,17 +84,6 @@ LinuxTools/
 ```
 
 Each tool has its own `pyproject.toml` (or `Cargo.toml`), test suite, CI workflow, and can be packaged independently as PyPI, AppImage, .deb, Flatpak, or Snap.
-
----
-
-## Documentation
-
-| Guide | Tool |
-|-------|------|
-| [Installation Guide](g13/INSTALLATION.md) | G13 — udev rules, pip install, systemd |
-| [Button Mapping Guide](g13/BUTTON_MAPPING_GUIDE.md) | G13 — key assignment reference |
-| [Background Image Setup](g13/BACKGROUND_IMAGE_SETUP.md) | G13 — LCD display customization |
-| [Troubleshooting](g13/TROUBLESHOOTING.md) | G13 — common issues and fixes |
 
 ---
 

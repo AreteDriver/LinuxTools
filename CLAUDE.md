@@ -6,9 +6,11 @@
 
 ## What Is LinuxTools?
 
-A monorepo consolidating four standalone Linux utilities that solve real desktop problems with no existing good solutions. Each tool is independent but shares a common author, packaging approach, and quality standard.
+A monorepo consolidating standalone Linux utilities that solve real desktop problems with no existing good solutions. Each tool is independent but shares a common author, packaging approach, and quality standard.
 
 **This is a monorepo.** Each tool lives in its own directory with its own dependencies and can be built/installed independently.
+
+> **G13 driver lives elsewhere.** The Logitech G13 driver previously lived at `g13/` in this monorepo but was extracted to its own repository at [AreteDriver/G13_Linux](https://github.com/AreteDriver/G13_Linux) on 2026-05-03 to consolidate parallel forks. Do not re-add it here.
 
 ---
 
@@ -34,18 +36,6 @@ LinuxTools/
 │   ├── resources/             ← Icons, assets
 │   ├── setup.sh
 │   └── build-appimage.sh      ← AppImage packaging
-├── g13/                       ← Logitech G13 Linux driver
-│   ├── README.md
-│   ├── pyproject.toml
-│   ├── src/
-│   │   ├── core/
-│   │   │   ├── g13_driver.py  ← Hardware abstraction (evdev + hidraw)
-│   │   │   ├── profiles.py    ← JSON profile management
-│   │   │   └── actions.py     ← Action execution engine
-│   │   └── gui/               ← Qt6 interface (in progress)
-│   ├── configs/profiles/      ← Example profiles (EVE, DevOps, OBS)
-│   ├── udev/                  ← 99-g13.rules for non-root access
-│   └── systemd/               ← Optional daemon service
 ├── razer/                     ← Razer peripheral controls
 │   ├── README.md
 │   ├── pyproject.toml
@@ -75,25 +65,6 @@ LinuxTools/
 **Display support:** X11 + Wayland (GNOME, KDE, Sway)
 **Features:** Region/window/fullscreen capture, annotations, pin-to-desktop, history browser, effects (shadow, border, rounded corners)
 **Packaging gap:** No AppImage, Flatpak, or distro packages yet. This is the #1 priority for adoption.
-
-### g13/ — Logitech G13 Linux Driver
-**Status:** Alpha (core working, GUI in progress)
-**What:** Native Linux userspace driver for Logitech G13 Advanced Gameboard. 25 programmable keys, RGB backlight, analog stick, LCD display.
-**Language:** Python
-**Dependencies:** evdev, hidraw, xdotool, Qt6 (for GUI)
-**Architecture:**
-```
-Qt6 GUI Layer (profile editor, visual mapper, live monitoring)
-    ↓
-Application Logic (profiles, actions, auto-switch)
-    ↓
-Hardware Interface (evdev for keys, hidraw for RGB/LCD, xdotool for input sim)
-    ↓
-G13 Hardware (/dev/input)
-```
-**Profile system:** JSON-based with hot-swapping. Example profiles for EVE Online, DevOps, OBS streaming.
-**Why this exists:** Logitech provides zero Linux support. Existing solutions (g13d) are unmaintained since 2016.
-**udev rules:** Non-root device access via plugdev group.
 
 ### razer/ — Razer Controls
 **Status:** Functional
@@ -127,14 +98,14 @@ G13 Hardware (/dev/input)
 
 ## Naming History
 
-This monorepo consolidates four previously separate repositories:
+This monorepo consolidates previously separate repositories:
 
 | Current Path | Previous Repo Name |
 |-------------|-------------------|
 | steam-proton/ | SteamProtonHelper |
 | likx/ | LikX (or Linux_SnipTool) |
-| g13/ | G13_Linux (or G13LogitechOPS) |
 | razer/ | Razer_Controls |
+| *(extracted)* | G13_Linux — moved back to its own repo at [AreteDriver/G13_Linux](https://github.com/AreteDriver/G13_Linux) on 2026-05-03 |
 
 Old repo names may appear in commit history, issues, or external references.
 
@@ -143,10 +114,9 @@ Old repo names may appear in commit history, issues, or external references.
 ## Development Priorities
 
 1. **LikX AppImage build** — biggest impact for adoption. OCR is the killer feature but nobody can install it easily.
-2. **G13 GUI completion** — Qt6 visual mapper and profile editor. Core driver works.
-3. **Razer polish** — ensure pyproject.toml and CLI entry points are clean.
-4. **steam-proton maintenance** — already production-grade, just keep it current.
-5. **Top-level README** — portfolio showcase page linking all four tools with screenshots/GIFs.
+2. **Razer polish** — ensure pyproject.toml and CLI entry points are clean.
+3. **steam-proton maintenance** — already production-grade, just keep it current.
+4. **Top-level README** — portfolio showcase page linking the tools with screenshots/GIFs.
 
 ---
 
@@ -164,11 +134,8 @@ pip install -e .
 cd likx/
 ./setup.sh
 
-# G13 (from source)
-cd g13/
-pip install -e .
-sudo cp udev/99-g13.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
+# G13 — moved to standalone repo, install from PyPI:
+pip install g13-linux
 
 # Razer (from source)
 cd razer/
@@ -203,4 +170,4 @@ steam-proton/ has GitHub Actions for testing and PyPI publishing. The other tool
 | Project | Relationship |
 |---------|-------------|
 | Animus | Personal AI exocortex. Could eventually provide voice/AI interface to these tools. |
-| EVE_Collection | G13 profiles for EVE Online live in g13/configs/profiles/. |
+| [G13_Linux](https://github.com/AreteDriver/G13_Linux) | Logitech G13 driver — extracted from this monorepo on 2026-05-03. EVE Online profiles now live there. |
