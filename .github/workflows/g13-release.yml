@@ -104,17 +104,21 @@ jobs:
           fi
 
       - name: Publish to PyPI
+        id: publish_pypi
         uses: pypa/gh-action-pypi-publish@release/v1
+        continue-on-error: true
         with:
           packages-dir: g13/dist/
 
       - name: Download AppImage artifact
+        if: always()
         uses: actions/download-artifact@v4
         with:
           name: g13-appimage
           path: g13/dist/
 
       - name: Create GitHub Release
+        if: always()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: g13-v${{ steps.get_version.outputs.VERSION }}
@@ -148,3 +152,9 @@ jobs:
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report PyPI publish status
+        if: steps.publish_pypi.outcome != 'success'
+        run: |
+          echo "::warning::PyPI publish was skipped or failed. Check trusted publisher configuration for this workflow path:"
+          echo "::warning::.github/workflows/g13-release.yml"
