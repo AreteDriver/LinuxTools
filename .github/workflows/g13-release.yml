@@ -19,10 +19,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -35,10 +35,10 @@ jobs:
       contents: read
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -56,7 +56,7 @@ jobs:
           ./packaging/appimage/build-appimage.sh
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: g13-appimage
           path: g13/dist/*.AppImage
@@ -72,10 +72,10 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -115,14 +115,14 @@ jobs:
 
       - name: Download AppImage artifact
         if: always()
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: g13-appimage
           path: g13/dist/
 
       - name: Create GitHub Release
         if: always()
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: g13-v${{ steps.get_version.outputs.VERSION }}
           files: |
