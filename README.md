@@ -94,6 +94,10 @@ Each tool has its own `pyproject.toml` (or `Cargo.toml`), test suite, CI workflo
 3. **Packaging matters.** PyPI, AppImage, .deb, Flatpak — meet users where they are.
 4. **Solve real problems.** Every tool exists because the alternative is broken or missing.
 
+## Community
+
+[Discord](https://discord.gg/fdzQkrt8) — Join the community
+
 ## License
 
 MIT
